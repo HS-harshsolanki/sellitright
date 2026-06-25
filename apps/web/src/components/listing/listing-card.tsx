@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { Camera, ChevronLeft, ChevronRight, Heart, ShieldCheck } from 'lucide-react'
+import { Bed, Camera, ChevronLeft, ChevronRight, Heart, Maximize2, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { formatPrice, formatBHK, formatArea } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -71,6 +71,7 @@ export function ListingCard({
 
         {/* ── Image area ──────────────────────────────────────────────────────── */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[var(--color-muted)]">
+
           {images[currentImage] && (
             <Image
               src={images[currentImage].url}
@@ -150,24 +151,62 @@ export function ListingCard({
           )}
         </div>
 
+        {/* ── Status + action row — below image, never overlaid ───────────────── */}
+        <div className="mt-3 px-1 flex items-center justify-between">
+          {/* "For sale" availability signal */}
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-muted-foreground)]">
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0"
+              style={{ background: 'var(--color-accent)' }}
+              aria-hidden="true"
+            />
+            For sale
+          </span>
+
+          {/* Heart — on white background, never lost in image texture */}
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsFavorited((f) => !f) }}
+            aria-label={isFavorited ? 'Remove from favourites' : 'Save to favourites'}
+            aria-pressed={isFavorited}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] bg-white transition-all duration-200 hover:border-[var(--color-accent)] hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+          >
+            <Heart
+              className={cn(
+                'h-3.5 w-3.5 transition-colors duration-200',
+                isFavorited ? 'text-[var(--color-accent)]' : 'text-gray-500',
+              )}
+              style={isFavorited ? { fill: 'var(--color-accent)' } : undefined}
+            />
+          </button>
+        </div>
+
         {/* ── Content area ────────────────────────────────────────────────────── */}
-        <div className="mt-3.5 px-1">
+        <div className="mt-2 px-1">
 
           {/* Location — primary identity, deserves prominence */}
           <p className="text-[15px] font-semibold leading-snug text-[var(--color-foreground)] truncate">
             {locality}, {city}
           </p>
 
-          {/* Specs — secondary, supporting info */}
-          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-            {formatBHK(bhkType)} · {formatArea(builtUpArea)}
-          </p>
+          {/* Specs with icons — scanned 60k× faster than text-only */}
+          <div className="mt-1.5 flex items-center gap-2 text-sm text-[var(--color-muted-foreground)]">
+            <span className="inline-flex items-center gap-1">
+              <Bed className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+              {formatBHK(bhkType)}
+            </span>
+            <span className="text-[var(--color-border)]" aria-hidden="true">|</span>
+            <span className="inline-flex items-center gap-1">
+              <Maximize2 className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+              {formatArea(builtUpArea)}
+            </span>
+          </div>
 
           {/* Divider — visual breathing room before price */}
           <div className="mt-3 mb-2.5 h-px bg-[var(--color-border)]" aria-hidden="true" />
 
           {/* Price — the decision-maker, must command the eye */}
-          <p className="text-xl font-bold tracking-tight text-[var(--color-foreground)]">
+          <p className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
             {formatPrice(price)}
           </p>
 
@@ -183,23 +222,6 @@ export function ListingCard({
 
         </div>
       </Link>
-
-      {/* ── Heart button — overlaps image/card boundary ──────────────────────── */}
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setIsFavorited((f) => !f) }}
-        aria-label={isFavorited ? 'Remove from favourites' : 'Save to favourites'}
-        aria-pressed={isFavorited}
-        className="absolute top-5 right-5 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 backdrop-blur-sm shadow-sm transition-all duration-200 hover:bg-white hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-      >
-        <Heart
-          className={cn(
-            'h-4 w-4 transition-colors duration-200',
-            isFavorited ? 'text-[var(--color-accent)]' : 'text-gray-600',
-          )}
-          style={isFavorited ? { fill: 'var(--color-accent)' } : undefined}
-        />
-      </button>
     </div>
   )
 }
