@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { getListingById } from '@/lib/mock-data'
 import { formatPrice, formatBHK, formatArea, formatFloor } from '@/lib/format'
-import { auth } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
 import { ListingGallery } from '@/components/listing/listing-gallery'
 import { PropertyHighlights } from '@/components/listing/property-highlights'
 import { ContactSeller } from '@/components/listing/contact-seller'
@@ -51,8 +51,9 @@ export default async function ListingPage({ params }: ListingPageProps) {
   const listing = getListingById(id)
   if (!listing) notFound()
 
-  const session = await auth()
-  const isAuthenticated = !!session?.user
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isAuthenticated = !!user
 
   const priceStr = formatPrice(listing.price)
   const bhk = formatBHK(listing.bhkType)

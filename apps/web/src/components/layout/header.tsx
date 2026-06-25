@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession, signOut } from 'next-auth/react'
+import { useAuth } from '@/lib/supabase/auth-context'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import {
   Menu,
@@ -16,8 +16,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { HeaderSearch } from '@/components/layout/header-search'
 import { cn } from '@/lib/utils'
 
-// ─── Animation variants (Framer-compatible, but used as plain CSS here) ───────
-
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 
 function Logo() {
@@ -27,11 +25,9 @@ function Logo() {
       className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] rounded"
       aria-label="SellItRight home"
     >
-      {/* Mobile: abbreviated mark */}
       <span className="block text-lg font-bold tracking-tight text-[var(--color-primary)] md:hidden">
         SIR
       </span>
-      {/* Desktop: full wordmark */}
       <span className="hidden md:block text-xl font-bold tracking-tight leading-none">
         <span className="text-[var(--color-primary)]">Sell</span>
         <span className="text-[var(--color-foreground)]">ItRight</span>
@@ -40,48 +36,41 @@ function Logo() {
   )
 }
 
-// ─── Search fallback (matches input height to avoid layout shift) ──────────────
-
 function SearchFallback() {
   return (
     <div className="relative flex-1 max-w-md h-10 sm:h-11 rounded-full bg-[var(--color-muted)] border border-[var(--color-border)]" />
   )
 }
 
-// ─── User dropdown menu (desktop) ─────────────────────────────────────────────
+// ─── User dropdown (desktop) ──────────────────────────────────────────────────
 
 interface UserDropdownProps {
-  session: ReturnType<typeof useSession>['data']
+  name: string | null
+  email: string | null
+  onSignOut: () => void
 }
 
-function UserDropdown({ session }: UserDropdownProps) {
+function UserDropdown({ name, email, onSignOut }: UserDropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [open])
 
-  // First-letter avatar when logged in
-  const initials = session?.user?.name?.[0]?.toUpperCase() ?? null
+  const initials = name?.[0]?.toUpperCase() ?? null
 
   return (
     <div ref={ref} className="relative">
@@ -111,25 +100,21 @@ function UserDropdown({ session }: UserDropdownProps) {
         </span>
       </button>
 
-      {/* Dropdown panel — only renders when logged in */}
-      {open && session && (
+      {open && (
         <div
           role="menu"
           aria-label="Account options"
           className={cn(
             'absolute right-0 top-[calc(100%+8px)] z-[100] w-56',
-            'rounded-xl border border-[var(--color-border)] bg-white shadow-xl',
-            'overflow-hidden',
+            'rounded-xl border border-[var(--color-border)] bg-white shadow-xl overflow-hidden',
           )}
         >
           <div className="px-4 py-3 border-b border-[var(--color-border)]">
             <p className="text-sm font-semibold text-[var(--color-foreground)] truncate">
-              {session.user?.name ?? 'My Account'}
+              {name ?? 'My Account'}
             </p>
-            {session.user?.email && (
-              <p className="text-xs text-[var(--color-muted-foreground)] truncate mt-0.5">
-                {session.user.email}
-              </p>
+            {email && (
+              <p className="text-xs text-[var(--color-muted-foreground)] truncate mt-0.5">{email}</p>
             )}
           </div>
 
@@ -153,13 +138,13 @@ function UserDropdown({ session }: UserDropdownProps) {
               Post Property
             </Link>
             <Link
-              href="/dashboard"
+              href="/profile"
               role="menuitem"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
             >
               <User className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
-              My Listings
+              My Profile
             </Link>
           </div>
 
@@ -167,10 +152,7 @@ function UserDropdown({ session }: UserDropdownProps) {
             <button
               type="button"
               role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                signOut({ callbackUrl: '/' })
-              }}
+              onClick={() => { setOpen(false); onSignOut() }}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50"
             >
               <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -186,11 +168,13 @@ function UserDropdown({ session }: UserDropdownProps) {
 // ─── Mobile Sheet ─────────────────────────────────────────────────────────────
 
 interface MobileSheetProps {
-  session: ReturnType<typeof useSession>['data']
+  name: string | null
+  isLoggedIn: boolean
   pathname: string
+  onSignOut: () => void
 }
 
-function MobileSheet({ session, pathname }: MobileSheetProps) {
+function MobileSheet({ name, isLoggedIn, pathname, onSignOut }: MobileSheetProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -209,9 +193,9 @@ function MobileSheet({ session, pathname }: MobileSheetProps) {
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-muted)]"
             aria-hidden="true"
           >
-            {session?.user?.name?.[0]?.toUpperCase() ? (
+            {name?.[0]?.toUpperCase() ? (
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-primary)] text-xs font-semibold text-white">
-                {session.user.name[0].toUpperCase()}
+                {name[0].toUpperCase()}
               </span>
             ) : (
               <User className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
@@ -229,7 +213,6 @@ function MobileSheet({ session, pathname }: MobileSheetProps) {
         </SheetHeader>
 
         <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
-          {/* Post Property — primary CTA */}
           <Link
             href="/sell"
             className="flex items-center gap-2.5 rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
@@ -240,7 +223,7 @@ function MobileSheet({ session, pathname }: MobileSheetProps) {
 
           <div className="my-2 border-t border-[var(--color-border)]" />
 
-          {session ? (
+          {isLoggedIn ? (
             <>
               <Link
                 href="/dashboard"
@@ -255,23 +238,23 @@ function MobileSheet({ session, pathname }: MobileSheetProps) {
                 Dashboard
               </Link>
               <Link
-                href="/my-listings"
+                href="/profile"
                 className={cn(
                   'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
-                  pathname.startsWith('/my-listings')
+                  pathname.startsWith('/profile')
                     ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
                     : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
                 )}
               >
                 <User className="h-4 w-4 shrink-0" aria-hidden="true" />
-                My Listings
+                My Profile
               </Link>
 
               <div className="my-2 border-t border-[var(--color-border)]" />
 
               <button
                 type="button"
-                onClick={() => signOut({ callbackUrl: '/' })}
+                onClick={onSignOut}
                 className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
               >
                 <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -305,18 +288,19 @@ function MobileSheet({ session, pathname }: MobileSheetProps) {
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 export function Header() {
-  const { data: session } = useSession()
+  const { user, loading, signOut } = useAuth()
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
 
-  // Scroll shadow — only appears after scrollY > 0
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0)
     window.addEventListener('scroll', onScroll, { passive: true })
-    // Initialise in case page loads mid-scroll
     onScroll()
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  const name = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
+  const email = user?.email ?? null
 
   return (
     <header
@@ -328,21 +312,18 @@ export function Header() {
     >
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:h-16 sm:gap-4 sm:px-6">
 
-        {/* ── Zone 1: Logo ──────────────────────────────────────────── */}
+        {/* Zone 1: Logo */}
         <Logo />
 
-        {/* ── Zone 2: Search pill (center, fills available space) ───── */}
+        {/* Zone 2: Search */}
         <div className="flex flex-1 justify-center">
           <Suspense fallback={<SearchFallback />}>
             <HeaderSearch className="max-w-md" />
           </Suspense>
         </div>
 
-        {/* ── Zone 3: Right actions ─────────────────────────────────── */}
-
-        {/* Desktop only */}
+        {/* Zone 3: Right actions — desktop */}
         <div className="hidden md:flex shrink-0 items-center gap-3">
-          {/* Post Property — PRIMARY CTA, filled button, highest visual weight */}
           <Link
             href="/sell"
             className={cn(
@@ -354,8 +335,11 @@ export function Header() {
             Post Property
           </Link>
 
-          {session ? (
-            <UserDropdown session={session} />
+          {/* Loading skeleton to avoid layout shift */}
+          {loading ? (
+            <div className="h-9 w-9 rounded-full bg-[var(--color-muted)] animate-pulse" aria-hidden="true" />
+          ) : user ? (
+            <UserDropdown name={name} email={email} onSignOut={signOut} />
           ) : (
             <Link
               href="/login"
@@ -370,9 +354,14 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile only — compact pill trigger + bottom sheet */}
+        {/* Mobile only */}
         <div className="shrink-0 md:hidden">
-          <MobileSheet session={session} pathname={pathname} />
+          <MobileSheet
+            name={name}
+            isLoggedIn={!!user}
+            pathname={pathname}
+            onSignOut={signOut}
+          />
         </div>
 
       </div>
