@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Heart, ShieldCheck } from 'lucide-react'
+import { Camera, ChevronLeft, ChevronRight, Heart, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { formatPrice, formatBHK, formatArea } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -66,29 +66,45 @@ export function ListingCard({
   const recency = recencyText(days)
 
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-white hover:shadow-lg transition-shadow duration-300">
-      <Link href={`/listing/${id}`} className="block">
-        {/* Image */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-muted)]">
+    <div className="group relative rounded-2xl bg-white border border-[var(--color-border)] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-transparent">
+      <Link href={`/listing/${id}`} className="block p-3">
+
+        {/* ── Image area ──────────────────────────────────────────────────────── */}
+        <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[var(--color-muted)]">
           {images[currentImage] && (
             <Image
               src={images[currentImage].url}
               alt={images[currentImage].caption ?? title}
               fill
               loading="lazy"
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
           )}
 
-          {/* Arrows — desktop hover only */}
+          {/* Gradient fade — bottom — anchors overlaid badges */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.38) 0%, transparent 100%)' }}
+            aria-hidden="true"
+          />
+
+          {/* Photo count badge — top-left */}
+          {total > 0 && (
+            <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-sm px-2.5 py-1 text-xs font-medium text-white">
+              <Camera className="h-3 w-3" aria-hidden="true" />
+              {total}
+            </span>
+          )}
+
+          {/* Arrow nav — desktop hover */}
           {total > 1 && (
             <>
               <button
                 type="button"
                 onClick={prev}
                 aria-label="Previous photo"
-                className="absolute left-2 top-1/2 -translate-y-1/2 hidden h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none sm:flex"
+                className="absolute left-2 top-1/2 -translate-y-1/2 hidden h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none sm:flex"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -96,16 +112,16 @@ export function ListingCard({
                 type="button"
                 onClick={next}
                 aria-label="Next photo"
-                className="absolute right-2 top-1/2 -translate-y-1/2 hidden h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none sm:flex"
+                className="absolute right-2 top-1/2 -translate-y-1/2 hidden h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none sm:flex"
               >
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>
             </>
           )}
 
-          {/* Dots */}
+          {/* Image dots */}
           {total > 1 && (
-            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1">
               {Array.from({ length: total }).map((_, idx) => (
                 <button
                   key={idx}
@@ -116,8 +132,8 @@ export function ListingCard({
                 >
                   <span
                     className={cn(
-                      'block h-1.5 rounded-full transition-all',
-                      idx === currentImage ? 'w-3.5 bg-white' : 'w-1.5 bg-white/60',
+                      'block h-1.5 rounded-full transition-all duration-200',
+                      idx === currentImage ? 'w-3.5 bg-white' : 'w-1.5 bg-white/55',
                     )}
                   />
                 </button>
@@ -125,53 +141,60 @@ export function ListingCard({
             </div>
           )}
 
-          {/* Single badge: Verified (only trust signal that matters at browse level) */}
+          {/* Verified badge — bottom-left, above gradient */}
           {isVerified && (
-            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-xs font-medium text-gray-900 shadow-sm backdrop-blur-sm">
+            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-sm px-2.5 py-1 text-xs font-medium text-gray-900 shadow-sm">
               <ShieldCheck className="h-3 w-3 text-emerald-600" aria-hidden="true" />
               Verified
             </span>
           )}
         </div>
 
-        {/* Content — 5 info units: location, specs, price, differentiator, recency */}
-        <div className="px-1 pt-3 pb-2">
-          {/* Location */}
-          <p className="text-sm font-medium text-[var(--color-foreground)]">
+        {/* ── Content area ────────────────────────────────────────────────────── */}
+        <div className="mt-3.5 px-1">
+
+          {/* Location — primary identity, deserves prominence */}
+          <p className="text-[15px] font-semibold leading-snug text-[var(--color-foreground)] truncate">
             {locality}, {city}
           </p>
 
-          {/* Key stats */}
-          <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
+          {/* Specs — secondary, supporting info */}
+          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
             {formatBHK(bhkType)} · {formatArea(builtUpArea)}
           </p>
 
-          {/* Price + platform differentiator */}
-          <p className="mt-1.5 text-base font-semibold text-[var(--color-foreground)]">
+          {/* Divider — visual breathing room before price */}
+          <div className="mt-3 mb-2.5 h-px bg-[var(--color-border)]" aria-hidden="true" />
+
+          {/* Price — the decision-maker, must command the eye */}
+          <p className="text-xl font-bold tracking-tight text-[var(--color-foreground)]">
             {formatPrice(price)}
-            <span className="ml-1.5 text-xs font-normal text-[var(--color-muted-foreground)]">
-              · No brokerage
-            </span>
           </p>
 
-          {/* Recency — only when fresh (< 7 days). Silence is fine for older listings. */}
-          {recency && (
-            <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">{recency}</p>
-          )}
+          {/* Trust signal + recency — small, de-emphasised, still present */}
+          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+            <span className="text-emerald-600 font-medium">No brokerage</span>
+            {recency && (
+              <span className="text-[var(--color-muted-foreground)]">
+                {' '}· {recency}
+              </span>
+            )}
+          </p>
+
         </div>
       </Link>
 
-      {/* Heart */}
+      {/* ── Heart button — overlaps image/card boundary ──────────────────────── */}
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setIsFavorited((f) => !f) }}
         aria-label={isFavorited ? 'Remove from favourites' : 'Save to favourites'}
         aria-pressed={isFavorited}
-        className="absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+        className="absolute top-5 right-5 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 backdrop-blur-sm shadow-sm transition-all duration-200 hover:bg-white hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
       >
         <Heart
           className={cn(
-            'h-4 w-4 transition-colors',
+            'h-4 w-4 transition-colors duration-200',
             isFavorited ? 'text-[var(--color-accent)]' : 'text-gray-600',
           )}
           style={isFavorited ? { fill: 'var(--color-accent)' } : undefined}
