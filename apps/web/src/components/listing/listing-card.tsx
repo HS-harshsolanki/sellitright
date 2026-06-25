@@ -70,7 +70,7 @@ export function ListingCard({
       <Link href={`/listing/${id}`} className="block p-3">
 
         {/* ── Image area ──────────────────────────────────────────────────────── */}
-        <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[var(--color-muted)]">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[var(--color-muted)]">
 
           {images[currentImage] && (
             <Image
@@ -151,35 +151,22 @@ export function ListingCard({
           )}
         </div>
 
-        {/* ── Status + action row — below image, never overlaid ───────────────── */}
-        <div className="mt-3 px-1 flex items-center justify-between">
-          {/* "For sale" availability signal */}
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-muted-foreground)]">
-            <span
-              className="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0"
-              style={{ background: 'var(--color-accent)' }}
-              aria-hidden="true"
-            />
-            For sale
-          </span>
-
-          {/* Heart — on white background, never lost in image texture */}
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsFavorited((f) => !f) }}
-            aria-label={isFavorited ? 'Remove from favourites' : 'Save to favourites'}
-            aria-pressed={isFavorited}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] bg-white transition-all duration-200 hover:border-[var(--color-accent)] hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-          >
-            <Heart
-              className={cn(
-                'h-3.5 w-3.5 transition-colors duration-200',
-                isFavorited ? 'text-[var(--color-accent)]' : 'text-gray-500',
-              )}
-              style={isFavorited ? { fill: 'var(--color-accent)' } : undefined}
-            />
-          </button>
-        </div>
+        {/* ── Heart — top-right of image ──────────────────────────────────────── */}
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsFavorited((f) => !f) }}
+          aria-label={isFavorited ? 'Remove from favourites' : 'Save to favourites'}
+          aria-pressed={isFavorited}
+          className="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-sm transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+        >
+          <Heart
+            className={cn(
+              'h-3.5 w-3.5 transition-colors duration-200',
+              isFavorited ? 'text-[var(--color-accent)]' : 'text-gray-600',
+            )}
+            style={isFavorited ? { fill: 'var(--color-accent)' } : undefined}
+          />
+        </button>
 
         {/* ── Content area ────────────────────────────────────────────────────── */}
         <div className="mt-2 px-1">
@@ -210,15 +197,10 @@ export function ListingCard({
             {formatPrice(price)}
           </p>
 
-          {/* Trust signal + recency — small, de-emphasised, still present */}
-          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-            <span className="text-emerald-600 font-medium">No brokerage</span>
-            {recency && (
-              <span className="text-[var(--color-muted-foreground)]">
-                {' '}· {recency}
-              </span>
-            )}
-          </p>
+          {/* Recency — only when fresh, otherwise silence */}
+          {recency && (
+            <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">{recency}</p>
+          )}
 
         </div>
       </Link>
