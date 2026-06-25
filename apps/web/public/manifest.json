@@ -1,0 +1,52 @@
+{
+  "name": "SellItRight",
+  "short_name": "SellItRight",
+  "description": "Browse verified flat listings across India. Buy directly from owners, no brokerage.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563EB",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-IN",
+  "categories": ["real estate", "property", "housing"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/browse.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Browse listings"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Listings",
+      "short_name": "Browse",
+      "description": "Search and browse property listings",
+      "url": "/",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sell Your Property",
+      "short_name": "Sell",
+      "description": "List your property for sale",
+      "url": "/sell",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

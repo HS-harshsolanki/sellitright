@@ -1,0 +1,126 @@
+import { z } from 'zod'
+
+// ---------------------------------------------------------------------------
+// Enums — mirror Prisma schema so we get runtime validation without importing
+// the Prisma client on the edge / in shared code.
+// ---------------------------------------------------------------------------
+
+export const PropertyTypeEnum = z.enum([
+  'APARTMENT',
+  'VILLA',
+  'PLOT',
+  'INDEPENDENT_HOUSE',
+  'PENTHOUSE',
+])
+
+export const BHKTypeEnum = z.enum([
+  'ONE_BHK',
+  'TWO_BHK',
+  'THREE_BHK',
+  'FOUR_BHK',
+  'FIVE_PLUS_BHK',
+])
+
+export const FacingEnum = z.enum([
+  'NORTH',
+  'SOUTH',
+  'EAST',
+  'WEST',
+  'NORTH_EAST',
+  'NORTH_WEST',
+  'SOUTH_EAST',
+  'SOUTH_WEST',
+])
+
+export const FurnishingEnum = z.enum(['FURNISHED', 'SEMI_FURNISHED', 'UNFURNISHED'])
+
+export const ParkingEnum = z.enum(['COVERED', 'OPEN', 'BOTH', 'NONE'])
+
+export const ListingStatusEnum = z.enum(['DRAFT', 'ACTIVE', 'SOLD', 'INACTIVE', 'PENDING_REVIEW'])
+
+// ---------------------------------------------------------------------------
+// Listing create schema
+// ---------------------------------------------------------------------------
+
+export const listingCreateSchema = z.object({
+  title: z
+    .string()
+    .min(10, 'Title must be at least 10 characters')
+    .max(120, 'Title must be under 120 characters'),
+  description: z
+    .string()
+    .min(30, 'Description must be at least 30 characters')
+    .max(2000, 'Description must be under 2000 characters'),
+  // Price stored in paise — pass as number from the frontend, we coerce to bigint in the API
+  price: z
+    .number({ required_error: 'Price is required' })
+    .int('Price must be a whole number')
+    .positive('Price must be positive'),
+  propertyType: PropertyTypeEnum,
+  bhkType: BHKTypeEnum,
+  builtUpArea: z.number().int().positive('Built-up area must be positive'),
+  carpetArea: z.number().int().positive().optional(),
+  floor: z.number().int().min(0).optional(),
+  totalFloors: z.number().int().positive().optional(),
+  facing: FacingEnum.optional(),
+  furnishing: FurnishingEnum,
+  ageOfProperty: z.number().int().min(0).max(100).optional(),
+  bathrooms: z.number().int().min(1).max(10),
+  balconies: z.number().int().min(0).max(10).optional(),
+  parking: ParkingEnum.optional(),
+  address: z.string().min(5).max(300),
+  city: z.string().min(2).max(100),
+  locality: z.string().min(2).max(100),
+  state: z.string().min(2).max(100),
+  pincode: z
+    .string()
+    .regex(/^\d{6}$/, 'Pincode must be exactly 6 digits'),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  amenities: z.array(z.string()).default([]),
+  imageUrls: z.array(z.string().url('Each image must be a valid URL')).max(20).default([]),
+})
+
+export type ListingCreateInput = z.infer<typeof listingCreateSchema>
+
+// ---------------------------------------------------------------------------
+// Listing filter / search schema (query params — all optional)
+// ---------------------------------------------------------------------------
+
+const sortValues = ['price_asc', 'price_desc', 'newest', 'oldest'] as const
+
+export const listingFilterSchema = z.object({
+  city: z.string().optional(),
+  locality: z.string().optional(),
+  bhkType: BHKTypeEnum.optional(),
+  propertyType: PropertyTypeEnum.optional(),
+  furnishing: FurnishingEnum.optional(),
+  minPrice: z.coerce.number().int().nonnegative().optional(),
+  maxPrice: z.coerce.number().int().positive().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(12),
+  sort: z.enum(sortValues).default('newest'),
+})
+
+export type ListingFilterInput = z.infer<typeof listingFilterSchema>
+
+// ---------------------------------------------------------------------------
+// Auth / login schema
+// ---------------------------------------------------------------------------
+
+export const loginSchema = z.union([
+  z.object({
+    type: z.literal('phone'),
+    phone: z
+      .string()
+      .regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
+    otp: z.string().length(6, 'OTP must be 6 digits').optional(),
+  }),
+  z.object({
+    type: z.literal('email'),
+    email: z.string().email('Enter a valid email address'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+  }),
+])
+
+export type LoginInput = z.infer<typeof loginSchema>

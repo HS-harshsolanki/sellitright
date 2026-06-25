@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #222222;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #FF385C;
+  --color-accent-foreground: #ffffff;
+  --color-background: #ffffff;
+  --color-foreground: #222222;
+  --color-muted: #F7F7F7;
+  --color-muted-foreground: #717171;
+  --color-border: #DDDDDD;
+  --color-input: #B0B0B0;
+  --color-ring: #222222;
+  --color-card: #ffffff;
+  --color-card-foreground: #222222;
+  --color-destructive: #C13515;
+  --color-destructive-foreground: #ffffff;
+  --color-secondary: #F7F7F7;
+  --color-secondary-foreground: #222222;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #222222;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+    outline-color: var(--color-ring);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
+@layer utilities {
+  /* Safe-area helpers for iPhone notch / home-indicator */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .pb-safe-0 {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

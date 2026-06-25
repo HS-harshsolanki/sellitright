@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropertyType {
+  APARTMENT
+  VILLA
+  PLOT
+  INDEPENDENT_HOUSE
+  PENTHOUSE
+}
+
+enum BHKType {
+  ONE_BHK
+  TWO_BHK
+  THREE_BHK
+  FOUR_BHK
+  FIVE_PLUS_BHK
+}
+
+enum Facing {
+  NORTH
+  SOUTH
+  EAST
+  WEST
+  NORTH_EAST
+  NORTH_WEST
+  SOUTH_EAST
+  SOUTH_WEST
+}
+
+enum Furnishing {
+  FURNISHED
+  SEMI_FURNISHED
+  UNFURNISHED
+}
+
+enum Parking {
+  COVERED
+  OPEN
+  BOTH
+  NONE
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  INACTIVE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  phone         String?   @unique
+  email         String?   @unique
+  name          String?
+  avatarUrl     String?
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  listings  Listing[]
+  favorites Favorite[]
+  accounts  Account[]
+  sessions  Session[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Listing {
+  id           String       @id @default(cuid())
+  title        String
+  description  String
+  price        BigInt
+  propertyType PropertyType
+  bhkType      BHKType
+  builtUpArea  Int
+  carpetArea   Int?
+  floor        Int?
+  totalFloors  Int?
+  facing       Facing?
+  furnishing   Furnishing
+  ageOfProperty Int?
+  bathrooms    Int
+  balconies    Int?
+  parking      Parking?
+
+  address   String
+  city      String
+  locality  String
+  state     String
+  pincode   String
+  latitude  Float?
+  longitude Float?
+
+  amenities String[]
+
+  status     ListingStatus @default(DRAFT)
+  isVerified Boolean       @default(false)
+  viewCount  Int           @default(0)
+
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  images    ListingImage[]
+  favorites Favorite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([city, locality])
+  @@index([bhkType])
+  @@index([price])
+  @@index([status])
+  @@index([sellerId])
+  @@map("listings")
+}
+
+model ListingImage {
+  id        String  @id @default(cuid())
+  url       String
+  caption   String?
+  order     Int     @default(0)
+  listingId String
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@map("listing_images")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([userId])
+  @@map("favorites")
+}
