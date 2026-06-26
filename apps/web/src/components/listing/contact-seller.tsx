@@ -14,6 +14,8 @@ interface ContactSellerProps {
   isAuthenticated?: boolean
   /** Pre-hydrated from server: buyer already has a pending request */
   hasExistingRequest?: boolean
+  /** Viewer is the seller — hide the contact CTA */
+  isOwner?: boolean
   price?: string
   statsLine?: string
 }
@@ -24,6 +26,7 @@ export function ContactSeller({
   listingTitle,
   isAuthenticated = false,
   hasExistingRequest = false,
+  isOwner = false,
   price,
   statsLine,
 }: ContactSellerProps) {
@@ -90,7 +93,23 @@ export function ContactSeller({
           Contact seller
         </h2>
 
-        {!isAuthenticated ? (
+        {isOwner ? (
+          /* Owner viewing their own listing */
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3 text-center">
+            <p className="text-sm font-medium text-[var(--color-foreground)]">
+              This is your listing
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
+              Manage it from your{' '}
+              <Link
+                href="/dashboard"
+                className="underline underline-offset-2 transition-opacity hover:opacity-70"
+              >
+                Dashboard
+              </Link>
+            </p>
+          </div>
+        ) : !isAuthenticated ? (
           /* Unauthenticated — prompt to sign in */
           <div className="space-y-3">
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3 text-center text-sm text-[var(--color-muted-foreground)]">
@@ -133,16 +152,18 @@ export function ContactSeller({
           </Button>
         )}
 
-        {/* ── Trust signal ── */}
-        <div className="mt-4 flex items-center justify-center gap-1.5">
-          <Clock
-            className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]"
-            aria-hidden="true"
-          />
-          <p className="text-center text-xs text-[var(--color-muted-foreground)]">
-            Usually responds within 1 hour · No brokerage
-          </p>
-        </div>
+        {/* ── Trust signal — hidden for owner ── */}
+        {!isOwner && (
+          <div className="mt-4 flex items-center justify-center gap-1.5">
+            <Clock
+              className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]"
+              aria-hidden="true"
+            />
+            <p className="text-center text-xs text-[var(--color-muted-foreground)]">
+              Usually responds within 1 hour · No brokerage
+            </p>
+          </div>
+        )}
       </section>
 
       <RequestContactModal

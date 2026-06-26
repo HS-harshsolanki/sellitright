@@ -3,9 +3,11 @@ import { test, expect } from '@playwright/test'
 // The /api/listings route runs mapSupabaseListingToMock, so it returns the
 // full MockListing shape (camelCase, images: [{id, url, caption, order}]).
 // Tests that mock this API must return the same shape.
+// Use real mock-data IDs so the listing detail server page can render them
+// (it falls back to getListingById(id) which reads src/lib/mock-data.ts).
 const MOCK_LISTINGS = [
   {
-    id: 'test-listing-001',
+    id: 'listing-001',
     title: '2 BHK Apartment in Bandra West',
     description: 'A beautiful apartment',
     price: 15000000,
@@ -38,7 +40,7 @@ const MOCK_LISTINGS = [
     createdAt: '2024-01-10T00:00:00Z',
   },
   {
-    id: 'test-listing-002',
+    id: 'listing-002',
     title: '3 BHK Villa in Koramangala',
     description: 'Spacious villa',
     price: 25000000,
@@ -146,8 +148,14 @@ test.describe('Listing detail page', () => {
   })
 
   test('should show price on listing detail page', async ({ page }) => {
-    await page.goto('/listing/test-listing-001')
-    await expect(page.getByText(/₹/).first()).toBeVisible({ timeout: 8000 })
+    // Navigate via card click to land on a real listing detail page
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto('/')
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
+    await page.locator('a[href^="/listing/"]').first().click()
+    await expect(page).toHaveURL(/\/listing\//, { timeout: 8000 })
+    // Price element may be in a hidden-on-mobile section; toBeAttached is sufficient
+    await expect(page.getByText(/₹/).first()).toBeAttached({ timeout: 8000 })
   })
 
   test('should show not found page for unknown listing id', async ({ page }) => {

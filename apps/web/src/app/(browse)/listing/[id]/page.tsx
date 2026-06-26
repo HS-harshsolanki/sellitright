@@ -47,6 +47,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
   // ── 1. Try Supabase first (anon client — respects RLS) ──────────────────
   const supabase = await createClient()
   let listingRaw: ReturnType<typeof getListingById> = undefined
+  let isOwner = false
 
   try {
     const {
@@ -58,7 +59,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
     const { data, error } = await supabase.from('listings').select('*').eq('id', id).single()
 
     if (!error && data) {
-      const isOwner = viewer?.id === data.seller_id
+      isOwner = viewer?.id === data.seller_id
       const isVisible = data.status === 'ACTIVE' || isOwner
       if (isVisible) {
         listingRaw = mapSupabaseListingToMock(data)
@@ -295,6 +296,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 listingTitle={listing.title}
                 isAuthenticated={isAuthenticated}
                 hasExistingRequest={hasExistingRequest}
+                isOwner={isOwner}
                 price={priceStr}
                 statsLine={statsLine}
               />
@@ -311,6 +313,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 listingTitle={listing.title}
                 isAuthenticated={isAuthenticated}
                 hasExistingRequest={hasExistingRequest}
+                isOwner={isOwner}
                 price={priceStr}
                 statsLine={statsLine}
               />
@@ -327,6 +330,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
         listingId={listing.id}
         isAuthenticated={isAuthenticated}
         hasExistingRequest={hasExistingRequest}
+        isOwner={isOwner}
       />
     </>
   )

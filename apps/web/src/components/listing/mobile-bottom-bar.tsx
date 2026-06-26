@@ -11,6 +11,7 @@ interface MobileBottomBarProps {
   listingId: string
   isAuthenticated: boolean
   hasExistingRequest?: boolean
+  isOwner?: boolean
 }
 
 export function MobileBottomBar({
@@ -19,6 +20,7 @@ export function MobileBottomBar({
   listingId,
   isAuthenticated,
   hasExistingRequest = false,
+  isOwner = false,
 }: MobileBottomBarProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [requested, setRequested] = useState(hasExistingRequest)
@@ -41,7 +43,14 @@ export function MobileBottomBar({
         </div>
 
         {/* CTA */}
-        {!isAuthenticated ? (
+        {isOwner ? (
+          <Link
+            href="/dashboard"
+            className="flex shrink-0 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-5 py-3 text-sm font-semibold text-[var(--color-foreground)] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
+          >
+            Manage listing
+          </Link>
+        ) : !isAuthenticated ? (
           <Link
             href={`/login?next=/listing/${listingId}`}
             className="flex shrink-0 items-center gap-2 rounded-xl bg-[#222] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"

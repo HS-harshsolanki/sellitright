@@ -8,7 +8,9 @@ import { test, expect } from '@playwright/test'
  * the API layer directly.
  */
 
-const MOCK_LISTING_ID = 'contact-test-listing-001'
+// Must be a real ID that exists in src/lib/mock-data.ts so the listing detail
+// server page can render it (it falls back to getListingById when Supabase is live).
+const MOCK_LISTING_ID = 'listing-001'
 
 // Must match MockListing shape returned by the real /api/listings route
 const MOCK_LISTING = {

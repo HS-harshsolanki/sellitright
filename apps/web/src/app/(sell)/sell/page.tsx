@@ -9,6 +9,7 @@ import { StepReview } from '@/components/forms/step-review'
 import { cn } from '@/lib/utils'
 import { SELL_STEPS, STEP_LABELS, type SellStep, useSellFormStore } from '@/stores/sell-form.store'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
+import { useAuth } from '@/lib/supabase/auth-context'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -82,6 +83,7 @@ function buildDraftPayload(state: ReturnType<typeof useSellFormStore.getState>) 
 }
 
 export default function SellPage() {
+  const { user } = useAuth()
   const store = useSellFormStore()
   const {
     currentStep,
@@ -99,6 +101,7 @@ export default function SellPage() {
   } = store
 
   const [showErrors, setShowErrors] = useState(false)
+  const [saveErrorIsAuth, setSaveErrorIsAuth] = useState(false)
 
   const currentIndex = SELL_STEPS.indexOf(currentStep)
   const totalSteps = SELL_STEPS.length
@@ -134,10 +137,13 @@ export default function SellPage() {
         const json = (await res.json()) as { id: string }
         if (!state.draftId && json.id) setDraftId(json.id)
         setSaveStatus('saved')
+        setSaveErrorIsAuth(false)
       } else {
+        setSaveErrorIsAuth(res.status === 401)
         setSaveStatus('error')
       }
     } catch {
+      setSaveErrorIsAuth(false)
       setSaveStatus('error')
     } finally {
       isSaving.current = false
@@ -322,7 +328,11 @@ export default function SellPage() {
             {saveStatus === 'error' && (
               <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
                 <span className="font-medium">Draft not saved</span>
-                <span className="text-amber-600">— sign in to enable autosave</span>
+                {!user || saveErrorIsAuth ? (
+                  <span className="text-amber-600">— sign in to enable autosave</span>
+                ) : (
+                  <span className="text-amber-600">— will retry automatically</span>
+                )}
               </div>
             )}
           </div>

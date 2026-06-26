@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { useSellFormStore } from '@/stores/sell-form.store'
-import { ImagePlus, Link, Trash2, Upload, X } from 'lucide-react'
+import { ImagePlus, Link, Star, Trash2, Upload, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 
 const MAX_PHOTOS = 10
@@ -66,6 +66,10 @@ export function StepPhotos() {
 
   function handleRemove(url: string) {
     setPhotos(photos.filter((p) => p !== url))
+  }
+
+  function handleSetCover(url: string) {
+    setPhotos([url, ...photos.filter((p) => p !== url)])
   }
 
   function validateFile(file: File): string | null {
@@ -371,10 +375,24 @@ export function StepPhotos() {
                     }
                   }}
                 />
-                {index === 0 && (
+                {index === 0 ? (
                   <div className="bg-foreground/80 absolute left-2 top-2 rounded-md px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
                     Cover
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSetCover(url)}
+                    aria-label={`Set photo ${index + 1} as cover`}
+                    className={cn(
+                      'absolute left-2 top-2 flex items-center gap-1 rounded-md px-2 py-0.5',
+                      'bg-black/60 text-xs font-medium text-white opacity-0 backdrop-blur-sm transition-opacity',
+                      'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white group-hover:opacity-100',
+                    )}
+                  >
+                    <Star className="h-3 w-3" />
+                    Set cover
+                  </button>
                 )}
                 <button
                   type="button"
