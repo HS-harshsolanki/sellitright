@@ -56,10 +56,11 @@ function AdminPageContent() {
   const fetchListings = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/listings?key=${adminKey}`)
+      const res = await fetch('/api/admin/listings', {
+        headers: { 'x-admin-key': adminKey ?? '' },
+      })
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string }
-        setError(data.error ?? 'Failed to load listings')
+        setError(res.status === 401 ? 'Unauthorized' : 'Failed to load listings')
         return
       }
       const data = (await res.json()) as { listings: MockListing[] }
@@ -72,7 +73,7 @@ function AdminPageContent() {
   }, [adminKey])
 
   useEffect(() => {
-    if (adminKey === 'admin123') {
+    if (adminKey) {
       void fetchListings()
     } else {
       setLoading(false)
@@ -82,8 +83,9 @@ function AdminPageContent() {
   async function handleApprove(id: string) {
     setActionLoading(id)
     try {
-      const res = await fetch(`/api/admin/listings/${id}/approve?key=${adminKey}`, {
+      const res = await fetch(`/api/admin/listings/${id}/approve`, {
         method: 'POST',
+        headers: { 'x-admin-key': adminKey ?? '' },
       })
       if (!res.ok) return
       const updated = (await res.json()) as MockListing
@@ -98,9 +100,9 @@ function AdminPageContent() {
     if (!reason) return
     setActionLoading(id)
     try {
-      const res = await fetch(`/api/admin/listings/${id}/reject?key=${adminKey}`, {
+      const res = await fetch(`/api/admin/listings/${id}/reject`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey ?? '' },
         body: JSON.stringify({ reason }),
       })
       if (!res.ok) return
@@ -127,13 +129,11 @@ function AdminPageContent() {
     })
   }
 
-  if (adminKey !== 'admin123') {
+  if (!adminKey) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <p className="text-2xl font-semibold text-gray-900">Unauthorized</p>
-        <p className="mt-2 text-sm text-gray-500">
-          Append <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">?key=admin123</code> to the URL to access this panel.
-        </p>
+        <p className="mt-2 text-sm text-gray-500">Access denied.</p>
       </div>
     )
   }

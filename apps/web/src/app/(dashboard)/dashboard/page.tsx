@@ -237,8 +237,8 @@ export default function DashboardPage() {
             setFetchError('You need to be signed in to view your listings.')
             setListings([])
           } else {
-            const json = await res.json().catch(() => ({})) as { error?: string }
-            setFetchError(json.error ?? 'Failed to load listings. Please refresh.')
+            console.error('[dashboard] listings fetch failed, status:', res.status)
+            setFetchError('Failed to load listings. Please refresh.')
             setListings(MOCK_LISTINGS)
           }
         } else {

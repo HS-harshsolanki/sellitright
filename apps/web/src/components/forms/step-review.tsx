@@ -199,12 +199,14 @@ export function StepReview({ draftId }: StepReviewProps) {
       })
 
       if (!res.ok) {
-        const data: unknown = await res.json()
-        const msg =
-          data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
-            ? data.error
-            : 'Something went wrong. Please try again.'
-        setErrorMessage(msg)
+        console.error('[step-review] submit failed, status:', res.status)
+        if (res.status === 401) {
+          setErrorMessage('Please sign in to submit your listing.')
+        } else if (res.status === 400) {
+          setErrorMessage('Some details are missing or invalid. Please review your listing.')
+        } else {
+          setErrorMessage('Something went wrong. Please try again.')
+        }
         setSubmitState('error')
         return
       }

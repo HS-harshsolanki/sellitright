@@ -73,7 +73,8 @@ export default function ProfilePage() {
     setSaving(false)
 
     if (error) {
-      setError(error.message)
+      console.error('[profile] updateUser error:', error.message)
+      setError('Failed to save changes. Please try again.')
     } else {
       setSaved(true)
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current)

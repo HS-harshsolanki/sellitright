@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (error) {
-      console.error('[listings/create] supabase error:', error)
+      console.error('[listings/create] supabase error:', error.message, error.code)
       return NextResponse.json({ error: 'Failed to save listing' }, { status: 500 })
     }
 

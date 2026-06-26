@@ -14,9 +14,10 @@ export function isSupabaseConfigured() {
 
 export function createClient() {
   if (!isSupabaseConfigured()) {
-    throw new Error(
-      'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local',
-    )
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[supabase] Not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local')
+    }
+    throw new Error('Authentication service is not available.')
   }
   return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 }

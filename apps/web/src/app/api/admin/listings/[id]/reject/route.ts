@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rejectListing } from '@/lib/listing-store'
 
-const ADMIN_KEY = 'admin123'
+const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
 function isAuthorized(request: NextRequest): boolean {
-  return request.nextUrl.searchParams.get('key') === ADMIN_KEY
+  if (!ADMIN_KEY) return false
+  return request.headers.get('x-admin-key') === ADMIN_KEY
 }
 
 interface RejectBody {

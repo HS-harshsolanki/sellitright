@@ -33,25 +33,28 @@ function LoginPageInner() {
 
   async function handleGoogleLogin() {
     if (!isSupabaseConfigured()) {
-      setError('Auth is not configured yet. Add your Supabase credentials to .env.local')
+      // Dev-only — never shown to end users in production
+      console.warn('[login] Supabase is not configured. Check your .env.local file.')
+      setError('Sign-in is temporarily unavailable. Please try again later.')
       return
     }
     setLoading(true)
     setError('')
-    const { error } = await createClient().auth.signInWithOAuth({
+    const { error: oauthError } = await createClient().auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
-    if (error) {
-      setError(error.message)
+    if (oauthError) {
+      console.error('[login] OAuth error:', oauthError.message)
+      setError('Sign-in failed. Please try again.')
       setLoading(false)
     }
   }
 
-  // Handle ?error=auth_failed from callback route
   const callbackError = searchParams.get('error')
+  const showError = error || callbackError
 
   return (
     <>
@@ -67,30 +70,16 @@ function LoginPageInner() {
         </p>
       </div>
 
-      {(error || callbackError) && (
+      {showError && (
         <div
-          className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
           role="alert"
           aria-live="polite"
         >
-          <div className="flex items-start gap-2">
-            <svg viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
-              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-            </svg>
-            <div className="space-y-1">
-              <p className="font-medium">
-                {error ? error : 'Google sign-in failed'}
-              </p>
-              {!error && callbackError === 'auth_failed' && (
-                <p className="text-xs text-red-600">
-                  This usually means the redirect URL isn&apos;t configured in Supabase.
-                  Go to <span className="font-mono font-medium">Authentication → URL Configuration</span> and
-                  add <span className="font-mono font-medium">{typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/auth/callback</span> to
-                  the allowed redirect URLs.
-                </p>
-              )}
-            </div>
-          </div>
+          <svg viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
+            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          </svg>
+          <span>{error || 'Sign-in failed. Please try again.'}</span>
         </div>
       )}
 

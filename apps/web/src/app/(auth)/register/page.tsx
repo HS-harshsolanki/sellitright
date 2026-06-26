@@ -33,19 +33,21 @@ function RegisterPageInner() {
 
   async function handleGoogleSignUp() {
     if (!isSupabaseConfigured()) {
-      setError('Auth is not configured yet. Add your Supabase credentials to .env.local')
+      console.warn('[register] Supabase is not configured. Check your .env.local file.')
+      setError('Sign-up is temporarily unavailable. Please try again later.')
       return
     }
     setLoading(true)
     setError('')
-    const { error } = await createClient().auth.signInWithOAuth({
+    const { error: oauthError } = await createClient().auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
-    if (error) {
-      setError(error.message)
+    if (oauthError) {
+      console.error('[register] OAuth error:', oauthError.message)
+      setError('Sign-up failed. Please try again.')
       setLoading(false)
     }
   }

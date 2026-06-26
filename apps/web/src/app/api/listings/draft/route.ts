@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (error) {
-        console.error('[draft] update error:', error)
+        console.error('[draft] update error:', error.message, error.code)
         return NextResponse.json({ error: 'Failed to update draft' }, { status: 500 })
       }
 
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (error) {
-        console.error('[draft] insert error:', error)
+        console.error('[draft] insert error:', error.message, error.code)
         return NextResponse.json({ error: 'Failed to save draft' }, { status: 500 })
       }
 
