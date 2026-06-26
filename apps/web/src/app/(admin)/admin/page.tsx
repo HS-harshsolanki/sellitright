@@ -48,10 +48,10 @@ const STATUS_BADGE: Record<ListingStatus, string> = {
   PENDING_REVIEW: 'bg-yellow-100 text-yellow-800',
   ACTIVE: 'bg-green-100 text-green-800',
   REJECTED: 'bg-red-100 text-red-800',
-  DELETED: 'bg-gray-200 text-gray-500 line-through',
-  DRAFT: 'bg-gray-100 text-gray-700',
+  DELETED: 'bg-[var(--color-border)] text-[var(--color-muted-foreground)] line-through',
+  DRAFT: 'bg-[var(--color-muted)] text-[var(--color-foreground)]',
   SOLD: 'bg-blue-100 text-blue-800',
-  INACTIVE: 'bg-gray-100 text-gray-700',
+  INACTIVE: 'bg-[var(--color-muted)] text-[var(--color-foreground)]',
 }
 
 const STATUS_LABEL: Record<ListingStatus, string> = {
@@ -95,8 +95,8 @@ const AUDIT_ACTION_BADGE: Record<string, string> = {
   approved: 'bg-green-100 text-green-800',
   rejected: 'bg-red-100 text-red-800',
   note_added: 'bg-blue-100 text-blue-800',
-  status_changed: 'bg-gray-100 text-gray-700',
-  deleted: 'bg-gray-200 text-gray-600',
+  status_changed: 'bg-[var(--color-muted)] text-[var(--color-foreground)]',
+  deleted: 'bg-[var(--color-border)] text-[var(--color-muted-foreground)]',
 }
 
 const PAGE_SIZES = [10, 25, 50]
@@ -246,14 +246,16 @@ function DetailModal({
     >
       <div className="flex h-full w-full max-w-2xl flex-col overflow-y-auto bg-white shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">{listing.title}</h2>
-            <p className="mt-0.5 text-xs text-gray-500">{listing.id}</p>
+            <h2 className="text-base font-semibold text-[var(--color-foreground)]">
+              {listing.title}
+            </h2>
+            <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">{listing.id}</p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-md p-1 text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-muted-foreground)]"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -312,24 +314,26 @@ function DetailModal({
           {/* Key Details */}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-xs text-gray-500">Price</p>
-              <p className="font-semibold text-gray-900">{formatPrice(listing.price)}</p>
+              <p className="text-xs text-[var(--color-muted-foreground)]">Price</p>
+              <p className="font-semibold text-[var(--color-foreground)]">
+                {formatPrice(listing.price)}
+              </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Type</p>
-              <p className="font-medium text-gray-900">
+              <p className="text-xs text-[var(--color-muted-foreground)]">Type</p>
+              <p className="font-medium text-[var(--color-foreground)]">
                 {formatBHK(listing.bhkType)} · {listing.propertyType.replace(/_/g, ' ')}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Location</p>
-              <p className="font-medium text-gray-900">
+              <p className="text-xs text-[var(--color-muted-foreground)]">Location</p>
+              <p className="font-medium text-[var(--color-foreground)]">
                 {listing.locality}, {listing.city}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Area</p>
-              <p className="font-medium text-gray-900">
+              <p className="text-xs text-[var(--color-muted-foreground)]">Area</p>
+              <p className="font-medium text-[var(--color-foreground)]">
                 {listing.builtUpArea.toLocaleString('en-IN')} sq ft
                 {listing.carpetArea
                   ? ` (${listing.carpetArea.toLocaleString('en-IN')} carpet)`
@@ -337,12 +341,14 @@ function DetailModal({
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Furnishing</p>
-              <p className="font-medium text-gray-900">{listing.furnishing.replace(/_/g, ' ')}</p>
+              <p className="text-xs text-[var(--color-muted-foreground)]">Furnishing</p>
+              <p className="font-medium text-[var(--color-foreground)]">
+                {listing.furnishing.replace(/_/g, ' ')}
+              </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Submitted</p>
-              <p className="font-medium text-gray-900">
+              <p className="text-xs text-[var(--color-muted-foreground)]">Submitted</p>
+              <p className="font-medium text-[var(--color-foreground)]">
                 {new Date(listing.createdAt).toLocaleDateString('en-IN', {
                   day: 'numeric',
                   month: 'short',
@@ -353,14 +359,16 @@ function DetailModal({
           </div>
 
           {/* Seller */}
-          <div className="rounded-lg border border-gray-200 p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <div className="rounded-lg border border-[var(--color-border)] p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
               Seller
             </p>
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-900">{listing.seller.name}</p>
-                <p className="text-sm text-gray-500">{listing.seller.phone}</p>
+                <p className="font-medium text-[var(--color-foreground)]">{listing.seller.name}</p>
+                <p className="text-sm text-[var(--color-muted-foreground)]">
+                  {listing.seller.phone}
+                </p>
               </div>
               {listing.seller.isVerified && (
                 <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
@@ -372,10 +380,12 @@ function DetailModal({
 
           {/* Description */}
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
               Description
             </p>
-            <p className="text-sm leading-relaxed text-gray-700">{listing.description}</p>
+            <p className="text-sm leading-relaxed text-[var(--color-foreground)]">
+              {listing.description}
+            </p>
           </div>
 
           {/* Rejection reason (if already rejected) */}
@@ -390,9 +400,9 @@ function DetailModal({
 
           {/* Verification Note */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
               Internal Verification Note{' '}
-              <span className="font-normal normal-case text-gray-400">
+              <span className="font-normal normal-case text-[var(--color-muted-foreground)]">
                 (optional — saved to audit log)
               </span>
             </label>
@@ -402,13 +412,13 @@ function DetailModal({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="E.g. verified via callback, photos look authentic, price matches locality..."
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className="w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--color-foreground)]"
             />
             {note.trim() && listing.status !== 'PENDING_REVIEW' && (
               <button
                 onClick={() => void handleSaveNote()}
                 disabled={loading === 'note'}
-                className="mt-1.5 text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
+                className="mt-1.5 text-xs font-medium text-[var(--color-accent)] hover:underline disabled:opacity-50"
               >
                 {loading === 'note'
                   ? 'Saving...'
@@ -424,7 +434,7 @@ function DetailModal({
 
         {/* Actions — only for pending */}
         {listing.status === 'PENDING_REVIEW' && (
-          <div className="border-t border-gray-200 px-6 py-4">
+          <div className="border-t border-[var(--color-border)] px-6 py-4">
             {!showRejectForm ? (
               <div className="flex gap-3">
                 <Button
@@ -446,11 +456,11 @@ function DetailModal({
             ) : (
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                  <label className="mb-1 block text-xs font-medium text-[var(--color-foreground)]">
                     Rejection reason <span className="text-red-500">*</span>
                   </label>
                   <select
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-foreground)] focus:outline-none"
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
                   >
@@ -501,8 +511,8 @@ function DetailModal({
             className={cn(
               'px-6 py-4',
               listing.status === 'PENDING_REVIEW'
-                ? 'border-t border-dashed border-gray-200'
-                : 'border-t border-gray-200',
+                ? 'border-t border-dashed border-[var(--color-border)]'
+                : 'border-t border-[var(--color-border)]',
             )}
           >
             {!showDeleteConfirm ? (
@@ -521,15 +531,18 @@ function DetailModal({
                   longer be visible to sellers or buyers.
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
-                    Reason <span className="font-normal text-gray-400">(optional)</span>
+                  <label className="mb-1 block text-xs font-medium text-[var(--color-foreground)]">
+                    Reason{' '}
+                    <span className="font-normal text-[var(--color-muted-foreground)]">
+                      (optional)
+                    </span>
                   </label>
                   <textarea
                     rows={2}
                     value={deleteReason}
                     onChange={(e) => setDeleteReason(e.target.value)}
                     placeholder="E.g. fraudulent listing, reported by multiple users..."
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    className="w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--color-foreground)]"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -605,7 +618,11 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
   }, [fetchAuditLog])
 
   if (loading)
-    return <p className="py-10 text-center text-sm text-gray-500">Loading audit log...</p>
+    return (
+      <p className="py-10 text-center text-sm text-[var(--color-muted-foreground)]">
+        Loading audit log...
+      </p>
+    )
   if (error) return <p className="py-10 text-center text-sm text-red-600">{error}</p>
 
   return (
@@ -618,7 +635,7 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
             setActionFilter(e.target.value)
             setPage(1)
           }}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
+          className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:outline-none"
         >
           <option value="">All Actions</option>
           <option value="approved">Approved</option>
@@ -626,21 +643,21 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
           <option value="note_added">Note Added</option>
           <option value="deleted">Deleted</option>
         </select>
-        <span className="text-sm text-gray-500">{total} entries</span>
+        <span className="text-sm text-[var(--color-muted-foreground)]">{total} entries</span>
       </div>
 
       {entries.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-200 py-16 text-center">
-          <p className="text-sm text-gray-500">No audit log entries yet.</p>
-          <p className="mt-1 text-xs text-gray-400">
+        <div className="rounded-lg border border-dashed border-[var(--color-border)] py-16 text-center">
+          <p className="text-sm text-[var(--color-muted-foreground)]">No audit log entries yet.</p>
+          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
             Actions will appear here after you approve or reject listings.
           </p>
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <thead className="bg-[var(--color-muted)] text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
                 <tr>
                   <th className="px-4 py-3">Time</th>
                   <th className="px-4 py-3">Action</th>
@@ -649,17 +666,17 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
                   <th className="px-4 py-3">Reason / Note</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-[var(--color-border)]">
                 {entries.map((entry) => (
-                  <tr key={entry.id} className="align-top hover:bg-gray-50">
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
+                  <tr key={entry.id} className="align-top hover:bg-[var(--color-muted)]">
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--color-muted-foreground)]">
                       {new Date(entry.created_at).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',
                       })}
                       <br />
-                      <span className="text-gray-400">
+                      <span className="text-[var(--color-muted-foreground)]">
                         {new Date(entry.created_at).toLocaleTimeString('en-IN', {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -670,17 +687,22 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
                       <span
                         className={cn(
                           'rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                          AUDIT_ACTION_BADGE[entry.action] ?? 'bg-gray-100 text-gray-700',
+                          AUDIT_ACTION_BADGE[entry.action] ??
+                            'bg-[var(--color-muted)] text-[var(--color-foreground)]',
                         )}
                       >
                         {AUDIT_ACTION_LABELS[entry.action] ?? entry.action}
                       </span>
                     </td>
                     <td className="max-w-[200px] px-4 py-3">
-                      <p className="truncate font-medium text-gray-900">{entry.listing_title}</p>
-                      <p className="truncate text-xs text-gray-400">{entry.listing_id}</p>
+                      <p className="truncate font-medium text-[var(--color-foreground)]">
+                        {entry.listing_title}
+                      </p>
+                      <p className="truncate text-xs text-[var(--color-muted-foreground)]">
+                        {entry.listing_id}
+                      </p>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-4 py-3 text-xs text-[var(--color-muted-foreground)]">
                       {entry.previous_status && entry.new_status ? (
                         <span>
                           {entry.previous_status} → {entry.new_status}
@@ -689,7 +711,7 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
                         '—'
                       )}
                     </td>
-                    <td className="max-w-[240px] px-4 py-3 text-xs text-gray-600">
+                    <td className="max-w-[240px] px-4 py-3 text-xs text-[var(--color-muted-foreground)]">
                       {entry.reason ? <span className="line-clamp-2">{entry.reason}</span> : '—'}
                     </td>
                   </tr>
@@ -701,7 +723,7 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-[var(--color-muted-foreground)]">
                 Page {page} of {totalPages}
               </p>
               <div className="flex gap-2">
@@ -944,8 +966,10 @@ function AdminPageContent() {
       <div className="flex min-h-[60vh] flex-col items-center justify-center">
         <form onSubmit={(e) => void handleUnlock(e)} className="w-full max-w-sm space-y-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Admin Access</h1>
-            <p className="mt-1 text-sm text-gray-500">Enter your admin key to continue.</p>
+            <h1 className="text-xl font-bold text-[var(--color-foreground)]">Admin Access</h1>
+            <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+              Enter your admin key to continue.
+            </p>
           </div>
           <Input
             type="password"
@@ -968,7 +992,7 @@ function AdminPageContent() {
   if (loading && listings.length === 0) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-sm text-gray-500">Loading listings...</p>
+        <p className="text-sm text-[var(--color-muted-foreground)]">Loading listings...</p>
       </div>
     )
   }
@@ -1055,8 +1079,8 @@ function AdminPageContent() {
 
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Listing Review</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-xl font-bold text-[var(--color-foreground)]">Listing Review</h1>
+            <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
               Approve or reject property listings submitted by sellers.
             </p>
           </div>
@@ -1079,9 +1103,13 @@ function AdminPageContent() {
             <p className="text-xs font-medium uppercase tracking-wide text-red-700">Rejected</p>
             <p className="mt-1 text-2xl font-bold text-red-900">{counts.REJECTED}</p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Deleted</p>
-            <p className="mt-1 text-2xl font-bold text-gray-700">{counts.DELETED}</p>
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+              Deleted
+            </p>
+            <p className="mt-1 text-2xl font-bold text-[var(--color-foreground)]">
+              {counts.DELETED}
+            </p>
           </div>
         </div>
 
@@ -1097,7 +1125,7 @@ function AdminPageContent() {
           <select
             value={cityFilter}
             onChange={(e) => handleFilterChange(setCityFilter, e.target.value)}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
+            className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:outline-none"
           >
             {CITY_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -1108,7 +1136,7 @@ function AdminPageContent() {
           <select
             value={propertyTypeFilter}
             onChange={(e) => handleFilterChange(setPropertyTypeFilter, e.target.value)}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
+            className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:outline-none"
           >
             {PROPERTY_TYPE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -1119,7 +1147,7 @@ function AdminPageContent() {
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="text-xs font-medium text-gray-500 underline hover:text-gray-900"
+              className="text-xs font-medium text-[var(--color-muted-foreground)] underline hover:text-[var(--color-foreground)]"
             >
               Clear filters
             </button>
@@ -1127,7 +1155,7 @@ function AdminPageContent() {
         </div>
 
         {/* Tabs */}
-        <div className="mb-4 flex gap-1 border-b border-gray-200">
+        <div className="mb-4 flex gap-1 border-b border-[var(--color-border)]">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -1138,8 +1166,8 @@ function AdminPageContent() {
               className={cn(
                 'px-4 py-2 text-sm font-medium transition-colors',
                 activeTab === tab.value
-                  ? 'border-b-2 border-gray-900 text-gray-900'
-                  : 'text-gray-500 hover:text-gray-700',
+                  ? 'border-b-2 border-[var(--color-foreground)] text-[var(--color-foreground)]'
+                  : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
               )}
             >
               {tab.label}
@@ -1148,8 +1176,8 @@ function AdminPageContent() {
                   className={cn(
                     'ml-2 rounded-full px-1.5 py-0.5 text-xs font-semibold',
                     activeTab === tab.value
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-100 text-gray-600',
+                      ? 'bg-[var(--color-foreground)] text-white'
+                      : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
                   )}
                 >
                   {counts[tab.value as keyof StatusCounts]}
@@ -1163,14 +1191,14 @@ function AdminPageContent() {
         {activeTab === 'AUDIT_LOG' ? (
           <AuditLogTab adminKey={adminKey} />
         ) : listings.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-200 bg-white py-16 text-center">
-            <p className="text-sm text-gray-500">
+          <div className="rounded-lg border border-dashed border-[var(--color-border)] bg-white py-16 text-center">
+            <p className="text-sm text-[var(--color-muted-foreground)]">
               {hasFilters ? 'No listings match your search.' : 'No listings in this category.'}
             </p>
             {hasFilters && (
               <button
                 onClick={clearFilters}
-                className="mt-2 text-xs font-medium text-blue-600 hover:underline"
+                className="mt-2 text-xs font-medium text-[var(--color-accent)] hover:underline"
               >
                 Clear filters
               </button>
@@ -1179,9 +1207,9 @@ function AdminPageContent() {
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-lg border border-gray-200 bg-white md:block">
+            <div className="hidden overflow-hidden rounded-lg border border-[var(--color-border)] bg-white md:block">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <thead className="bg-[var(--color-muted)] text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
                   <tr>
                     <th className="px-4 py-3">Listing</th>
                     <th className="px-4 py-3">Location</th>
@@ -1193,7 +1221,7 @@ function AdminPageContent() {
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[var(--color-border)]">
                   {listings.map((listing) => {
                     const daysPending = Math.floor(
                       (Date.now() - new Date(listing.createdAt).getTime()) / (1000 * 60 * 60 * 24),
@@ -1201,30 +1229,38 @@ function AdminPageContent() {
                     return (
                       <React.Fragment key={listing.id}>
                         <tr
-                          className="cursor-pointer align-top hover:bg-gray-50"
+                          className="cursor-pointer align-top hover:bg-[var(--color-muted)]"
                           onClick={() => setSelectedListing(listing)}
                         >
                           <td className="max-w-[220px] px-4 py-3">
-                            <p className="truncate font-medium text-gray-900">{listing.title}</p>
-                            <p className="truncate text-xs text-gray-400">{listing.id}</p>
+                            <p className="truncate font-medium text-[var(--color-foreground)]">
+                              {listing.title}
+                            </p>
+                            <p className="truncate text-xs text-[var(--color-muted-foreground)]">
+                              {listing.id}
+                            </p>
                             {daysPending > 7 && listing.status === 'PENDING_REVIEW' && (
                               <span className="mt-0.5 inline-block rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-semibold text-red-700">
                                 {daysPending}d overdue
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-gray-600">
+                          <td className="px-4 py-3 text-[var(--color-muted-foreground)]">
                             {listing.locality}, {listing.city}
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{formatBHK(listing.bhkType)}</td>
-                          <td className="px-4 py-3 font-medium text-gray-900">
+                          <td className="px-4 py-3 text-[var(--color-muted-foreground)]">
+                            {formatBHK(listing.bhkType)}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-[var(--color-foreground)]">
                             {formatPrice(listing.price)}
                           </td>
-                          <td className="px-4 py-3 text-gray-600">
+                          <td className="px-4 py-3 text-[var(--color-muted-foreground)]">
                             <p>{listing.seller.name}</p>
-                            <p className="text-xs text-gray-400">{listing.seller.phone}</p>
+                            <p className="text-xs text-[var(--color-muted-foreground)]">
+                              {listing.seller.phone}
+                            </p>
                           </td>
-                          <td className="px-4 py-3 text-gray-500">
+                          <td className="px-4 py-3 text-[var(--color-muted-foreground)]">
                             {new Date(listing.createdAt).toLocaleDateString('en-IN', {
                               day: 'numeric',
                               month: 'short',
@@ -1278,7 +1314,7 @@ function AdminPageContent() {
                             <td colSpan={8} className="bg-red-50 px-4 py-3">
                               <div className="flex items-center gap-3">
                                 <select
-                                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
+                                  className="flex-1 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:outline-none"
                                   value={rejectForms[listing.id]}
                                   onChange={(e) =>
                                     setRejectForms((prev) => ({
@@ -1341,13 +1377,15 @@ function AdminPageContent() {
               {listings.map((listing) => (
                 <div
                   key={listing.id}
-                  className="rounded-lg border border-gray-200 bg-white p-4"
+                  className="rounded-lg border border-[var(--color-border)] bg-white p-4"
                   onClick={() => setSelectedListing(listing)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-gray-900">{listing.title}</p>
-                      <p className="mt-0.5 text-xs text-gray-500">
+                      <p className="truncate font-medium text-[var(--color-foreground)]">
+                        {listing.title}
+                      </p>
+                      <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
                         {listing.locality}, {listing.city} · {formatBHK(listing.bhkType)}
                       </p>
                     </div>
@@ -1361,12 +1399,14 @@ function AdminPageContent() {
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-sm">
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-[var(--color-foreground)]">
                       {formatPrice(listing.price)}
                     </span>
-                    <span className="text-gray-500">{listing.seller.name}</span>
+                    <span className="text-[var(--color-muted-foreground)]">
+                      {listing.seller.name}
+                    </span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
                     {new Date(listing.createdAt).toLocaleDateString('en-IN', {
                       day: 'numeric',
                       month: 'short',
@@ -1396,7 +1436,7 @@ function AdminPageContent() {
 
             {/* Pagination */}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-[var(--color-muted-foreground)]">
                 <span>Show</span>
                 <select
                   value={pageSize}
@@ -1404,7 +1444,7 @@ function AdminPageContent() {
                     setPageSize(Number(e.target.value))
                     setPage(1)
                   }}
-                  className="rounded border border-gray-200 px-2 py-1 text-sm"
+                  className="rounded border border-[var(--color-border)] px-2 py-1 text-sm"
                 >
                   {PAGE_SIZES.map((s) => (
                     <option key={s} value={s}>
@@ -1424,7 +1464,7 @@ function AdminPageContent() {
                   >
                     ← Prev
                   </Button>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-[var(--color-muted-foreground)]">
                     Page {page} of {totalPages}
                   </span>
                   <Button
@@ -1450,7 +1490,7 @@ export default function AdminPage() {
     <Suspense
       fallback={
         <div className="flex min-h-[60vh] items-center justify-center">
-          <p className="text-sm text-gray-500">Loading...</p>
+          <p className="text-sm text-[var(--color-muted-foreground)]">Loading...</p>
         </div>
       }
     >

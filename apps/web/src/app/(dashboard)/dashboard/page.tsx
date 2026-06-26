@@ -35,7 +35,10 @@ const STATUS_CONFIG: Record<ListingStatus, { label: string; className: string }>
   ACTIVE: { label: 'Active', className: 'bg-green-100 text-green-700' },
   DRAFT: { label: 'Draft', className: 'bg-yellow-100 text-yellow-700' },
   SOLD: { label: 'Sold', className: 'bg-blue-100 text-blue-700' },
-  INACTIVE: { label: 'Inactive', className: 'bg-muted text-muted-foreground' },
+  INACTIVE: {
+    label: 'Inactive',
+    className: 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+  },
   PENDING_REVIEW: { label: 'Pending Review', className: 'bg-orange-100 text-orange-700' },
   REJECTED: { label: 'Rejected', className: 'bg-red-100 text-red-700' },
   DELETED: { label: 'Deleted', className: 'bg-gray-200 text-gray-500 line-through' },
@@ -148,22 +151,26 @@ function StatCard({ label, value, sub, icon, accent = false }: StatCardProps) {
   return (
     <div
       className={cn(
-        'border-border flex items-start gap-4 rounded-xl border bg-white p-4',
-        accent && 'border-primary/20 bg-primary/5',
+        'flex items-start gap-4 rounded-xl border border-[var(--color-border)] bg-white p-4',
+        accent && 'border-[var(--color-border)] bg-[var(--color-muted)]',
       )}
     >
       <div
         className={cn(
           'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-          accent ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+          accent
+            ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
+            : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
         )}
       >
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-muted-foreground text-sm">{label}</p>
-        <p className={cn('text-2xl font-bold', accent && 'text-primary')}>{value}</p>
-        {sub && <p className="text-muted-foreground mt-0.5 text-xs">{sub}</p>}
+        <p className="text-sm text-[var(--color-muted-foreground)]">{label}</p>
+        <p className={cn('text-2xl font-bold', accent && 'text-[var(--color-foreground)]')}>
+          {value}
+        </p>
+        {sub && <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">{sub}</p>}
       </div>
     </div>
   )
@@ -178,8 +185,8 @@ function ListingCard({ listing }: ListingCardProps) {
   const cover = listing.images[0]?.url
 
   return (
-    <article className="border-border group overflow-hidden rounded-xl border bg-white transition-shadow hover:shadow-md">
-      <div className="bg-muted relative aspect-[16/9] overflow-hidden">
+    <article className="group overflow-hidden rounded-xl border border-[var(--color-border)] bg-white transition-shadow hover:shadow-md">
+      <div className="relative aspect-[16/9] overflow-hidden bg-[var(--color-muted)]">
         {cover ? (
           <Image
             src={cover}
@@ -189,7 +196,7 @@ function ListingCard({ listing }: ListingCardProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <div className="text-muted-foreground flex h-full items-center justify-center">
+          <div className="flex h-full items-center justify-center text-[var(--color-muted-foreground)]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-8 w-8"
@@ -217,8 +224,10 @@ function ListingCard({ listing }: ListingCardProps) {
       </div>
 
       <div className="p-4">
-        <h3 className="text-foreground line-clamp-1 font-semibold">{listing.title}</h3>
-        <div className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+        <h3 className="line-clamp-1 font-semibold text-[var(--color-foreground)]">
+          {listing.title}
+        </h3>
+        <div className="mt-1 flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
           <MapPin className="h-3 w-3 shrink-0" />
           <span className="truncate">
             {listing.locality}, {listing.city}
@@ -233,8 +242,10 @@ function ListingCard({ listing }: ListingCardProps) {
         )}
 
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-foreground text-base font-bold">{formatPrice(listing.price)}</p>
-          <div className="text-muted-foreground flex items-center gap-1 text-xs">
+          <p className="text-base font-bold text-[var(--color-foreground)]">
+            {formatPrice(listing.price)}
+          </p>
+          <div className="flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
             <Eye className="h-3.5 w-3.5" />
             <span>{listing.viewCount}</span>
           </div>
@@ -245,8 +256,8 @@ function ListingCard({ listing }: ListingCardProps) {
             <Link
               href="/sell"
               className={cn(
-                'border-primary text-primary flex-1 rounded-lg border py-2 text-center text-xs font-medium',
-                'hover:bg-primary/5 transition-colors',
+                'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
+                'transition-colors hover:bg-[var(--color-muted)]',
               )}
             >
               Resume Draft
@@ -255,8 +266,8 @@ function ListingCard({ listing }: ListingCardProps) {
             <Link
               href={`/listings/${listing.id}/edit`}
               className={cn(
-                'border-border text-foreground flex-1 rounded-lg border py-2 text-center text-xs font-medium',
-                'hover:bg-muted transition-colors',
+                'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
+                'transition-colors hover:bg-[var(--color-muted)]',
               )}
             >
               Edit
@@ -265,8 +276,8 @@ function ListingCard({ listing }: ListingCardProps) {
           <Link
             href={`/listing/${listing.id}`}
             className={cn(
-              'border-border text-foreground flex-1 rounded-lg border py-2 text-center text-xs font-medium',
-              'hover:bg-muted transition-colors',
+              'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
+              'transition-colors hover:bg-[var(--color-muted)]',
             )}
           >
             View
@@ -296,19 +307,19 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
   })
 
   return (
-    <div className="border-border rounded-xl border bg-white p-4">
+    <div className="rounded-xl border border-[var(--color-border)] bg-white p-4">
       {/* Row 1: Name + status badge + listing */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-foreground font-semibold">{item.fullName}</p>
+            <p className="font-semibold text-[var(--color-foreground)]">{item.fullName}</p>
             <span
               className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', statusCfg.className)}
             >
               {statusCfg.label}
             </span>
           </div>
-          <p className="text-muted-foreground mt-0.5 truncate text-xs">
+          <p className="mt-0.5 truncate text-xs text-[var(--color-muted-foreground)]">
             {item.listingTitle}
             {item.listingCity ? ` · ${item.listingCity}` : ''}
           </p>
@@ -317,33 +328,35 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
 
       {/* Row 2: Metadata chips */}
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-xs font-medium">
+        <span className="rounded-full bg-[var(--color-muted)] px-2.5 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
           {PURPOSE_LABEL[item.purpose] ?? item.purpose}
         </span>
-        <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-xs font-medium">
+        <span className="rounded-full bg-[var(--color-muted)] px-2.5 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
           {TIMELINE_LABEL[item.timeline] ?? item.timeline}
         </span>
-        <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-xs font-medium">
+        <span className="rounded-full bg-[var(--color-muted)] px-2.5 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
           {FUNDING_LABEL[item.funding] ?? item.funding}
         </span>
       </div>
 
       {/* Row 3: Message */}
       {item.message && (
-        <div className="bg-muted/60 text-muted-foreground mt-3 rounded-lg px-3 py-2 text-sm">
+        <div className="mt-3 rounded-lg bg-[var(--color-muted)] px-3 py-2 text-sm text-[var(--color-muted-foreground)]">
           &ldquo;{item.message}&rdquo;
         </div>
       )}
 
       {/* Row 4: Date */}
-      <p className="text-muted-foreground mt-3 text-xs">Requested on {dateStr}</p>
+      <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">Requested on {dateStr}</p>
 
       {/* Row 5: Actions (PENDING only) */}
       {item.status === 'PENDING' && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {confirmDecline ? (
             <>
-              <p className="text-muted-foreground mr-1 text-xs">Decline this request?</p>
+              <p className="mr-1 text-xs text-[var(--color-muted-foreground)]">
+                Decline this request?
+              </p>
               <button
                 type="button"
                 disabled={actionLoading}
@@ -362,7 +375,7 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
                 type="button"
                 disabled={actionLoading}
                 onClick={() => setConfirmDecline(false)}
-                className="border-border text-muted-foreground hover:bg-muted rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+                className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -394,7 +407,7 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
               <button
                 type="button"
                 disabled={actionLoading}
-                className="text-muted-foreground hover:text-foreground px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] disabled:opacity-50"
               >
                 Later
               </button>
@@ -442,7 +455,7 @@ function BuyersTabContent({
     <div className="space-y-4">
       {/* Filter row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="bg-muted flex gap-1 overflow-x-auto rounded-xl p-1">
+        <div className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1">
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.value}
@@ -451,8 +464,8 @@ function BuyersTabContent({
               className={cn(
                 'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
                 statusFilter === f.value
-                  ? 'text-foreground bg-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? 'bg-white text-[var(--color-foreground)] shadow-sm'
+                  : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
               )}
             >
               {f.label}
@@ -462,7 +475,7 @@ function BuyersTabContent({
         <select
           value={sort}
           onChange={(e) => onSort(e.target.value as 'newest' | 'oldest')}
-          className="border-border text-foreground focus:ring-ring rounded-lg border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2"
+          className="focus:ring-ring rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2"
         >
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
@@ -472,7 +485,7 @@ function BuyersTabContent({
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
         </div>
       ) : error ? (
         <div
@@ -483,16 +496,16 @@ function BuyersTabContent({
           <span>{error}</span>
         </div>
       ) : interests.length === 0 ? (
-        <div className="border-border flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-16 text-center">
-          <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full">
-            <Users className="text-muted-foreground h-8 w-8" />
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-border)] py-16 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-muted)]">
+            <Users className="h-8 w-8 text-[var(--color-muted-foreground)]" />
           </div>
-          <h3 className="text-foreground text-base font-semibold">
+          <h3 className="text-base font-semibold text-[var(--color-foreground)]">
             {statusFilter === 'ALL'
               ? 'No buyer requests yet'
               : `No ${statusFilter.toLowerCase()} requests`}
           </h3>
-          <p className="text-muted-foreground mt-1 max-w-xs text-sm">
+          <p className="mt-1 max-w-xs text-sm text-[var(--color-muted-foreground)]">
             {statusFilter === 'ALL'
               ? 'When buyers express interest in your listings, their requests will appear here.'
               : `No requests with ${statusFilter.toLowerCase()} status.`}
@@ -534,11 +547,11 @@ function EmptyState({ tab }: { tab: Exclude<TabFilter, 'buyers'> }) {
   }
   const msg = messages[tab]
   return (
-    <div className="border-border flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-16 text-center">
-      <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-border)] py-16 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-muted)]">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="text-muted-foreground h-8 w-8"
+          className="h-8 w-8 text-[var(--color-muted-foreground)]"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -551,13 +564,13 @@ function EmptyState({ tab }: { tab: Exclude<TabFilter, 'buyers'> }) {
           />
         </svg>
       </div>
-      <h3 className="text-foreground text-base font-semibold">{msg.title}</h3>
-      <p className="text-muted-foreground mt-1 max-w-xs text-sm">{msg.sub}</p>
+      <h3 className="text-base font-semibold text-[var(--color-foreground)]">{msg.title}</h3>
+      <p className="mt-1 max-w-xs text-sm text-[var(--color-muted-foreground)]">{msg.sub}</p>
       <Link
         href="/sell"
         className={cn(
-          'bg-primary mt-6 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white',
-          'hover:bg-primary/90 transition-colors',
+          'mt-6 flex items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white',
+          'transition-opacity hover:opacity-90',
         )}
       >
         <Plus className="h-4 w-4" />
@@ -690,16 +703,18 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground text-xl font-bold sm:text-2xl">My Listings</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">
+          <h1 className="text-xl font-bold text-[var(--color-foreground)] sm:text-2xl">
+            My Listings
+          </h1>
+          <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
             Manage and track your property listings
           </p>
         </div>
         <Link
           href="/sell"
           className={cn(
-            'bg-primary hidden items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white sm:flex',
-            'hover:bg-primary/90 transition-colors',
+            'hidden items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-4 py-2.5 text-sm font-semibold text-white sm:flex',
+            'transition-opacity hover:opacity-90',
           )}
         >
           <Plus className="h-4 w-4" />
@@ -743,7 +758,7 @@ export default function DashboardPage() {
       <div
         role="tablist"
         aria-label="Filter listings"
-        className="bg-muted flex gap-1 overflow-x-auto rounded-xl p-1"
+        className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1"
       >
         {TAB_OPTIONS.map((tab) => (
           <button
@@ -756,8 +771,8 @@ export default function DashboardPage() {
               'flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all',
               'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
               activeTab === tab.value
-                ? 'text-foreground bg-white shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
+                ? 'bg-white text-[var(--color-foreground)] shadow-sm'
+                : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
             )}
           >
             {tab.label}
@@ -779,7 +794,7 @@ export default function DashboardPage() {
         />
       ) : loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
         </div>
       ) : filteredListings.length === 0 ? (
         <EmptyState tab={activeTab as Exclude<TabFilter, 'buyers'>} />
@@ -796,7 +811,7 @@ export default function DashboardPage() {
           href="/sell"
           aria-label="Create new listing"
           className={cn(
-            'bg-primary flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg',
+            'flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-foreground)] text-white shadow-lg',
             'transition-transform hover:scale-105 active:scale-95',
           )}
         >

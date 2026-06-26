@@ -14,7 +14,12 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   const { id: listingId } = await params
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  const supabase = await createClient()
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  try {
+    supabase = await createClient()
+  } catch {
+    return NextResponse.json({ error: 'Sign in to request contact.' }, { status: 401 })
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -122,7 +127,12 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
 export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   const { id: listingId } = await params
 
-  const supabase = await createClient()
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  try {
+    supabase = await createClient()
+  } catch {
+    return NextResponse.json({ error: 'Sign in to withdraw your request.' }, { status: 401 })
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -152,7 +162,12 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
 export async function GET(request: NextRequest, { params }: RouteContext) {
   const { id: listingId } = await params
 
-  const supabase = await createClient()
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  try {
+    supabase = await createClient()
+  } catch {
+    return NextResponse.json({ hasPending: false })
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser()

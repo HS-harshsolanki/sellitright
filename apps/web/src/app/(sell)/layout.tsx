@@ -15,22 +15,22 @@ export default function SellLayout({ children }: SellLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       {/* Minimal top bar */}
-      <header className="border-border sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-white/95 px-4 backdrop-blur-sm sm:px-6">
-        {/* Logo — "Sell" in primary blue, "ItRight" in foreground dark, matching main header */}
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-4 backdrop-blur-sm sm:px-6">
+        {/* Logo — "Sell" in accent, "ItRight" in foreground dark, matching main header */}
         <Link
           href="/"
           className="flex items-center text-lg font-bold"
           aria-label="SellItRight home"
         >
-          <span className="text-[var(--color-primary)]">Sell</span>
-          <span className="text-foreground">ItRight</span>
+          <span className="text-[var(--color-accent)]">Sell</span>
+          <span className="text-[var(--color-foreground)]">ItRight</span>
         </Link>
 
         {/* Right side: exit link */}
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            className="rounded text-sm font-medium text-[var(--color-muted-foreground)] underline-offset-4 hover:text-[var(--color-foreground)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
           >
             Exit
           </Link>

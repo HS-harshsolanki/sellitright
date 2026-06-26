@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { MapPin, Share2, Heart, BadgeCheck, User } from 'lucide-react'
+import { MapPin, Share2, Heart, BadgeCheck, User, ArrowLeft, Pencil } from 'lucide-react'
+import Link from 'next/link'
 import { getListingById } from '@/lib/mock-data'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { formatPrice, formatBHK, formatArea, formatFloor } from '@/lib/format'
@@ -144,6 +145,26 @@ export default async function ListingPage({ params }: ListingPageProps) {
         {/* SECTION 1: Title + Share/Save — ABOVE the gallery                 */}
         {/* ────────────────────────────────────────────────────────────────── */}
         <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+          {/* Back to browse breadcrumb */}
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 text-sm text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              Back to listings
+            </Link>
+            {isOwner && (
+              <Link
+                href={`/sell/edit/${listing.id}`}
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                Edit listing
+              </Link>
+            )}
+          </div>
+
           <div className="flex items-start justify-between gap-4">
             <h1 className="text-xl font-semibold leading-snug text-[var(--color-foreground)] sm:text-2xl">
               {listing.title}

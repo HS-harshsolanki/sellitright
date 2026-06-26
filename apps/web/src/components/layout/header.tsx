@@ -399,7 +399,13 @@ export function Header() {
 
         {/* Mobile only */}
         <div className="shrink-0 md:hidden">
-          <MobileSheet name={name} isLoggedIn={!!user} hasListings={hasListings} pathname={pathname} onSignOut={signOut} />
+          <MobileSheet
+            name={name}
+            isLoggedIn={!!user}
+            hasListings={hasListings}
+            pathname={pathname}
+            onSignOut={signOut}
+          />
         </div>
       </div>
     </header>

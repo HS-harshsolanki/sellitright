@@ -56,6 +56,10 @@ function LoginPageInner() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        queryParams: {
+          prompt: 'select_account',
+          access_type: 'offline',
+        },
       },
     })
     if (oauthError) {
@@ -72,8 +76,9 @@ function LoginPageInner() {
     <>
       <div className="mb-8 text-center">
         <Link href="/" className="inline-block" aria-label="SellItRight home">
-          <span className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
-            Sell<span className="text-[var(--color-primary)]">It</span>Right
+          <span className="text-2xl font-bold tracking-tight">
+            <span className="text-[var(--color-accent)]">Sell</span>
+            <span className="text-[var(--color-foreground)]">ItRight</span>
           </span>
         </Link>
         <h1 className="mt-4 text-xl font-semibold text-[var(--color-foreground)]">Welcome back</h1>
@@ -84,7 +89,7 @@ function LoginPageInner() {
 
       {showError && (
         <div
-          className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="border-[var(--color-destructive)]/20 bg-[var(--color-destructive)]/5 mb-4 flex items-start gap-2 rounded-lg border px-4 py-3 text-sm text-[var(--color-destructive)]"
           role="alert"
           aria-live="polite"
         >

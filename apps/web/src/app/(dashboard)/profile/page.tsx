@@ -43,17 +43,18 @@ export default function ProfilePage() {
     }
   }, [user])
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login?next=/profile')
+    }
+  }, [loading, user, router])
+
+  if (loading || !user) {
     return (
       <div className="flex items-center justify-center py-24">
         <Spinner className="h-6 w-6 text-[var(--color-muted-foreground)]" />
       </div>
     )
-  }
-
-  if (!user) {
-    router.replace('/login?next=/profile')
-    return null
   }
 
   const email = user.email ?? null
@@ -190,7 +191,7 @@ export default function ProfilePage() {
         )}
 
         {error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-[var(--color-destructive)]" role="alert">
             {error}
           </p>
         )}
@@ -221,7 +222,7 @@ export default function ProfilePage() {
         <Button
           type="button"
           variant="outline"
-          className="h-11 w-full gap-2 border-red-200 text-sm font-medium text-red-600 hover:border-red-300 hover:bg-red-50"
+          className="h-11 w-full gap-2 border-[var(--color-destructive)] text-sm font-medium text-[var(--color-destructive)] hover:bg-red-50"
           onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4" aria-hidden="true" />

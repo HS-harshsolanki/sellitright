@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Home } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 const FOOTER_LINKS = [
   { href: '/about', label: 'About' },
@@ -12,18 +12,27 @@ export function Footer() {
   return (
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-background)]">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          {/* Logo + tagline */}
-          <div className="flex flex-col gap-1">
-            <Link href="/" className="flex items-center gap-1.5" aria-label="SellItRight home">
-              <Home className="h-5 w-5 text-[var(--color-primary)]" aria-hidden="true" />
-              <span className="text-base font-bold tracking-tight text-[var(--color-foreground)]">
-                SellItRight
-              </span>
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          {/* Logo + tagline + CTA */}
+          <div className="flex flex-col gap-2">
+            <Link
+              href="/"
+              className="flex items-center gap-1 text-base font-bold leading-none tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+              aria-label="SellItRight home"
+            >
+              <span className="text-[var(--color-accent)]">Sell</span>
+              <span className="text-[var(--color-foreground)]">ItRight</span>
             </Link>
             <p className="text-xs text-[var(--color-muted-foreground)]">
               Find your perfect home across India.
             </p>
+            <Link
+              href="/sell"
+              className="mt-1 flex w-fit items-center gap-1.5 rounded-full bg-[var(--color-foreground)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              Post Property
+            </Link>
           </div>
 
           {/* Links */}
