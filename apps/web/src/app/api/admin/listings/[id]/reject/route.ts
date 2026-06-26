@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rejectListing } from '@/lib/listing-store'
+import { auditLog } from '@/lib/audit-log'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
@@ -10,6 +11,7 @@ function isAuthorized(request: NextRequest): boolean {
 
 interface RejectBody {
   reason: string
+  note?: string
 }
 
 export async function POST(
@@ -37,6 +39,31 @@ export async function POST(
 
   if (!updated) {
     return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+  }
+
+  auditLog.add({
+    listing_id: id,
+    listing_title: updated.title,
+    action: 'rejected',
+    previous_status: 'PENDING_REVIEW',
+    new_status: 'REJECTED',
+    actor_id: 'api_key',
+    actor_role: 'reviewer',
+    reason: body.reason.trim(),
+  })
+
+  // Log additional verification note if provided separately
+  if (body.note?.trim()) {
+    auditLog.add({
+      listing_id: id,
+      listing_title: updated.title,
+      action: 'note_added',
+      previous_status: 'REJECTED',
+      new_status: 'REJECTED',
+      actor_id: 'api_key',
+      actor_role: 'reviewer',
+      reason: body.note.trim(),
+    })
   }
 
   return NextResponse.json(updated)

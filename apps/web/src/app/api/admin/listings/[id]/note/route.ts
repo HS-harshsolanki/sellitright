@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { approveListing } from '@/lib/listing-store'
+import { getListingByIdFromStore } from '@/lib/listing-store'
 import { auditLog } from '@/lib/audit-log'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
@@ -9,8 +9,8 @@ function isAuthorized(request: NextRequest): boolean {
   return request.headers.get('x-admin-key') === ADMIN_KEY
 }
 
-interface ApproveBody {
-  note?: string
+interface NoteBody {
+  note: string
 }
 
 export async function POST(
@@ -23,29 +23,32 @@ export async function POST(
 
   const { id } = await params
 
-  let body: ApproveBody = {}
+  let body: NoteBody
   try {
-    body = (await request.json()) as ApproveBody
+    body = (await request.json()) as NoteBody
   } catch {
-    // body is optional
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const updated = approveListing(id)
+  if (!body.note || typeof body.note !== 'string' || body.note.trim().length === 0) {
+    return NextResponse.json({ error: 'Note text is required' }, { status: 400 })
+  }
 
-  if (!updated) {
+  const listing = getListingByIdFromStore(id)
+  if (!listing) {
     return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
   }
 
   auditLog.add({
     listing_id: id,
-    listing_title: updated.title,
-    action: 'approved',
-    previous_status: 'PENDING_REVIEW',
-    new_status: 'ACTIVE',
+    listing_title: listing.title,
+    action: 'note_added',
+    previous_status: listing.status,
+    new_status: listing.status,
     actor_id: 'api_key',
     actor_role: 'reviewer',
-    reason: body.note?.trim() || null,
+    reason: body.note.trim(),
   })
 
-  return NextResponse.json(updated)
+  return NextResponse.json({ ok: true })
 }
