@@ -309,7 +309,15 @@ export default function SellPage() {
         </div>
 
         {/* Autosave indicator */}
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <div>
+            {saveStatus === 'error' && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
+                <span className="font-medium">Draft not saved</span>
+                <span className="text-amber-600">— sign in to enable autosave</span>
+              </div>
+            )}
+          </div>
           <SaveIndicator status={saveStatus} />
         </div>
       </div>

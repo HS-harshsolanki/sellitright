@@ -221,24 +221,31 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabFilter>('all')
   const [listings, setListings] = useState<MockListing[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
       setLoading(true)
+      setFetchError(null)
       try {
         if (isSupabaseConfigured()) {
           const res = await fetch('/api/dashboard/listings')
           if (res.ok) {
             const json = await res.json() as { listings: DashboardListing[] }
             setListings(json.listings.map(toDisplayListing))
+          } else if (res.status === 401) {
+            setFetchError('You need to be signed in to view your listings.')
+            setListings([])
           } else {
-            // Fallback to mock data if API fails
+            const json = await res.json().catch(() => ({})) as { error?: string }
+            setFetchError(json.error ?? 'Failed to load listings. Please refresh.')
             setListings(MOCK_LISTINGS)
           }
         } else {
           setListings(MOCK_LISTINGS)
         }
       } catch {
+        setFetchError('Network error — check your connection and refresh.')
         setListings(MOCK_LISTINGS)
       } finally {
         setLoading(false)
@@ -272,6 +279,13 @@ export default function DashboardPage() {
           New listing
         </Link>
       </div>
+
+      {fetchError && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <span>{fetchError}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Total Listings" value={stats.total} icon={<LayoutGrid className="h-5 w-5" />} />

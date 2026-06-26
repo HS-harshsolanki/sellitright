@@ -69,19 +69,28 @@ function LoginPageInner() {
 
       {(error || callbackError) && (
         <div
-          className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
           role="alert"
           aria-live="polite"
         >
-          <svg viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
-            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-          </svg>
-          <span>
-            {error ||
-              (callbackError === 'auth_failed'
-                ? 'Google sign-in failed. Make sure your Supabase redirect URL includes http://localhost:3000/auth/callback, then try again.'
-                : 'Sign-in failed. Please try again.')}
-          </span>
+          <div className="flex items-start gap-2">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            <div className="space-y-1">
+              <p className="font-medium">
+                {error ? error : 'Google sign-in failed'}
+              </p>
+              {!error && callbackError === 'auth_failed' && (
+                <p className="text-xs text-red-600">
+                  This usually means the redirect URL isn&apos;t configured in Supabase.
+                  Go to <span className="font-mono font-medium">Authentication → URL Configuration</span> and
+                  add <span className="font-mono font-medium">{typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/auth/callback</span> to
+                  the allowed redirect URLs.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
