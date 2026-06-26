@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { MockListing } from '@/lib/mock-data'
 
 export type PropertyType = 'APARTMENT' | 'VILLA' | 'INDEPENDENT_HOUSE' | 'PLOT' | 'PENTHOUSE'
 export type BHKType = 'ONE_BHK' | 'TWO_BHK' | 'THREE_BHK' | 'FOUR_BHK' | 'FIVE_PLUS_BHK'
@@ -86,6 +87,7 @@ interface SellFormState {
   setDraftId: (id: string) => void
   setSaveStatus: (status: SaveStatus) => void
   reset: () => void
+  hydrateFromListing: (listing: MockListing) => void
 }
 
 const DEFAULT_LOCATION: LocationData = {
@@ -181,6 +183,42 @@ export const useSellFormStore = create<SellFormState>()(
           photos: [],
           pricing: DEFAULT_PRICING,
           draftId: null,
+          saveStatus: 'idle',
+        }),
+
+      hydrateFromListing: (listing) =>
+        set({
+          currentStep: 'property-type',
+          draftId: listing.id,
+          propertyType: listing.propertyType,
+          location: {
+            city: listing.city,
+            state: listing.state,
+            locality: listing.locality,
+            address: listing.address,
+            pincode: listing.pincode,
+          },
+          details: {
+            bhkType: listing.bhkType,
+            builtUpArea: String(listing.builtUpArea),
+            carpetArea: listing.carpetArea !== null ? String(listing.carpetArea) : '',
+            floor: listing.floor !== null ? String(listing.floor) : '',
+            totalFloors: listing.totalFloors !== null ? String(listing.totalFloors) : '',
+            facing: listing.facing,
+            furnishing: listing.furnishing,
+            bathrooms: listing.bathrooms,
+            balconies: listing.balconies ?? 0,
+            parking: listing.parking,
+            ageOfProperty: listing.ageOfProperty !== null ? String(listing.ageOfProperty) : '',
+            amenities: listing.amenities,
+          },
+          photos: listing.images.map((img) => img.url),
+          pricing: {
+            price: listing.price.toLocaleString('en-IN'),
+            title: listing.title,
+            description: listing.description,
+            negotiable: false,
+          },
           saveStatus: 'idle',
         }),
     }),

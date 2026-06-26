@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rejectListing } from '@/lib/listing-store'
 import { auditLog } from '@/lib/audit-log'
+import { createServiceClient } from '@/lib/supabase/server'
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
@@ -35,8 +37,56 @@ export async function POST(
     return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 })
   }
 
-  const updated = rejectListing(id, body.reason.trim())
+  const reason = body.reason.trim()
 
+  // ── Supabase path ────────────────────────────────────────────────────────
+  const supabase = createServiceClient()
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('listings')
+      .update({ status: 'REJECTED', rejection_reason: reason })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+      }
+      console.error('[admin/reject] Supabase error:', error.message, error.code)
+      return NextResponse.json({ error: 'Failed to reject listing' }, { status: 500 })
+    }
+
+    // Write reject + optional note to audit_log
+    await supabase.from('audit_log').insert({
+      listing_id: id,
+      listing_title: data.title,
+      action: 'rejected',
+      previous_status: 'PENDING_REVIEW',
+      new_status: 'REJECTED',
+      actor_id: 'api_key',
+      actor_role: 'reviewer',
+      reason,
+    })
+
+    if (body.note?.trim()) {
+      await supabase.from('audit_log').insert({
+        listing_id: id,
+        listing_title: data.title,
+        action: 'note_added',
+        previous_status: 'REJECTED',
+        new_status: 'REJECTED',
+        actor_id: 'api_key',
+        actor_role: 'reviewer',
+        reason: body.note.trim(),
+      })
+    }
+
+    return NextResponse.json(mapSupabaseListingToMock(data))
+  }
+
+  // ── In-memory fallback ───────────────────────────────────────────────────
+  const updated = rejectListing(id, reason)
   if (!updated) {
     return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
   }
@@ -49,10 +99,9 @@ export async function POST(
     new_status: 'REJECTED',
     actor_id: 'api_key',
     actor_role: 'reviewer',
-    reason: body.reason.trim(),
+    reason,
   })
 
-  // Log additional verification note if provided separately
   if (body.note?.trim()) {
     auditLog.add({
       listing_id: id,

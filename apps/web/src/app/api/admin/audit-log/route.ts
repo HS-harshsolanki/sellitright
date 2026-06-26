@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auditLog } from '@/lib/audit-log'
+import { createServiceClient } from '@/lib/supabase/server'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
@@ -19,11 +20,42 @@ export async function GET(request: NextRequest) {
   const action = searchParams.get('action') ?? ''
   const listingId = searchParams.get('listing_id') ?? ''
 
-  const entries = auditLog.getAll({ action: action || undefined, listingId: listingId || undefined })
+  // ── Supabase path ────────────────────────────────────────────────────────
+  const supabase = createServiceClient()
+  if (supabase) {
+    try {
+      let q = supabase
+        .from('audit_log')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+
+      if (action) q = q.eq('action', action)
+      if (listingId) q = q.eq('listing_id', listingId)
+
+      q = q.range((page - 1) * limit, page * limit - 1)
+
+      const { data, error, count } = await q
+
+      if (!error && data) {
+        const total = count ?? data.length
+        const totalPages = Math.max(1, Math.ceil(total / limit))
+        return NextResponse.json({ entries: data, total, page, totalPages })
+      }
+
+      console.error('[admin/audit-log] Supabase error:', error?.message)
+    } catch (err) {
+      console.error('[admin/audit-log] unexpected error:', err)
+    }
+  }
+
+  // ── In-memory fallback ───────────────────────────────────────────────────
+  const entries = auditLog.getAll({
+    action: action || undefined,
+    listingId: listingId || undefined,
+  })
   const total = entries.length
   const totalPages = Math.max(1, Math.ceil(total / limit))
-  const offset = (page - 1) * limit
-  const items = entries.slice(offset, offset + limit)
+  const items = entries.slice((page - 1) * limit, page * limit)
 
   return NextResponse.json({ entries: items, total, page, totalPages })
 }
