@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { MessageSquare, CheckCircle2 } from 'lucide-react'
+import { MessageSquare, CheckCircle2, Phone, Lock } from 'lucide-react'
 import { RequestContactModal } from '@/components/listing/request-contact-modal'
+import { UnlockContactSection } from '@/components/listing/unlock-contact-section'
 
 interface MobileBottomBarProps {
   price: string
@@ -12,6 +13,10 @@ interface MobileBottomBarProps {
   isAuthenticated: boolean
   hasExistingRequest?: boolean
   isOwner?: boolean
+  interestId?: string | null
+  interestStatus?: 'PENDING' | 'ACCEPTED' | null
+  contactUnlocked?: boolean
+  sellerPhone?: string | null
 }
 
 export function MobileBottomBar({
@@ -21,9 +26,16 @@ export function MobileBottomBar({
   isAuthenticated,
   hasExistingRequest = false,
   isOwner = false,
+  interestId = null,
+  interestStatus = null,
+  contactUnlocked = false,
+  sellerPhone = null,
 }: MobileBottomBarProps) {
   const [modalOpen, setModalOpen] = useState(false)
+  const [unlockSheetOpen, setUnlockSheetOpen] = useState(false)
   const [requested, setRequested] = useState(hasExistingRequest)
+  const [localUnlocked, setLocalUnlocked] = useState(contactUnlocked)
+  const [localPhone, setLocalPhone] = useState<string | null>(sellerPhone)
 
   return (
     <>
@@ -50,6 +62,23 @@ export function MobileBottomBar({
           >
             Manage listing
           </Link>
+        ) : localUnlocked && localPhone ? (
+          <a
+            href={`tel:${localPhone.replace(/\s/g, '')}`}
+            className="flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
+          >
+            <Phone className="h-4 w-4" aria-hidden="true" />
+            Call Seller
+          </a>
+        ) : interestStatus === 'ACCEPTED' && interestId ? (
+          <button
+            type="button"
+            onClick={() => setUnlockSheetOpen(true)}
+            className="flex shrink-0 items-center gap-2 rounded-xl bg-[#222] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
+          >
+            <Lock className="h-4 w-4" aria-hidden="true" />
+            Unlock — ₹49
+          </button>
         ) : !isAuthenticated ? (
           <Link
             href={`/login?next=/listing/${listingId}`}
@@ -74,6 +103,44 @@ export function MobileBottomBar({
           </button>
         )}
       </div>
+
+      {/* Unlock bottom sheet */}
+      {unlockSheetOpen && interestId && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Unlock seller contact"
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setUnlockSheetOpen(false)}
+            aria-hidden="true"
+          />
+          {/* Sheet */}
+          <div className="relative w-full rounded-t-2xl border-t border-[var(--color-border)] bg-[var(--color-background)] p-6">
+            <button
+              type="button"
+              onClick={() => setUnlockSheetOpen(false)}
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+            <UnlockContactSection
+              interestId={interestId}
+              listingTitle={listingTitle}
+              onUnlocked={(phone, email) => {
+                setLocalPhone(phone)
+                setLocalUnlocked(true)
+                setUnlockSheetOpen(false)
+                void email
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {isAuthenticated && (
         <RequestContactModal

@@ -5,6 +5,10 @@ import { useState } from 'react'
 import { MessageSquare, ShieldCheck, User, Clock, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RequestContactModal } from '@/components/listing/request-contact-modal'
+import {
+  UnlockContactSection,
+  ContactRevealedCard,
+} from '@/components/listing/unlock-contact-section'
 import type { MockSeller } from '@/lib/mock-data'
 
 interface ContactSellerProps {
@@ -16,6 +20,16 @@ interface ContactSellerProps {
   hasExistingRequest?: boolean
   /** Viewer is the seller — hide the contact CTA */
   isOwner?: boolean
+  /** Interest ID for the buyer's accepted request */
+  interestId?: string | null
+  /** Current status of the buyer's interest row */
+  interestStatus?: 'PENDING' | 'ACCEPTED' | null
+  /** Whether the contact has already been unlocked */
+  contactUnlocked?: boolean
+  /** Seller's phone — only set when contactUnlocked = true */
+  sellerPhone?: string | null
+  /** Seller's email — only set when contactUnlocked = true */
+  sellerEmail?: string | null
   price?: string
   statsLine?: string
 }
@@ -27,11 +41,19 @@ export function ContactSeller({
   isAuthenticated = false,
   hasExistingRequest = false,
   isOwner = false,
+  interestId = null,
+  interestStatus = null,
+  contactUnlocked = false,
+  sellerPhone = null,
+  sellerEmail = null,
   price,
   statsLine,
 }: ContactSellerProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [requested, setRequested] = useState(hasExistingRequest)
+  const [localUnlocked, setLocalUnlocked] = useState(contactUnlocked)
+  const [localPhone, setLocalPhone] = useState<string | null>(sellerPhone)
+  const [localEmail, setLocalEmail] = useState<string | null>(sellerEmail)
 
   function handleModalChange(open: boolean) {
     setModalOpen(open)
@@ -109,6 +131,20 @@ export function ContactSeller({
               </Link>
             </p>
           </div>
+        ) : localUnlocked && localPhone ? (
+          /* Contact already unlocked — show details immediately */
+          <ContactRevealedCard sellerPhone={localPhone} sellerEmail={localEmail} />
+        ) : interestStatus === 'ACCEPTED' && interestId ? (
+          /* Seller accepted — prompt buyer to pay and unlock contact */
+          <UnlockContactSection
+            interestId={interestId}
+            listingTitle={listingTitle}
+            onUnlocked={(phone, email) => {
+              setLocalPhone(phone)
+              setLocalEmail(email)
+              setLocalUnlocked(true)
+            }}
+          />
         ) : !isAuthenticated ? (
           /* Unauthenticated — prompt to sign in */
           <div className="space-y-3">

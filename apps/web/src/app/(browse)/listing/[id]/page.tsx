@@ -88,18 +88,44 @@ export default async function ListingPage({ params }: ListingPageProps) {
   } = await supabase.auth.getUser()
   const isAuthenticated = !!user
 
-  // Check if buyer already has a pending request for this listing (server-side, avoids flash)
+  // Check buyer's interest state for this listing (server-side, avoids flash)
   let hasExistingRequest = false
+  let interestStatus: 'PENDING' | 'ACCEPTED' | null = null
+  let contactUnlocked = false
+  let sellerPhone: string | null = null
+  let sellerEmail: string | null = null
+  let interestId: string | null = null
+
   if (user) {
     try {
-      const { data: existing } = await supabase
+      type InterestRow = {
+        id: string
+        status: string
+        contact_unlocked: boolean | null
+        seller_phone: string | null
+        seller_email: string | null
+      }
+      const { data: existing } = (await supabase
         .from('buyer_interest')
-        .select('id')
+        .select('id, status, contact_unlocked, seller_phone, seller_email')
         .eq('listing_id', id)
         .eq('buyer_id', user.id)
-        .eq('status', 'PENDING')
-        .maybeSingle()
-      hasExistingRequest = !!existing
+        .in('status', ['PENDING', 'ACCEPTED'])
+        .maybeSingle()) as { data: InterestRow | null; error: unknown }
+
+      if (existing) {
+        interestId = existing.id
+        hasExistingRequest = existing.status === 'PENDING'
+        interestStatus =
+          existing.status === 'PENDING'
+            ? 'PENDING'
+            : existing.status === 'ACCEPTED'
+              ? 'ACCEPTED'
+              : null
+        contactUnlocked = existing.contact_unlocked === true
+        sellerPhone = contactUnlocked ? (existing.seller_phone ?? null) : null
+        sellerEmail = contactUnlocked ? (existing.seller_email ?? null) : null
+      }
     } catch {
       // buyer_interest table may not exist yet (migration not run) — default to false
       hasExistingRequest = false
@@ -318,6 +344,11 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 isAuthenticated={isAuthenticated}
                 hasExistingRequest={hasExistingRequest}
                 isOwner={isOwner}
+                interestId={interestId}
+                interestStatus={interestStatus}
+                contactUnlocked={contactUnlocked}
+                sellerPhone={sellerPhone}
+                sellerEmail={sellerEmail}
                 price={priceStr}
                 statsLine={statsLine}
               />
@@ -335,6 +366,11 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 isAuthenticated={isAuthenticated}
                 hasExistingRequest={hasExistingRequest}
                 isOwner={isOwner}
+                interestId={interestId}
+                interestStatus={interestStatus}
+                contactUnlocked={contactUnlocked}
+                sellerPhone={sellerPhone}
+                sellerEmail={sellerEmail}
                 price={priceStr}
                 statsLine={statsLine}
               />
@@ -352,6 +388,10 @@ export default async function ListingPage({ params }: ListingPageProps) {
         isAuthenticated={isAuthenticated}
         hasExistingRequest={hasExistingRequest}
         isOwner={isOwner}
+        interestId={interestId}
+        interestStatus={interestStatus}
+        contactUnlocked={contactUnlocked}
+        sellerPhone={sellerPhone}
       />
     </>
   )

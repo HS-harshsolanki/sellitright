@@ -14,6 +14,8 @@ import {
   AlertCircle,
   Loader2,
   Users,
+  Phone,
+  Mail,
 } from 'lucide-react'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import type { MockListing, ListingStatus } from '@/lib/mock-data'
@@ -82,6 +84,9 @@ interface SellerInterestItem {
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'WITHDRAWN'
   createdAt: string
   updatedAt: string
+  contactUnlocked?: boolean
+  buyerPhone?: string | null
+  buyerEmail?: string | null
 }
 
 // Shape returned by /api/dashboard/listings
@@ -346,7 +351,32 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
         </div>
       )}
 
-      {/* Row 4: Date */}
+      {/* Row 4: Buyer contact (visible to seller after payment) */}
+      {item.contactUnlocked && (item.buyerPhone ?? item.buyerEmail) && (
+        <div className="mt-3 space-y-1 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+          <p className="text-xs font-semibold text-green-800">Buyer contact unlocked</p>
+          {item.buyerPhone && (
+            <a
+              href={`tel:${item.buyerPhone.replace(/\s/g, '')}`}
+              className="flex items-center gap-1.5 text-xs text-green-700 hover:underline"
+            >
+              <Phone className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {item.buyerPhone}
+            </a>
+          )}
+          {item.buyerEmail && (
+            <a
+              href={`mailto:${item.buyerEmail}`}
+              className="flex items-center gap-1.5 text-xs text-green-700 hover:underline"
+            >
+              <Mail className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {item.buyerEmail}
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* Row 5: Date */}
       <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">Requested on {dateStr}</p>
 
       {/* Row 5: Actions (PENDING only) */}

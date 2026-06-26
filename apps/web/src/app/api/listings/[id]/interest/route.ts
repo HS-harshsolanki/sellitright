@@ -176,13 +176,30 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ hasPending: false })
   }
 
-  const { data } = await supabase
+  type InterestRow = {
+    id: string
+    status: string
+    contact_unlocked: boolean | null
+    seller_phone: string | null
+    seller_email: string | null
+  }
+
+  const { data } = (await supabase
     .from('buyer_interest')
-    .select('id, status')
+    .select('id, status, contact_unlocked, seller_phone, seller_email')
     .eq('listing_id', listingId)
     .eq('buyer_id', user.id)
-    .eq('status', 'PENDING')
-    .maybeSingle()
+    .in('status', ['PENDING', 'ACCEPTED'])
+    .maybeSingle()) as { data: InterestRow | null; error: unknown }
 
-  return NextResponse.json({ hasPending: !!data, interestId: data?.id ?? null })
+  const unlocked = data?.contact_unlocked === true
+
+  return NextResponse.json({
+    hasPending: data?.status === 'PENDING',
+    hasAccepted: data?.status === 'ACCEPTED',
+    interestId: data?.id ?? null,
+    contactUnlocked: unlocked,
+    sellerPhone: unlocked ? (data?.seller_phone ?? null) : null,
+    sellerEmail: unlocked ? (data?.seller_email ?? null) : null,
+  })
 }

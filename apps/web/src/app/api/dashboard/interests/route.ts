@@ -14,6 +14,9 @@ export interface SellerInterestItem {
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'WITHDRAWN'
   createdAt: string
   updatedAt: string
+  contactUnlocked?: boolean
+  buyerPhone?: string | null
+  buyerEmail?: string | null
 }
 
 // GET /api/dashboard/interests
@@ -23,7 +26,12 @@ export interface SellerInterestItem {
 //   sort:   newest | oldest                       (default: newest)
 //   page:   number                                (default: 1)
 export async function GET(request: NextRequest) {
-  const supabase = await createClient()
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  try {
+    supabase = await createClient()
+  } catch {
+    return NextResponse.json({ error: 'Sign in to view buyer requests.' }, { status: 401 })
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -43,6 +51,7 @@ export async function GET(request: NextRequest) {
     .from('buyer_interest')
     .select(
       `id, listing_id, full_name, purpose, timeline, funding, message, status, created_at, updated_at,
+       contact_unlocked, buyer_phone, buyer_email,
        listings!inner(title, city)`,
       { count: 'exact' },
     )
@@ -64,6 +73,7 @@ export async function GET(request: NextRequest) {
 
   const interests: SellerInterestItem[] = (data ?? []).map((row) => {
     const listing = Array.isArray(row.listings) ? row.listings[0] : row.listings
+    const unlocked = (row as unknown as { contact_unlocked?: boolean }).contact_unlocked === true
     return {
       id: row.id as string,
       listingId: row.listing_id as string,
@@ -77,6 +87,13 @@ export async function GET(request: NextRequest) {
       status: row.status as SellerInterestItem['status'],
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
+      contactUnlocked: unlocked,
+      buyerPhone: unlocked
+        ? ((row as unknown as { buyer_phone?: string | null }).buyer_phone ?? null)
+        : null,
+      buyerEmail: unlocked
+        ? ((row as unknown as { buyer_email?: string | null }).buyer_email ?? null)
+        : null,
     }
   })
 
