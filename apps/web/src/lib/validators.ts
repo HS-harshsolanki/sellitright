@@ -13,13 +13,7 @@ export const PropertyTypeEnum = z.enum([
   'PENTHOUSE',
 ])
 
-export const BHKTypeEnum = z.enum([
-  'ONE_BHK',
-  'TWO_BHK',
-  'THREE_BHK',
-  'FOUR_BHK',
-  'FIVE_PLUS_BHK',
-])
+export const BHKTypeEnum = z.enum(['ONE_BHK', 'TWO_BHK', 'THREE_BHK', 'FOUR_BHK', 'FIVE_PLUS_BHK'])
 
 export const FacingEnum = z.enum([
   'NORTH',
@@ -72,9 +66,7 @@ export const listingCreateSchema = z.object({
   city: z.string().min(2).max(100),
   locality: z.string().min(2).max(100),
   state: z.string().min(2).max(100),
-  pincode: z
-    .string()
-    .regex(/^\d{6}$/, 'Pincode must be exactly 6 digits'),
+  pincode: z.string().regex(/^\d{6}$/, 'Pincode must be exactly 6 digits'),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   amenities: z.array(z.string()).default([]),
@@ -115,11 +107,7 @@ export const InterestTimelineEnum = z.enum([
   'ONE_TO_THREE_MONTHS',
   'EXPLORING',
 ])
-export const InterestFundingEnum = z.enum([
-  'CASH_READY',
-  'LOAN_APPROVED',
-  'LOAN_IN_PROGRESS',
-])
+export const InterestFundingEnum = z.enum(['CASH_READY', 'LOAN_APPROVED', 'LOAN_IN_PROGRESS'])
 export const InterestStatusEnum = z.enum(['PENDING', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'])
 
 export const buyerInterestSchema = z.object({
@@ -140,10 +128,10 @@ export const buyerInterestSchema = z.object({
 })
 
 export type BuyerInterestInput = z.infer<typeof buyerInterestSchema>
-export type InterestPurpose  = z.infer<typeof InterestPurposeEnum>
+export type InterestPurpose = z.infer<typeof InterestPurposeEnum>
 export type InterestTimeline = z.infer<typeof InterestTimelineEnum>
-export type InterestFunding  = z.infer<typeof InterestFundingEnum>
-export type InterestStatus   = z.infer<typeof InterestStatusEnum>
+export type InterestFunding = z.infer<typeof InterestFundingEnum>
+export type InterestStatus = z.infer<typeof InterestStatusEnum>
 
 export interface BuyerInterestRecord {
   id: string
@@ -166,9 +154,7 @@ export interface BuyerInterestRecord {
 export const loginSchema = z.union([
   z.object({
     type: z.literal('phone'),
-    phone: z
-      .string()
-      .regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
+    phone: z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
     otp: z.string().length(6, 'OTP must be 6 digits').optional(),
   }),
   z.object({

@@ -9,7 +9,10 @@ const DialogTrigger = DialogPrimitive.Trigger
 const DialogClose = DialogPrimitive.Close
 const DialogPortal = DialogPrimitive.Portal
 
-function DialogOverlay({ className, ...props }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>) {
+function DialogOverlay({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>) {
   return (
     <DialogPrimitive.Overlay
       className={cn(
@@ -65,24 +68,28 @@ function DialogContent({
 }
 
 function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn('flex flex-col gap-1 px-6 pb-4 pt-6', className)}
-      {...props}
-    />
-  )
+  return <div className={cn('flex flex-col gap-1 px-6 pb-4 pt-6', className)} {...props} />
 }
 
-function DialogTitle({ className, ...props }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
+function DialogTitle({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('text-lg font-semibold leading-tight text-[var(--color-foreground)]', className)}
+      className={cn(
+        'text-lg font-semibold leading-tight text-[var(--color-foreground)]',
+        className,
+      )}
       {...props}
     />
   )
 }
 
-function DialogDescription({ className, ...props }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>) {
+function DialogDescription({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description
       className={cn('text-sm text-[var(--color-muted-foreground)]', className)}
@@ -94,7 +101,10 @@ function DialogDescription({ className, ...props }: React.ComponentPropsWithoutR
 function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('flex flex-col-reverse gap-2 px-6 pb-6 pt-2 sm:flex-row sm:justify-end', className)}
+      className={cn(
+        'flex flex-col-reverse gap-2 px-6 pb-6 pt-2 sm:flex-row sm:justify-end',
+        className,
+      )}
       {...props}
     />
   )

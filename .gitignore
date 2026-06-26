@@ -10,3 +10,7 @@ coverage/
 .DS_Store
 *.log
 .vercel
+
+# Playwright
+apps/web/playwright-report/
+apps/web/test-results/

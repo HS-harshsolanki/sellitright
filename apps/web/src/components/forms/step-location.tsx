@@ -50,7 +50,7 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
           Where is your property?
         </h2>
         <p className="text-muted-foreground">Help buyers find your property easily.</p>
@@ -70,7 +70,9 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             className={cn(
               inputBase,
               'cursor-pointer appearance-none',
-              cityMissing ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary',
+              cityMissing
+                ? 'border-destructive focus:border-destructive'
+                : 'border-border focus:border-primary',
             )}
           >
             <option value="" disabled>
@@ -83,7 +85,7 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             ))}
           </select>
           {cityMissing && (
-            <p role="alert" className="text-xs text-destructive">
+            <p role="alert" className="text-destructive text-xs">
               Please select a city.
             </p>
           )}
@@ -91,9 +93,9 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
 
         {/* State (auto-filled) */}
         {location.state && (
-          <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-3">
-            <span className="text-sm text-muted-foreground">State:</span>
-            <span className="text-sm font-medium text-foreground">{location.state}</span>
+          <div className="bg-muted flex items-center gap-2 rounded-lg px-4 py-3">
+            <span className="text-muted-foreground text-sm">State:</span>
+            <span className="text-foreground text-sm font-medium">{location.state}</span>
           </div>
         )}
 
@@ -111,11 +113,13 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             aria-invalid={localityMissing ? 'true' : undefined}
             className={cn(
               inputBase,
-              localityMissing ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary',
+              localityMissing
+                ? 'border-destructive focus:border-destructive'
+                : 'border-border focus:border-primary',
             )}
           />
           {localityMissing && (
-            <p role="alert" className="text-xs text-destructive">
+            <p role="alert" className="text-destructive text-xs">
               Please enter your locality or area.
             </p>
           )}
@@ -132,7 +136,7 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             placeholder="Building name, street, landmark…"
             value={location.address}
             onChange={(e) => setLocation({ address: e.target.value })}
-            className={cn(inputBase, 'resize-none border-border focus:border-primary')}
+            className={cn(inputBase, 'border-border focus:border-primary resize-none')}
           />
         </div>
 
@@ -155,11 +159,13 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             aria-invalid={pincodeMissing ? 'true' : undefined}
             className={cn(
               inputBase,
-              pincodeMissing ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary',
+              pincodeMissing
+                ? 'border-destructive focus:border-destructive'
+                : 'border-border focus:border-primary',
             )}
           />
           {pincodeMissing && (
-            <p role="alert" className="text-xs text-destructive">
+            <p role="alert" className="text-destructive text-xs">
               Enter a valid 6-digit pincode.
             </p>
           )}
@@ -171,8 +177,8 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           <button
             type="button"
             className={cn(
-              'flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-6 text-sm font-medium text-muted-foreground',
-              'transition-colors hover:border-primary/50 hover:text-primary',
+              'border-border text-muted-foreground flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 text-sm font-medium',
+              'hover:border-primary/50 hover:text-primary transition-colors',
             )}
           >
             <MapPin className="h-4 w-4" />

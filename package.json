@@ -13,9 +13,17 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md,yaml,css}\" --ignore-path .gitignore",
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
-    "db:seed": "turbo run db:seed"
+    "db:seed": "turbo run db:seed",
+    "prepare": "husky",
+    "check": "bash scripts/quality-check.sh",
+    "check:fast": "bash scripts/quality-check.sh --no-e2e",
+    "check:fix": "bash scripts/quality-check.sh --fix"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.1.0",
+    "@commitlint/config-conventional": "^21.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "prettier": "^3.3.3",
     "turbo": "^2.5.0",
     "typescript": "^5.7.0"

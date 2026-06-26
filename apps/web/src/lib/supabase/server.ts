@@ -37,7 +37,9 @@ export function createServiceClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!url || !serviceKey) {
-    console.warn('[supabase] createServiceClient: SUPABASE_SERVICE_ROLE_KEY is not set — admin routes will fall back to mock data. Add it to .env.local.')
+    console.warn(
+      '[supabase] createServiceClient: SUPABASE_SERVICE_ROLE_KEY is not set — admin routes will fall back to mock data. Add it to .env.local.',
+    )
     return null
   }
 

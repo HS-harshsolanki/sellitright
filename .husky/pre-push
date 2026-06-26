@@ -1,0 +1,29 @@
+#!/bin/sh
+# Runs on every git push — fast gate: typecheck + unit tests only.
+# E2E runs in CI (GitHub Actions) to avoid blocking local dev.
+
+echo ""
+echo "▶  Pre-push checks (typecheck + unit tests)"
+echo "────────────────────────────────────────────"
+
+pnpm --filter web typecheck
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✗  TypeScript check failed. Push blocked."
+  echo "   Run: pnpm --filter web typecheck"
+  exit 1
+fi
+echo "✓  TypeScript"
+
+pnpm --filter web test
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✗  Unit tests failed. Push blocked."
+  echo "   Run: pnpm --filter web test"
+  exit 1
+fi
+echo "✓  Unit tests"
+
+echo ""
+echo "✓  All pre-push checks passed."
+echo ""

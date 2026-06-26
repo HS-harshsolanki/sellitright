@@ -10,10 +10,7 @@ function isAuthorized(request: NextRequest): boolean {
   return request.headers.get('x-admin-key') === ADMIN_KEY
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -23,11 +20,7 @@ export async function GET(
   // Try Supabase first
   const serviceClient = createServiceClient()
   if (serviceClient) {
-    const { data, error } = await serviceClient
-      .from('listings')
-      .select('*')
-      .eq('id', id)
-      .single()
+    const { data, error } = await serviceClient.from('listings').select('*').eq('id', id).single()
 
     if (error && error.code !== 'PGRST116') {
       return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 })

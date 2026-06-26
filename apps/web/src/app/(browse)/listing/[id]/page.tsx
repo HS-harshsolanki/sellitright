@@ -1,12 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import {
-  MapPin,
-  Share2,
-  Heart,
-  BadgeCheck,
-  User,
-} from 'lucide-react'
+import { MapPin, Share2, Heart, BadgeCheck, User } from 'lucide-react'
 import { getListingById } from '@/lib/mock-data'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { formatPrice, formatBHK, formatArea, formatFloor } from '@/lib/format'
@@ -55,15 +49,13 @@ export default async function ListingPage({ params }: ListingPageProps) {
   let listingRaw: ReturnType<typeof getListingById> = undefined
 
   try {
-    const { data: { user: viewer } } = await supabase.auth.getUser()
+    const {
+      data: { user: viewer },
+    } = await supabase.auth.getUser()
 
     // Fetch by id — RLS allows public read of ACTIVE listings.
     // If the viewer is the seller, also allow PENDING_REVIEW/DRAFT/INACTIVE preview.
-    const { data, error } = await supabase
-      .from('listings')
-      .select('*')
-      .eq('id', id)
-      .single()
+    const { data, error } = await supabase.from('listings').select('*').eq('id', id).single()
 
     if (!error && data) {
       const isOwner = viewer?.id === data.seller_id
@@ -89,7 +81,9 @@ export default async function ListingPage({ params }: ListingPageProps) {
   const listing = listingRaw!
 
   // user was already fetched above in the Supabase try block; re-use the session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   const isAuthenticated = !!user
 
   // Check if buyer already has a pending request for this listing (server-side, avoids flash)
@@ -116,11 +110,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
   const floorStr = formatFloor(listing.floor, listing.totalFloors)
 
   // Quick stats line for contact card subtitle
-  const statsLine = [
-    bhk,
-    areaStr,
-    listing.floor !== null ? `Floor ${floorStr}` : null,
-  ]
+  const statsLine = [bhk, areaStr, listing.floor !== null ? `Floor ${floorStr}` : null]
     .filter(Boolean)
     .join(' · ')
 
@@ -190,10 +180,8 @@ export default async function ListingPage({ params }: ListingPageProps) {
         {/* Left: all content sections · Right: sticky contact card           */}
         {/* ────────────────────────────────────────────────────────────────── */}
         <div className="mx-auto mt-8 max-w-7xl px-4 sm:px-6 lg:grid lg:grid-cols-[1fr_370px] lg:gap-12 lg:px-8">
-
           {/* ── LEFT COLUMN ─────────────────────────────────────────── */}
           <div>
-
             {/* Property type + location */}
             <div className="pb-6">
               <p className="text-xl font-semibold text-[var(--color-foreground)]">
@@ -201,9 +189,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
               </p>
 
               {/* Quick stats row */}
-              <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-                {quickStats}
-              </p>
+              <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{quickStats}</p>
 
               {/* Verified + view count badges */}
               {(listing.isVerified || listing.viewCount > 0) && (
@@ -289,7 +275,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 Location
               </h2>
 
-              <address className="not-italic mb-4 flex items-start gap-1.5 text-sm text-[var(--color-muted-foreground)]">
+              <address className="mb-4 flex items-start gap-1.5 text-sm not-italic text-[var(--color-muted-foreground)]">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 {listing.address}, {listing.locality}, {listing.city} — {listing.pincode}
               </address>
@@ -313,7 +299,6 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 statsLine={statsLine}
               />
             </div>
-
           </div>
           {/* ── END LEFT COLUMN ─────────────────────────────────────── */}
 
@@ -332,7 +317,6 @@ export default async function ListingPage({ params }: ListingPageProps) {
             </div>
           </aside>
           {/* ── END RIGHT COLUMN ────────────────────────────────────── */}
-
         </div>
       </div>
 

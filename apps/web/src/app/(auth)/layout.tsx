@@ -3,7 +3,8 @@ import type { ReactNode } from 'react'
 
 export const metadata: Metadata = {
   title: 'SellItRight — Sign in',
-  description: 'Sign in or create an account on SellItRight to buy and sell properties across India.',
+  description:
+    'Sign in or create an account on SellItRight to buy and sell properties across India.',
   robots: { index: false, follow: false },
 }
 

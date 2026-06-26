@@ -178,10 +178,9 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
         aria-label={`Image gallery for ${title}`}
       >
         <div className="grid h-[500px] grid-cols-4 grid-rows-2 gap-2 overflow-hidden rounded-xl">
-
           {/* Hero image — spans 2 cols × 2 rows */}
           <button
-            className="relative col-span-2 row-span-2 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-inset"
+            className="relative col-span-2 row-span-2 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]"
             onClick={() => openLightbox(0)}
             aria-label={`View photo 1 of ${images.length} — open fullscreen`}
           >
@@ -215,7 +214,7 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
             return (
               <button
                 key={img.id}
-                className="relative overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-inset"
+                className="relative overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]"
                 onClick={() => openLightbox(pos)}
                 aria-label={`View photo ${pos + 1} of ${images.length} — open fullscreen`}
               >
@@ -285,10 +284,7 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
             </div>
 
             {/* Image area */}
-            <div
-              className="relative flex-1 px-12 py-4"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="relative flex-1 px-12 py-4" onClick={(e) => e.stopPropagation()}>
               <AnimatePresence custom={direction} mode="popLayout">
                 <motion.div
                   key={`lb-${activeIndex}`}
@@ -315,14 +311,20 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
               {images.length > 1 && (
                 <>
                   <button
-                    onClick={(e) => { e.stopPropagation(); prev() }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      prev()
+                    }}
                     className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     aria-label="Previous image"
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); next() }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      next()
+                    }}
                     className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     aria-label="Next image"
                   >

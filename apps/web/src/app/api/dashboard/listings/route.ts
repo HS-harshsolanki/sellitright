@@ -4,7 +4,9 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
@@ -12,7 +14,9 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('listings')
-      .select('id, title, price, property_type, bhk_type, built_up_area, city, locality, image_urls, status, is_verified, view_count, rejection_reason, created_at, updated_at')
+      .select(
+        'id, title, price, property_type, bhk_type, built_up_area, city, locality, image_urls, status, is_verified, view_count, rejection_reason, created_at, updated_at',
+      )
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false })
 

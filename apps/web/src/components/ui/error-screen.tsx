@@ -31,9 +31,7 @@ export function ErrorScreen({
       </p>
 
       {digest && (
-        <p className="mt-2 font-mono text-xs text-[var(--color-muted-foreground)]">
-          Ref: {digest}
-        </p>
+        <p className="mt-2 font-mono text-xs text-[var(--color-muted-foreground)]">Ref: {digest}</p>
       )}
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -41,7 +39,7 @@ export function ErrorScreen({
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-primary)]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
+            className="hover:bg-[var(--color-primary)]/90 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Try again

@@ -12,29 +12,25 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import type {
-  InterestPurpose,
-  InterestTimeline,
-  InterestFunding,
-} from '@/lib/validators'
+import type { InterestPurpose, InterestTimeline, InterestFunding } from '@/lib/validators'
 
 // ─── Option sets ─────────────────────────────────────────────────────────────
 
 const PURPOSE_OPTIONS: { value: InterestPurpose; label: string }[] = [
-  { value: 'SELF',       label: 'Buying for Self' },
+  { value: 'SELF', label: 'Buying for Self' },
   { value: 'INVESTMENT', label: 'Investment' },
 ]
 
 const TIMELINE_OPTIONS: { value: InterestTimeline; label: string }[] = [
-  { value: 'IMMEDIATELY',         label: 'Immediately' },
-  { value: 'WITHIN_30_DAYS',      label: 'Within 30 Days' },
+  { value: 'IMMEDIATELY', label: 'Immediately' },
+  { value: 'WITHIN_30_DAYS', label: 'Within 30 Days' },
   { value: 'ONE_TO_THREE_MONTHS', label: '1–3 Months' },
-  { value: 'EXPLORING',           label: 'Exploring' },
+  { value: 'EXPLORING', label: 'Exploring' },
 ]
 
 const FUNDING_OPTIONS: { value: InterestFunding; label: string }[] = [
-  { value: 'CASH_READY',       label: 'Cash Ready' },
-  { value: 'LOAN_APPROVED',    label: 'Loan Approved' },
+  { value: 'CASH_READY', label: 'Cash Ready' },
+  { value: 'LOAN_APPROVED', label: 'Loan Approved' },
   { value: 'LOAN_IN_PROGRESS', label: 'Loan in Progress' },
 ]
 
@@ -61,7 +57,10 @@ function ChipGroup<T extends string>({
     <fieldset>
       <legend className="mb-2 text-sm font-medium text-[var(--color-foreground)]">
         {label}
-        <span className="ml-0.5 text-red-500" aria-hidden="true"> *</span>
+        <span className="ml-0.5 text-red-500" aria-hidden="true">
+          {' '}
+          *
+        </span>
       </legend>
       <div className="flex flex-wrap gap-2" role="group" aria-labelledby={id}>
         {options.map((opt) => {
@@ -141,24 +140,23 @@ export function RequestContactModal({
 }: RequestContactModalProps) {
   const { user } = useAuth()
   const nameId = useId()
-  const msgId  = useId()
+  const msgId = useId()
 
   const defaultName: string =
-    ((user?.user_metadata?.full_name as string | undefined) ??
-    (user?.email
-      ? user.email.includes('@') ? user.email.split('@')[0] : user.email
-      : '')) ?? ''
+    (user?.user_metadata?.full_name as string | undefined) ??
+    (user?.email ? (user.email.includes('@') ? user.email.split('@')[0] : user.email) : '') ??
+    ''
 
   const [form, setForm] = useState<FormState>({
     fullName: defaultName,
-    purpose:  null,
+    purpose: null,
     timeline: null,
-    funding:  null,
-    message:  '',
+    funding: null,
+    message: '',
   })
-  const [errors, setErrors]       = useState<FormErrors>({})
-  const [submitState, setSubmit]  = useState<SubmitState>(viewExisting ? 'duplicate' : 'idle')
-  const [apiError, setApiError]   = useState<string | null>(null)
+  const [errors, setErrors] = useState<FormErrors>({})
+  const [submitState, setSubmit] = useState<SubmitState>(viewExisting ? 'duplicate' : 'idle')
+  const [apiError, setApiError] = useState<string | null>(null)
   const [withdrawing, setWithdrawing] = useState(false)
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
 
@@ -183,9 +181,9 @@ export function RequestContactModal({
     const next: FormErrors = {}
     if (!form.fullName.trim()) next.fullName = 'Full name is required.'
     else if (form.fullName.trim().length < 2) next.fullName = 'Name must be at least 2 characters.'
-    if (!form.purpose)  next.purpose  = 'Please select a purpose.'
+    if (!form.purpose) next.purpose = 'Please select a purpose.'
     if (!form.timeline) next.timeline = 'Please select a timeline.'
-    if (!form.funding)  next.funding  = 'Please select a funding option.'
+    if (!form.funding) next.funding = 'Please select a funding option.'
     if (form.message.length > 250) next.message = 'Message must be under 250 characters.'
     setErrors(next)
     return Object.keys(next).length === 0
@@ -204,10 +202,10 @@ export function RequestContactModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: form.fullName.trim(),
-          purpose:  form.purpose,
+          purpose: form.purpose,
           timeline: form.timeline,
-          funding:  form.funding,
-          message:  form.message.trim() || undefined,
+          funding: form.funding,
+          message: form.message.trim() || undefined,
         }),
       })
 
@@ -217,7 +215,7 @@ export function RequestContactModal({
         return
       }
 
-      const json = await res.json() as { error?: string }
+      const json = (await res.json()) as { error?: string }
 
       if (res.status === 409) {
         setSubmit('duplicate')
@@ -252,9 +250,7 @@ export function RequestContactModal({
               <h2 className="text-xl font-bold text-[var(--color-foreground)]">Request sent!</h2>
               <p className="text-sm text-[var(--color-muted-foreground)]">
                 The seller will review your interest in{' '}
-                <span className="font-medium text-[var(--color-foreground)]">
-                  {listingTitle}
-                </span>{' '}
+                <span className="font-medium text-[var(--color-foreground)]">{listingTitle}</span>{' '}
                 and reach out to you.
               </p>
             </div>
@@ -309,7 +305,9 @@ export function RequestContactModal({
               </p>
             </div>
             {withdrawError && (
-              <p className="text-xs text-red-600" role="alert">{withdrawError}</p>
+              <p className="text-xs text-red-600" role="alert">
+                {withdrawError}
+              </p>
             )}
             <div className="flex w-full flex-col gap-2">
               <Button
@@ -322,7 +320,7 @@ export function RequestContactModal({
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 w-full rounded-xl font-semibold text-red-600 hover:bg-red-50 hover:border-red-200"
+                className="h-11 w-full rounded-xl font-semibold text-red-600 hover:border-red-200 hover:bg-red-50"
                 onClick={() => void handleWithdraw()}
                 disabled={withdrawing}
               >
@@ -342,14 +340,13 @@ export function RequestContactModal({
         <DialogHeader>
           <DialogTitle>Request Contact</DialogTitle>
           <DialogDescription>
-            Tell the seller a bit about yourself. Your contact details stay hidden until
-            the seller responds.
+            Tell the seller a bit about yourself. Your contact details stay hidden until the seller
+            responds.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="space-y-5 px-6 pb-2">
-
             {/* Full Name */}
             <div>
               <label
@@ -357,7 +354,10 @@ export function RequestContactModal({
                 className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
               >
                 Full Name
-                <span className="ml-0.5 text-red-500" aria-hidden="true"> *</span>
+                <span className="ml-0.5 text-red-500" aria-hidden="true">
+                  {' '}
+                  *
+                </span>
               </label>
               <input
                 id={nameId}
@@ -460,9 +460,7 @@ export function RequestContactModal({
                   id={`${msgId}-count`}
                   className={cn(
                     'text-xs tabular-nums',
-                    charCount > 230
-                      ? 'text-amber-600'
-                      : 'text-[var(--color-muted-foreground)]',
+                    charCount > 230 ? 'text-amber-600' : 'text-[var(--color-muted-foreground)]',
                   )}
                   aria-live="polite"
                 >

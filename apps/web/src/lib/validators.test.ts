@@ -3,7 +3,8 @@ import { listingCreateSchema, loginSchema, listingFilterSchema } from './validat
 
 const VALID_LISTING = {
   title: 'Spacious 2 BHK in Bandra West with sea view',
-  description: 'A beautiful and well-maintained flat in the heart of Bandra with all modern amenities.',
+  description:
+    'A beautiful and well-maintained flat in the heart of Bandra with all modern amenities.',
   price: 15000000,
   propertyType: 'APARTMENT' as const,
   bhkType: 'TWO_BHK' as const,

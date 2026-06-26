@@ -7,12 +7,7 @@ import { StepPricing } from '@/components/forms/step-pricing'
 import { StepPropertyType } from '@/components/forms/step-property-type'
 import { StepReview } from '@/components/forms/step-review'
 import { cn } from '@/lib/utils'
-import {
-  SELL_STEPS,
-  STEP_LABELS,
-  type SellStep,
-  useSellFormStore,
-} from '@/stores/sell-form.store'
+import { SELL_STEPS, STEP_LABELS, type SellStep, useSellFormStore } from '@/stores/sell-form.store'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
@@ -38,7 +33,7 @@ const pageVariants = {
 function SaveIndicator({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
   if (status === 'idle') return null
   return (
-    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
       {status === 'saving' && (
         <>
           <Loader2 className="h-3 w-3 animate-spin" />
@@ -51,9 +46,7 @@ function SaveIndicator({ status }: { status: 'idle' | 'saving' | 'saved' | 'erro
           Draft saved
         </>
       )}
-      {status === 'error' && (
-        <span className="text-destructive">Draft save failed</span>
-      )}
+      {status === 'error' && <span className="text-destructive">Draft save failed</span>}
     </span>
   )
 }
@@ -90,7 +83,20 @@ function buildDraftPayload(state: ReturnType<typeof useSellFormStore.getState>) 
 
 export default function SellPage() {
   const store = useSellFormStore()
-  const { currentStep, nextStep, prevStep, goToStep, propertyType, location, details, pricing, draftId, saveStatus, setDraftId, setSaveStatus } = store
+  const {
+    currentStep,
+    nextStep,
+    prevStep,
+    goToStep,
+    propertyType,
+    location,
+    details,
+    pricing,
+    draftId,
+    saveStatus,
+    setDraftId,
+    setSaveStatus,
+  } = store
 
   const [showErrors, setShowErrors] = useState(false)
 
@@ -125,7 +131,7 @@ export default function SellPage() {
       })
 
       if (res.ok) {
-        const json = await res.json() as { id: string }
+        const json = (await res.json()) as { id: string }
         if (!state.draftId && json.id) setDraftId(json.id)
         setSaveStatus('saved')
       } else {
@@ -142,13 +148,15 @@ export default function SellPage() {
   useEffect(() => {
     const unsubscribe = useSellFormStore.subscribe(() => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
-      autosaveTimer.current = setTimeout(() => { void saveDraft() }, 1500)
+      autosaveTimer.current = setTimeout(() => {
+        void saveDraft()
+      }, 1500)
     })
     return () => {
       unsubscribe()
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function canProceed(): boolean {
@@ -227,7 +235,7 @@ export default function SellPage() {
                       className={cn(
                         'flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold',
                         'border-primary bg-primary text-white',
-                        'cursor-pointer transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        'focus-visible:ring-ring cursor-pointer transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                       )}
                     >
                       <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -244,7 +252,7 @@ export default function SellPage() {
                         'flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-all',
                         isActive
                           ? 'border-primary bg-primary text-white'
-                          : 'border-border bg-white text-muted-foreground',
+                          : 'border-border text-muted-foreground bg-white',
                       )}
                     >
                       {idx + 1}
@@ -254,9 +262,9 @@ export default function SellPage() {
                     className={cn(
                       'whitespace-nowrap text-xs',
                       isActive
-                        ? 'font-semibold text-foreground'
+                        ? 'text-foreground font-semibold'
                         : isPast
-                          ? 'cursor-pointer text-muted-foreground hover:text-foreground'
+                          ? 'text-muted-foreground hover:text-foreground cursor-pointer'
                           : 'text-muted-foreground',
                     )}
                   >
@@ -286,22 +294,22 @@ export default function SellPage() {
                   setShowErrors(false)
                   goToStep(currentIndex - 1)
                 }}
-                className="flex items-center gap-1 font-medium text-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                className="text-foreground hover:text-primary focus-visible:ring-ring flex items-center gap-1 rounded font-medium focus-visible:outline-none focus-visible:ring-2"
                 aria-label="Go back to previous step"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 {STEP_LABELS[currentStep]}
               </button>
             ) : (
-              <span className="font-medium text-foreground">{STEP_LABELS[currentStep]}</span>
+              <span className="text-foreground font-medium">{STEP_LABELS[currentStep]}</span>
             )}
             <span className="text-muted-foreground">
               Step {currentIndex + 1} of {totalSteps}
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
             <motion.div
-              className="h-full rounded-full bg-primary"
+              className="bg-primary h-full rounded-full"
               animate={{ width: `${progressPct}%` }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
             />
@@ -342,7 +350,7 @@ export default function SellPage() {
       {!isReviewStep && (
         <div
           className={cn(
-            'fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 p-4 pb-safe backdrop-blur-sm',
+            'border-border pb-safe fixed bottom-0 left-0 right-0 z-40 border-t bg-white/95 p-4 backdrop-blur-sm',
             'sm:static sm:mt-12 sm:border-none sm:bg-transparent sm:p-0 sm:pb-0 sm:backdrop-blur-none',
           )}
         >
@@ -352,8 +360,8 @@ export default function SellPage() {
                 type="button"
                 onClick={handlePrev}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground',
-                  'transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'border-border text-foreground flex items-center gap-1.5 rounded-xl border px-5 py-3 text-sm font-semibold',
+                  'hover:bg-muted focus-visible:ring-ring transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                 )}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -368,8 +376,8 @@ export default function SellPage() {
               onClick={handleNext}
               className={cn(
                 'flex items-center gap-1.5 rounded-xl px-6 py-3 text-sm font-bold text-white',
-                'transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                'bg-primary shadow-sm hover:bg-primary/90 active:scale-[0.98]',
+                'focus-visible:ring-ring transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                'bg-primary hover:bg-primary/90 shadow-sm active:scale-[0.98]',
               )}
             >
               {nextLabel}

@@ -36,10 +36,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     validated = buyerInterestSchema.parse(body)
   } catch (err) {
     if (err instanceof ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', issues: err.errors },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: 'Validation failed', issues: err.errors }, { status: 400 })
     }
     throw err
   }
@@ -108,7 +105,10 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       )
     }
     console.error('[interest] insert error:', insertErr?.message)
-    return NextResponse.json({ error: 'Failed to submit request. Please try again.' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to submit request. Please try again.' },
+      { status: 500 },
+    )
   }
 
   return NextResponse.json(

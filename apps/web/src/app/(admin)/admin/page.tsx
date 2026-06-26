@@ -112,7 +112,14 @@ interface DetailModalProps {
   onDeleted: (updated: MockListing) => void
 }
 
-function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDeleted }: DetailModalProps) {
+function DetailModal({
+  listing,
+  adminKey,
+  onClose,
+  onApproved,
+  onRejected,
+  onDeleted,
+}: DetailModalProps) {
   const [note, setNote] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
@@ -145,7 +152,10 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
         headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
         body: JSON.stringify({ note: note.trim() || undefined }),
       })
-      if (!res.ok) { setError('Failed to approve listing.'); return }
+      if (!res.ok) {
+        setError('Failed to approve listing.')
+        return
+      }
       const updated = (await res.json()) as MockListing
       onApproved(updated)
     } catch {
@@ -165,7 +175,10 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
         headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
         body: JSON.stringify({ reason: rejectReason.trim(), note: note.trim() || undefined }),
       })
-      if (!res.ok) { setError('Failed to reject listing.'); return }
+      if (!res.ok) {
+        setError('Failed to reject listing.')
+        return
+      }
       const updated = (await res.json()) as MockListing
       onRejected(updated)
     } catch {
@@ -185,7 +198,10 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
         headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
         body: JSON.stringify({ note: note.trim() }),
       })
-      if (!res.ok) { setError('Failed to save note.'); return }
+      if (!res.ok) {
+        setError('Failed to save note.')
+        return
+      }
       setNoteSaved(true)
       setTimeout(() => setNoteSaved(false), 3000)
     } catch {
@@ -204,7 +220,10 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
         headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
         body: JSON.stringify({ reason: deleteReason.trim() || undefined }),
       })
-      if (!res.ok) { setError('Failed to delete listing.'); return }
+      if (!res.ok) {
+        setError('Failed to delete listing.')
+        return
+      }
       const updated = (await res.json()) as MockListing
       onDeleted(updated)
     } catch {
@@ -221,7 +240,9 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-end bg-black/40"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
       <div className="flex h-full w-full max-w-2xl flex-col overflow-y-auto bg-white shadow-xl">
         {/* Header */}
@@ -234,8 +255,17 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
             onClick={onClose}
             className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
             </svg>
           </button>
         </div>
@@ -243,7 +273,12 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
         <div className="flex-1 space-y-6 px-6 py-5">
           {/* Status + Age */}
           <div className="flex items-center gap-3">
-            <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', STATUS_BADGE[listing.status])}>
+            <span
+              className={cn(
+                'rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                STATUS_BADGE[listing.status],
+              )}
+            >
               {STATUS_LABEL[listing.status]}
             </span>
             {daysPending > 7 && listing.status === 'PENDING_REVIEW' && (
@@ -282,17 +317,23 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
             </div>
             <div>
               <p className="text-xs text-gray-500">Type</p>
-              <p className="font-medium text-gray-900">{formatBHK(listing.bhkType)} · {listing.propertyType.replace(/_/g, ' ')}</p>
+              <p className="font-medium text-gray-900">
+                {formatBHK(listing.bhkType)} · {listing.propertyType.replace(/_/g, ' ')}
+              </p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Location</p>
-              <p className="font-medium text-gray-900">{listing.locality}, {listing.city}</p>
+              <p className="font-medium text-gray-900">
+                {listing.locality}, {listing.city}
+              </p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Area</p>
               <p className="font-medium text-gray-900">
                 {listing.builtUpArea.toLocaleString('en-IN')} sq ft
-                {listing.carpetArea ? ` (${listing.carpetArea.toLocaleString('en-IN')} carpet)` : ''}
+                {listing.carpetArea
+                  ? ` (${listing.carpetArea.toLocaleString('en-IN')} carpet)`
+                  : ''}
               </p>
             </div>
             <div>
@@ -302,14 +343,20 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
             <div>
               <p className="text-xs text-gray-500">Submitted</p>
               <p className="font-medium text-gray-900">
-                {new Date(listing.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                {new Date(listing.createdAt).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
               </p>
             </div>
           </div>
 
           {/* Seller */}
           <div className="rounded-lg border border-gray-200 p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Seller</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Seller
+            </p>
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">{listing.seller.name}</p>
@@ -325,14 +372,18 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
 
           {/* Description */}
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Description</p>
-            <p className="text-sm text-gray-700 leading-relaxed">{listing.description}</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Description
+            </p>
+            <p className="text-sm leading-relaxed text-gray-700">{listing.description}</p>
           </div>
 
           {/* Rejection reason (if already rejected) */}
           {listing.status === 'REJECTED' && listing.rejectionReason && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Rejection Reason</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                Rejection Reason
+              </p>
               <p className="mt-1 text-sm text-red-800">{listing.rejectionReason}</p>
             </div>
           )}
@@ -340,7 +391,10 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
           {/* Verification Note */}
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Internal Verification Note <span className="font-normal normal-case text-gray-400">(optional — saved to audit log)</span>
+              Internal Verification Note{' '}
+              <span className="font-normal normal-case text-gray-400">
+                (optional — saved to audit log)
+              </span>
             </label>
             <textarea
               ref={noteRef}
@@ -356,14 +410,16 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
                 disabled={loading === 'note'}
                 className="mt-1.5 text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
               >
-                {loading === 'note' ? 'Saving...' : noteSaved ? 'Saved ✓' : 'Save note to audit log'}
+                {loading === 'note'
+                  ? 'Saving...'
+                  : noteSaved
+                    ? 'Saved ✓'
+                    : 'Save note to audit log'}
               </button>
             )}
           </div>
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-          )}
+          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         </div>
 
         {/* Actions — only for pending */}
@@ -400,12 +456,18 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
                   >
                     <option value="">Select a reason...</option>
                     <option value="Fake or misleading listing">Fake or misleading listing</option>
-                    <option value="Low quality or missing photos">Low quality or missing photos</option>
+                    <option value="Low quality or missing photos">
+                      Low quality or missing photos
+                    </option>
                     <option value="Incorrect price or details">Incorrect price or details</option>
                     <option value="Duplicate listing">Duplicate listing</option>
                     <option value="Inaccurate location">Inaccurate location</option>
-                    <option value="Broker listing (direct owners only)">Broker listing (direct owners only)</option>
-                    <option value="Other — see verification note">Other — see verification note</option>
+                    <option value="Broker listing (direct owners only)">
+                      Broker listing (direct owners only)
+                    </option>
+                    <option value="Other — see verification note">
+                      Other — see verification note
+                    </option>
                   </select>
                 </div>
                 <div className="flex gap-2">
@@ -419,7 +481,10 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => { setShowRejectForm(false); setRejectReason('') }}
+                    onClick={() => {
+                      setShowRejectForm(false)
+                      setRejectReason('')
+                    }}
                     disabled={loading !== null}
                   >
                     Cancel
@@ -432,7 +497,14 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
 
         {/* Delete — available for all statuses except already-deleted */}
         {listing.status !== 'DELETED' && (
-          <div className={cn('px-6 py-4', listing.status === 'PENDING_REVIEW' ? 'border-t border-dashed border-gray-200' : 'border-t border-gray-200')}>
+          <div
+            className={cn(
+              'px-6 py-4',
+              listing.status === 'PENDING_REVIEW'
+                ? 'border-t border-dashed border-gray-200'
+                : 'border-t border-gray-200',
+            )}
+          >
             {!showDeleteConfirm ? (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
@@ -444,7 +516,9 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
             ) : (
               <div className="space-y-3">
                 <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
-                  You are about to permanently hide <span className="font-semibold">{listing.title}</span>. This listing will no longer be visible to sellers or buyers.
+                  You are about to permanently hide{' '}
+                  <span className="font-semibold">{listing.title}</span>. This listing will no
+                  longer be visible to sellers or buyers.
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-700">
@@ -469,7 +543,10 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDel
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => { setShowDeleteConfirm(false); setDeleteReason('') }}
+                    onClick={() => {
+                      setShowDeleteConfirm(false)
+                      setDeleteReason('')
+                    }}
                     disabled={loading !== null}
                   >
                     Cancel
@@ -508,7 +585,10 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
       const res = await fetch(`/api/admin/audit-log?${params.toString()}`, {
         headers: { 'x-admin-key': adminKey },
       })
-      if (!res.ok) { setError('Failed to load audit log.'); return }
+      if (!res.ok) {
+        setError('Failed to load audit log.')
+        return
+      }
       const data = (await res.json()) as AuditResponse
       setEntries(data.entries)
       setTotal(data.total)
@@ -520,9 +600,12 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
     }
   }, [adminKey, page, actionFilter])
 
-  useEffect(() => { void fetchAuditLog() }, [fetchAuditLog])
+  useEffect(() => {
+    void fetchAuditLog()
+  }, [fetchAuditLog])
 
-  if (loading) return <p className="py-10 text-center text-sm text-gray-500">Loading audit log...</p>
+  if (loading)
+    return <p className="py-10 text-center text-sm text-gray-500">Loading audit log...</p>
   if (error) return <p className="py-10 text-center text-sm text-red-600">{error}</p>
 
   return (
@@ -531,7 +614,10 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
       <div className="mb-4 flex items-center gap-3">
         <select
           value={actionFilter}
-          onChange={(e) => { setActionFilter(e.target.value); setPage(1) }}
+          onChange={(e) => {
+            setActionFilter(e.target.value)
+            setPage(1)
+          }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
         >
           <option value="">All Actions</option>
@@ -546,7 +632,9 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
       {entries.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-200 py-16 text-center">
           <p className="text-sm text-gray-500">No audit log entries yet.</p>
-          <p className="mt-1 text-xs text-gray-400">Actions will appear here after you approve or reject listings.</p>
+          <p className="mt-1 text-xs text-gray-400">
+            Actions will appear here after you approve or reject listings.
+          </p>
         </div>
       ) : (
         <>
@@ -566,17 +654,25 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
                   <tr key={entry.id} className="align-top hover:bg-gray-50">
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
                       {new Date(entry.created_at).toLocaleDateString('en-IN', {
-                        day: 'numeric', month: 'short', year: 'numeric',
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
                       })}
                       <br />
                       <span className="text-gray-400">
                         {new Date(entry.created_at).toLocaleTimeString('en-IN', {
-                          hour: '2-digit', minute: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
                         })}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', AUDIT_ACTION_BADGE[entry.action] ?? 'bg-gray-100 text-gray-700')}>
+                      <span
+                        className={cn(
+                          'rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                          AUDIT_ACTION_BADGE[entry.action] ?? 'bg-gray-100 text-gray-700',
+                        )}
+                      >
                         {AUDIT_ACTION_LABELS[entry.action] ?? entry.action}
                       </span>
                     </td>
@@ -586,13 +682,15 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
                       {entry.previous_status && entry.new_status ? (
-                        <span>{entry.previous_status} → {entry.new_status}</span>
-                      ) : '—'}
+                        <span>
+                          {entry.previous_status} → {entry.new_status}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
                     </td>
                     <td className="max-w-[240px] px-4 py-3 text-xs text-gray-600">
-                      {entry.reason ? (
-                        <span className="line-clamp-2">{entry.reason}</span>
-                      ) : '—'}
+                      {entry.reason ? <span className="line-clamp-2">{entry.reason}</span> : '—'}
                     </td>
                   </tr>
                 ))}
@@ -603,10 +701,26 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-500">Page {page} of {totalPages}</p>
+              <p className="text-sm text-gray-500">
+                Page {page} of {totalPages}
+              </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>← Prev</Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next →</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  ← Prev
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next →
+                </Button>
               </div>
             </div>
           )}
@@ -646,7 +760,9 @@ function AdminPageContent() {
         localStorage.setItem(STORAGE_KEY, key)
         setAdminKey(key)
       } else {
-        setLoginError(res.status === 401 ? 'Invalid admin key.' : 'Unable to verify key. Try again.')
+        setLoginError(
+          res.status === 401 ? 'Invalid admin key.' : 'Unable to verify key. Try again.',
+        )
       }
     } catch {
       setLoginError('Network error. Please try again.')
@@ -665,7 +781,12 @@ function AdminPageContent() {
   const [listings, setListings] = useState<MockListing[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabValue>('PENDING_REVIEW')
-  const [counts, setCounts] = useState<StatusCounts>({ PENDING_REVIEW: 0, ACTIVE: 0, REJECTED: 0, DELETED: 0 })
+  const [counts, setCounts] = useState<StatusCounts>({
+    PENDING_REVIEW: 0,
+    ACTIVE: 0,
+    REJECTED: 0,
+    DELETED: 0,
+  })
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -688,41 +809,44 @@ function AdminPageContent() {
 
   const hasFilters = query || cityFilter || propertyTypeFilter
 
-  const fetchListings = useCallback(async (resetPage = false) => {
-    if (activeTab === 'AUDIT_LOG') return
-    setLoading(true)
-    const p = resetPage ? 1 : page
-    if (resetPage) setPage(1)
-    try {
-      const params = new URLSearchParams({
-        status: activeTab,
-        page: String(p),
-        limit: String(pageSize),
-        sortBy: 'oldest',
-      })
-      if (query) params.set('q', query)
-      if (cityFilter) params.set('city', cityFilter)
-      if (propertyTypeFilter) params.set('propertyType', propertyTypeFilter)
+  const fetchListings = useCallback(
+    async (resetPage = false) => {
+      if (activeTab === 'AUDIT_LOG') return
+      setLoading(true)
+      const p = resetPage ? 1 : page
+      if (resetPage) setPage(1)
+      try {
+        const params = new URLSearchParams({
+          status: activeTab,
+          page: String(p),
+          limit: String(pageSize),
+          sortBy: 'oldest',
+        })
+        if (query) params.set('q', query)
+        if (cityFilter) params.set('city', cityFilter)
+        if (propertyTypeFilter) params.set('propertyType', propertyTypeFilter)
 
-      const res = await fetch(`/api/admin/listings?${params.toString()}`, {
-        headers: { 'x-admin-key': adminKey },
-      })
-      if (!res.ok) {
-        setError(res.status === 401 ? 'Unauthorized' : 'Failed to load listings')
-        return
+        const res = await fetch(`/api/admin/listings?${params.toString()}`, {
+          headers: { 'x-admin-key': adminKey },
+        })
+        if (!res.ok) {
+          setError(res.status === 401 ? 'Unauthorized' : 'Failed to load listings')
+          return
+        }
+        const data = (await res.json()) as ListingsResponse & { _mockFallback?: boolean }
+        setListings(data.listings)
+        setTotal(data.total)
+        setTotalPages(data.totalPages)
+        setCounts(data.counts)
+        setIsMockFallback(data._mockFallback === true)
+      } catch {
+        setError('Network error. Please try again.')
+      } finally {
+        setLoading(false)
       }
-      const data = (await res.json()) as ListingsResponse & { _mockFallback?: boolean }
-      setListings(data.listings)
-      setTotal(data.total)
-      setTotalPages(data.totalPages)
-      setCounts(data.counts)
-      setIsMockFallback(data._mockFallback === true)
-    } catch {
-      setError('Network error. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }, [adminKey, activeTab, page, pageSize, query, cityFilter, propertyTypeFilter])
+    },
+    [adminKey, activeTab, page, pageSize, query, cityFilter, propertyTypeFilter],
+  )
 
   useEffect(() => {
     if (adminKey && activeTab !== 'AUDIT_LOG') {
@@ -818,10 +942,7 @@ function AdminPageContent() {
   if (!adminKey) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center">
-        <form
-          onSubmit={(e) => void handleUnlock(e)}
-          className="w-full max-w-sm space-y-4"
-        >
+        <form onSubmit={(e) => void handleUnlock(e)} className="w-full max-w-sm space-y-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Admin Access</h1>
             <p className="mt-1 text-sm text-gray-500">Enter your admin key to continue.</p>
@@ -834,9 +955,7 @@ function AdminPageContent() {
             autoFocus
             autoComplete="current-password"
           />
-          {loginError && (
-            <p className="text-sm text-red-600">{loginError}</p>
-          )}
+          {loginError && <p className="text-sm text-red-600">{loginError}</p>}
           <Button type="submit" className="w-full" disabled={loginLoading || !keyInput.trim()}>
             {loginLoading ? 'Verifying...' : 'Unlock'}
           </Button>
@@ -876,12 +995,20 @@ function AdminPageContent() {
           onClose={() => setSelectedListing(null)}
           onApproved={(updated) => {
             setListings((prev) => prev.filter((l) => l.id !== updated.id))
-            setCounts((prev) => ({ ...prev, PENDING_REVIEW: Math.max(0, prev.PENDING_REVIEW - 1), ACTIVE: prev.ACTIVE + 1 }))
+            setCounts((prev) => ({
+              ...prev,
+              PENDING_REVIEW: Math.max(0, prev.PENDING_REVIEW - 1),
+              ACTIVE: prev.ACTIVE + 1,
+            }))
             setSelectedListing(null)
           }}
           onRejected={(updated) => {
             setListings((prev) => prev.filter((l) => l.id !== updated.id))
-            setCounts((prev) => ({ ...prev, PENDING_REVIEW: Math.max(0, prev.PENDING_REVIEW - 1), REJECTED: prev.REJECTED + 1 }))
+            setCounts((prev) => ({
+              ...prev,
+              PENDING_REVIEW: Math.max(0, prev.PENDING_REVIEW - 1),
+              REJECTED: prev.REJECTED + 1,
+            }))
             setSelectedListing(null)
           }}
           onDeleted={(updated) => {
@@ -900,14 +1027,27 @@ function AdminPageContent() {
         {/* Mock fallback warning — shown when SUPABASE_SERVICE_ROLE_KEY is missing */}
         {isMockFallback && (
           <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+                clipRule="evenodd"
+              />
             </svg>
             <div>
-              <p className="text-sm font-semibold text-amber-800">Showing demo data — real listings not visible</p>
+              <p className="text-sm font-semibold text-amber-800">
+                Showing demo data — real listings not visible
+              </p>
               <p className="mt-0.5 text-xs text-amber-700">
-                <code className="rounded bg-amber-100 px-1 py-0.5">SUPABASE_SERVICE_ROLE_KEY</code> is not set in <code className="rounded bg-amber-100 px-1 py-0.5">.env.local</code>.
-                Add it from Supabase Dashboard → Settings → API → service_role key, then restart the server.
+                <code className="rounded bg-amber-100 px-1 py-0.5">SUPABASE_SERVICE_ROLE_KEY</code>{' '}
+                is not set in <code className="rounded bg-amber-100 px-1 py-0.5">.env.local</code>.
+                Add it from Supabase Dashboard → Settings → API → service_role key, then restart the
+                server.
               </p>
             </div>
           </div>
@@ -960,7 +1100,9 @@ function AdminPageContent() {
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
           >
             {CITY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
             ))}
           </select>
           <select
@@ -969,11 +1111,16 @@ function AdminPageContent() {
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
           >
             {PROPERTY_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
             ))}
           </select>
           {hasFilters && (
-            <button onClick={clearFilters} className="text-xs font-medium text-gray-500 hover:text-gray-900 underline">
+            <button
+              onClick={clearFilters}
+              className="text-xs font-medium text-gray-500 underline hover:text-gray-900"
+            >
               Clear filters
             </button>
           )}
@@ -984,7 +1131,10 @@ function AdminPageContent() {
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
-              onClick={() => { setActiveTab(tab.value); setPage(1) }}
+              onClick={() => {
+                setActiveTab(tab.value)
+                setPage(1)
+              }}
               className={cn(
                 'px-4 py-2 text-sm font-medium transition-colors',
                 activeTab === tab.value
@@ -994,10 +1144,14 @@ function AdminPageContent() {
             >
               {tab.label}
               {tab.value !== 'AUDIT_LOG' && (
-                <span className={cn(
-                  'ml-2 rounded-full px-1.5 py-0.5 text-xs font-semibold',
-                  activeTab === tab.value ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600',
-                )}>
+                <span
+                  className={cn(
+                    'ml-2 rounded-full px-1.5 py-0.5 text-xs font-semibold',
+                    activeTab === tab.value
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-600',
+                  )}
+                >
                   {counts[tab.value as keyof StatusCounts]}
                 </span>
               )}
@@ -1014,7 +1168,10 @@ function AdminPageContent() {
               {hasFilters ? 'No listings match your search.' : 'No listings in this category.'}
             </p>
             {hasFilters && (
-              <button onClick={clearFilters} className="mt-2 text-xs font-medium text-blue-600 hover:underline">
+              <button
+                onClick={clearFilters}
+                className="mt-2 text-xs font-medium text-blue-600 hover:underline"
+              >
                 Clear filters
               </button>
             )}
@@ -1069,17 +1226,28 @@ function AdminPageContent() {
                           </td>
                           <td className="px-4 py-3 text-gray-500">
                             {new Date(listing.createdAt).toLocaleDateString('en-IN', {
-                              day: 'numeric', month: 'short', year: 'numeric',
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
                             })}
                           </td>
                           <td className="px-4 py-3">
-                            <span className={cn('inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold', STATUS_BADGE[listing.status])}>
+                            <span
+                              className={cn(
+                                'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                                STATUS_BADGE[listing.status],
+                              )}
+                            >
                               {STATUS_LABEL[listing.status]}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-2">
-                              <Button size="sm" variant="outline" onClick={() => setSelectedListing(listing)}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedListing(listing)}
+                              >
                                 Review
                               </Button>
                               {activeTab === 'PENDING_REVIEW' && (
@@ -1112,22 +1280,37 @@ function AdminPageContent() {
                                 <select
                                   className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none"
                                   value={rejectForms[listing.id]}
-                                  onChange={(e) => setRejectForms((prev) => ({ ...prev, [listing.id]: e.target.value }))}
+                                  onChange={(e) =>
+                                    setRejectForms((prev) => ({
+                                      ...prev,
+                                      [listing.id]: e.target.value,
+                                    }))
+                                  }
                                 >
                                   <option value="">Select a reason...</option>
-                                  <option value="Fake or misleading listing">Fake or misleading listing</option>
-                                  <option value="Low quality or missing photos">Low quality or missing photos</option>
-                                  <option value="Incorrect price or details">Incorrect price or details</option>
+                                  <option value="Fake or misleading listing">
+                                    Fake or misleading listing
+                                  </option>
+                                  <option value="Low quality or missing photos">
+                                    Low quality or missing photos
+                                  </option>
+                                  <option value="Incorrect price or details">
+                                    Incorrect price or details
+                                  </option>
                                   <option value="Duplicate listing">Duplicate listing</option>
                                   <option value="Inaccurate location">Inaccurate location</option>
-                                  <option value="Broker listing (direct owners only)">Broker listing (direct owners only)</option>
+                                  <option value="Broker listing (direct owners only)">
+                                    Broker listing (direct owners only)
+                                  </option>
                                   <option value="Other — see verification note">Other</option>
                                 </select>
                                 <Button
                                   size="sm"
                                   variant="destructive"
                                   onClick={() => void handleReject(listing.id)}
-                                  disabled={actionLoading === listing.id || !rejectForms[listing.id]?.trim()}
+                                  disabled={
+                                    actionLoading === listing.id || !rejectForms[listing.id]?.trim()
+                                  }
                                 >
                                   Confirm Rejection
                                 </Button>
@@ -1168,25 +1351,41 @@ function AdminPageContent() {
                         {listing.locality}, {listing.city} · {formatBHK(listing.bhkType)}
                       </p>
                     </div>
-                    <span className={cn('shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold', STATUS_BADGE[listing.status])}>
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                        STATUS_BADGE[listing.status],
+                      )}
+                    >
                       {STATUS_LABEL[listing.status]}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-sm">
-                    <span className="font-semibold text-gray-900">{formatPrice(listing.price)}</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatPrice(listing.price)}
+                    </span>
                     <span className="text-gray-500">{listing.seller.name}</span>
                   </div>
                   <p className="mt-1 text-xs text-gray-400">
-                    {new Date(listing.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {new Date(listing.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
                   </p>
                   {activeTab === 'REJECTED' && listing.rejectionReason && (
                     <p className="mt-2 rounded bg-red-50 p-2 text-xs text-red-700">
-                      <span className="font-semibold">Reason: </span>{listing.rejectionReason}
+                      <span className="font-semibold">Reason: </span>
+                      {listing.rejectionReason}
                     </p>
                   )}
                   {activeTab === 'PENDING_REVIEW' && (
                     <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-                      <Button size="sm" className="w-full" onClick={() => setSelectedListing(listing)}>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setSelectedListing(listing)}
+                      >
                         Review & Act
                       </Button>
                     </div>
@@ -1201,20 +1400,39 @@ function AdminPageContent() {
                 <span>Show</span>
                 <select
                   value={pageSize}
-                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setPage(1)
+                  }}
                   className="rounded border border-gray-200 px-2 py-1 text-sm"
                 >
-                  {PAGE_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {PAGE_SIZES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
                 <span>per page · {total} total</span>
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
                     ← Prev
                   </Button>
-                  <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
-                  <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                  <span className="text-sm text-gray-500">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
                     Next →
                   </Button>
                 </div>

@@ -10,7 +10,7 @@ const SECTIONS = [
   {
     id: '1',
     title: 'Information we collect',
-    body: 'We collect information you provide directly — your mobile number, name, and property listing details. We also automatically collect technical data including your IP address, browser type, and usage patterns when you interact with the platform. This information is used solely to operate and improve SellItRight\'s services.',
+    body: "We collect information you provide directly — your mobile number, name, and property listing details. We also automatically collect technical data including your IP address, browser type, and usage patterns when you interact with the platform. This information is used solely to operate and improve SellItRight's services.",
   },
   {
     id: '2',
@@ -37,10 +37,11 @@ const SECTIONS = [
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-
       {/* Hero */}
       <div className="mb-10 border-b border-[var(--color-border)] pb-8">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">Legal</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
+          Legal
+        </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl">
           Privacy Policy
         </h1>
@@ -48,14 +49,19 @@ export default function PrivacyPage() {
       </div>
 
       {/* Table of contents */}
-      <nav className="mb-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-5 py-4" aria-label="Table of contents">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">Contents</p>
+      <nav
+        className="mb-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-5 py-4"
+        aria-label="Table of contents"
+      >
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
+          Contents
+        </p>
         <ol className="space-y-1.5">
           {SECTIONS.map(({ id, title }) => (
             <li key={id}>
               <a
                 href={`#section-${id}`}
-                className="text-sm text-[var(--color-foreground)] hover:underline underline-offset-2 transition-opacity hover:opacity-70"
+                className="text-sm text-[var(--color-foreground)] underline-offset-2 transition-opacity hover:underline hover:opacity-70"
               >
                 {id}. {title.charAt(0).toUpperCase() + title.slice(1)}
               </a>
@@ -71,7 +77,9 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
               {id}. {title.charAt(0).toUpperCase() + title.slice(1)}
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted-foreground)]">{body}</p>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+              {body}
+            </p>
           </section>
         ))}
       </div>
@@ -81,12 +89,15 @@ export default function PrivacyPage() {
         Questions about this policy?{' '}
         <a
           href="mailto:privacy@sellitright.in"
-          className="font-medium text-[var(--color-foreground)] underline underline-offset-2 hover:opacity-70 transition-opacity"
+          className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
         >
           privacy@sellitright.in
         </a>{' '}
         or visit our{' '}
-        <Link href="/contact" className="font-medium text-[var(--color-foreground)] underline underline-offset-2 hover:opacity-70 transition-opacity">
+        <Link
+          href="/contact"
+          className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
+        >
           Contact page
         </Link>
         .

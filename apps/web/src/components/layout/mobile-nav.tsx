@@ -21,7 +21,7 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-background)]/80 pb-safe-0"
+      className="bg-[var(--color-background)]/95 supports-[backdrop-filter]:bg-[var(--color-background)]/80 pb-safe-0 fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] backdrop-blur md:hidden"
       aria-label="Bottom navigation"
     >
       <ul className="flex h-16 items-stretch" role="list">

@@ -25,7 +25,7 @@ const SECTIONS = [
   {
     id: '4',
     title: 'Listings and content',
-    body: 'All listings are subject to review and approval. SellItRight may reject or remove any listing that does not meet our quality standards, contains inaccurate information, or violates applicable laws. You retain ownership of the content you submit but grant SellItRight a non-exclusive, royalty-free licence to display and distribute it in connection with the platform\'s services.',
+    body: "All listings are subject to review and approval. SellItRight may reject or remove any listing that does not meet our quality standards, contains inaccurate information, or violates applicable laws. You retain ownership of the content you submit but grant SellItRight a non-exclusive, royalty-free licence to display and distribute it in connection with the platform's services.",
   },
   {
     id: '5',
@@ -37,10 +37,11 @@ const SECTIONS = [
 export default function TermsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-
       {/* Hero */}
       <div className="mb-10 border-b border-[var(--color-border)] pb-8">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">Legal</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
+          Legal
+        </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl">
           Terms of Service
         </h1>
@@ -48,14 +49,19 @@ export default function TermsPage() {
       </div>
 
       {/* Table of contents */}
-      <nav className="mb-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-5 py-4" aria-label="Table of contents">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">Contents</p>
+      <nav
+        className="mb-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-5 py-4"
+        aria-label="Table of contents"
+      >
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
+          Contents
+        </p>
         <ol className="space-y-1.5">
           {SECTIONS.map(({ id, title }) => (
             <li key={id}>
               <a
                 href={`#section-${id}`}
-                className="text-sm text-[var(--color-foreground)] hover:underline underline-offset-2 transition-opacity hover:opacity-70"
+                className="text-sm text-[var(--color-foreground)] underline-offset-2 transition-opacity hover:underline hover:opacity-70"
               >
                 {id}. {title.charAt(0).toUpperCase() + title.slice(1)}
               </a>
@@ -71,7 +77,9 @@ export default function TermsPage() {
             <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
               {id}. {title.charAt(0).toUpperCase() + title.slice(1)}
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted-foreground)]">{body}</p>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+              {body}
+            </p>
           </section>
         ))}
       </div>
@@ -79,11 +87,17 @@ export default function TermsPage() {
       {/* Footer note */}
       <div className="mt-12 rounded-xl border border-[var(--color-border)] px-5 py-4 text-sm text-[var(--color-muted-foreground)]">
         Questions about these terms?{' '}
-        <Link href="/contact" className="font-medium text-[var(--color-foreground)] underline underline-offset-2 hover:opacity-70 transition-opacity">
+        <Link
+          href="/contact"
+          className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
+        >
           Contact us
         </Link>
         . Also see our{' '}
-        <Link href="/privacy" className="font-medium text-[var(--color-foreground)] underline underline-offset-2 hover:opacity-70 transition-opacity">
+        <Link
+          href="/privacy"
+          className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
+        >
           Privacy Policy
         </Link>
         .

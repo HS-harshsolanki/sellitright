@@ -4,7 +4,7 @@ import { z, ZodError } from 'zod'
 
 // Partial schema — all fields optional for draft autosave
 const draftSchema = z.object({
-  id: z.string().uuid().optional(),          // present on update, absent on first save
+  id: z.string().uuid().optional(), // present on update, absent on first save
   propertyType: z.string().optional(),
   bhkType: z.string().optional(),
   builtUpArea: z.number().int().positive().optional(),
@@ -33,7 +33,9 @@ const draftSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
@@ -106,7 +108,10 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     if (error instanceof ZodError) {
-      return NextResponse.json({ error: 'Validation failed', issues: error.errors }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Validation failed', issues: error.errors },
+        { status: 400 },
+      )
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

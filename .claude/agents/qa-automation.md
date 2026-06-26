@@ -34,27 +34,29 @@ pnpm playwright test e2e/auth.spec.ts
 
 ## Critical flows to cover
 
-| Flow | Test type | File |
-|------|-----------|------|
-| OTP login: send → verify → session → redirect | E2E | e2e/auth.spec.ts |
-| Google OAuth: click → /auth/callback → session | E2E | e2e/auth.spec.ts |
-| Protected route redirect when logged out | E2E | e2e/auth.spec.ts |
-| Logout clears session | E2E | e2e/auth.spec.ts |
-| Listing browse: search, filter, sort | E2E | e2e/browse.spec.ts |
-| Listing detail page loads | E2E | e2e/browse.spec.ts |
-| Sell form: 6-step completion | E2E | e2e/sell.spec.ts |
-| formatPrice / formatBHK / formatArea | Unit | src/lib/format.test.ts |
-| Zod validators (listing schema) | Unit | src/lib/validators.test.ts |
-| Middleware redirects unauthenticated users | Unit | src/middleware.test.ts |
+| Flow                                           | Test type | File                       |
+| ---------------------------------------------- | --------- | -------------------------- |
+| OTP login: send → verify → session → redirect  | E2E       | e2e/auth.spec.ts           |
+| Google OAuth: click → /auth/callback → session | E2E       | e2e/auth.spec.ts           |
+| Protected route redirect when logged out       | E2E       | e2e/auth.spec.ts           |
+| Logout clears session                          | E2E       | e2e/auth.spec.ts           |
+| Listing browse: search, filter, sort           | E2E       | e2e/browse.spec.ts         |
+| Listing detail page loads                      | E2E       | e2e/browse.spec.ts         |
+| Sell form: 6-step completion                   | E2E       | e2e/sell.spec.ts           |
+| formatPrice / formatBHK / formatArea           | Unit      | src/lib/format.test.ts     |
+| Zod validators (listing schema)                | Unit      | src/lib/validators.test.ts |
+| Middleware redirects unauthenticated users     | Unit      | src/middleware.test.ts     |
 
 ## Test standards
 
 ### Unit (Vitest)
+
 - One assertion per test
 - No real network calls — mock `@/lib/supabase/client` and `@/lib/supabase/server`
 - Name format: `should [expected result] when [condition]`
 
 ### E2E (Playwright)
+
 - Use `data-testid` selectors — never CSS classes
 - Each test is fully independent (no shared login state between tests)
 - Use `page.waitForURL()` and `page.waitForSelector()` — never arbitrary timeouts

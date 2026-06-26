@@ -98,7 +98,7 @@ export function ContactSeller({
             </div>
             <Button
               asChild
-              className="h-12 w-full rounded-xl bg-[var(--color-foreground)] text-[var(--color-background)] font-semibold hover:opacity-90"
+              className="h-12 w-full rounded-xl bg-[var(--color-foreground)] font-semibold text-[var(--color-background)] hover:opacity-90"
             >
               <Link href={`/login?next=/listing/${listingId}`}>Sign in to Request Contact</Link>
             </Button>
@@ -126,7 +126,7 @@ export function ContactSeller({
           <Button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="h-12 w-full rounded-xl bg-[var(--color-foreground)] text-[var(--color-background)] font-semibold hover:opacity-90"
+            className="h-12 w-full rounded-xl bg-[var(--color-foreground)] font-semibold text-[var(--color-background)] hover:opacity-90"
           >
             <MessageSquare className="mr-2 h-4 w-4" aria-hidden="true" />
             Request Contact
@@ -134,9 +134,12 @@ export function ContactSeller({
         )}
 
         {/* ── Trust signal ── */}
-        <div className="mt-4 flex items-center gap-1.5 justify-center">
-          <Clock className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
-          <p className="text-xs text-center text-[var(--color-muted-foreground)]">
+        <div className="mt-4 flex items-center justify-center gap-1.5">
+          <Clock
+            className="h-3.5 w-3.5 shrink-0 text-[var(--color-muted-foreground)]"
+            aria-hidden="true"
+          />
+          <p className="text-center text-xs text-[var(--color-muted-foreground)]">
             Usually responds within 1 hour · No brokerage
           </p>
         </div>

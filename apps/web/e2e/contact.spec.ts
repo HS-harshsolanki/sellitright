@@ -8,11 +8,60 @@ import { test, expect } from '@playwright/test'
  * the API layer directly.
  */
 
+const MOCK_LISTING_ID = 'contact-test-listing-001'
+
+// Must match MockListing shape returned by the real /api/listings route
+const MOCK_LISTING = {
+  id: MOCK_LISTING_ID,
+  title: '2 BHK in Bandra West',
+  description: 'Great flat',
+  price: 15000000,
+  propertyType: 'APARTMENT',
+  bhkType: 'TWO_BHK',
+  builtUpArea: 850,
+  carpetArea: null,
+  floor: 2,
+  totalFloors: 8,
+  facing: null,
+  furnishing: 'SEMI_FURNISHED',
+  ageOfProperty: null,
+  bathrooms: 2,
+  balconies: 1,
+  parking: null,
+  address: 'Bandra West, Mumbai',
+  city: 'Mumbai',
+  locality: 'Bandra West',
+  state: 'Maharashtra',
+  pincode: '400050',
+  latitude: null,
+  longitude: null,
+  amenities: [],
+  status: 'ACTIVE',
+  isVerified: false,
+  viewCount: 5,
+  rejectionReason: null,
+  seller: { id: 'seller-1', name: 'Owner', phone: '', avatarUrl: null, isVerified: false },
+  images: [],
+  createdAt: '2024-01-10T00:00:00Z',
+}
+
+function mockListingsApi(page: import('@playwright/test').Page) {
+  return page.route('**/api/listings**', (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ listings: [MOCK_LISTING], total: 1, page: 1, totalPages: 1 }),
+    })
+  })
+}
+
 test.describe('Listing detail — contact seller card (unauthenticated)', () => {
   test('shows "Sign in to contact the seller" block when not logged in', async ({ page }) => {
+    await mockListingsApi(page)
     // Use a desktop viewport so the aside sidebar is visible
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto('/')
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
     await page.locator('a[href^="/listing/"]').first().click()
     await expect(page).toHaveURL(/\/listing\//, { timeout: 8000 })
 
@@ -25,8 +74,9 @@ test.describe('Listing detail — contact seller card (unauthenticated)', () => 
   test('"Sign in to Request Contact" button navigates to login with next param', async ({
     page,
   }) => {
+    await mockListingsApi(page)
     await page.goto('/')
-    const firstListingHref = await page.locator('a[href^="/listing/"]').first().getAttribute('href')
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
     await page.locator('a[href^="/listing/"]').first().click()
     await expect(page).toHaveURL(/\/listing\//, { timeout: 8000 })
 
@@ -38,7 +88,6 @@ test.describe('Listing detail — contact seller card (unauthenticated)', () => 
     if (await signInBtn.isVisible()) {
       await signInBtn.click()
       await expect(page).toHaveURL(/\/login/, { timeout: 5000 })
-      // Should preserve the listing URL as the next redirect
       const currentUrl = page.url()
       expect(currentUrl).toContain('next=')
     }
@@ -83,13 +132,15 @@ test.describe('Interest API — GET /api/listings/:id/interest', () => {
   test('returns hasPending: false when not authenticated', async ({ request }) => {
     const response = await request.get('/api/listings/any-id/interest')
     expect(response.status()).toBe(200)
-    const body = await response.json() as { hasPending: boolean }
+    const body = (await response.json()) as { hasPending: boolean }
     expect(body.hasPending).toBe(false)
   })
 })
 
 test.describe('Request Contact modal UI', () => {
   test.beforeEach(async ({ page }) => {
+    await mockListingsApi(page)
+
     // Mock Supabase auth so listing detail loads
     await page.route('**/auth/v1/user', (route) => {
       route.fulfill({
@@ -119,6 +170,7 @@ test.describe('Request Contact modal UI', () => {
   test('listing detail page loads with heading when authenticated', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto('/')
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
     await page.locator('a[href^="/listing/"]').first().click()
     await expect(page).toHaveURL(/\/listing\//, { timeout: 8000 })
 
@@ -129,8 +181,10 @@ test.describe('Request Contact modal UI', () => {
 
 test.describe('Mobile bottom bar', () => {
   test('shows on listing detail page on mobile viewport', async ({ page }) => {
+    await mockListingsApi(page)
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
     await page.locator('a[href^="/listing/"]').first().click()
     await expect(page).toHaveURL(/\/listing\//, { timeout: 8000 })
 

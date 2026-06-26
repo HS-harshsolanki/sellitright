@@ -139,7 +139,7 @@ function BrowsePageInner() {
 
         const res = await fetch(`/api/listings?${params.toString()}`)
         if (!res.ok) throw new Error('Failed to fetch listings')
-        const json = await res.json() as {
+        const json = (await res.json()) as {
           listings: MockListing[]
           total: number
           page: number
@@ -165,7 +165,9 @@ function BrowsePageInner() {
     }
 
     void fetchListings()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [searchQuery, filters, sort, apiPage])
 
   // ─── Mock fallback — client-side filter + sort (original logic) ───────────
@@ -235,7 +237,7 @@ function BrowsePageInner() {
         top-14 matches the header h-14 on mobile (sm:top-16 matches h-16 on sm+).
         Search has moved to the header — this strip is filters-only.
       */}
-      <div className="sticky top-14 sm:top-16 z-40 bg-white border-b border-[var(--color-border)]">
+      <div className="sticky top-14 z-40 border-b border-[var(--color-border)] bg-white sm:top-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="py-2.5">
             <FilterBar key={filterKey} onFilterChange={setFilters} />
@@ -251,9 +253,7 @@ function BrowsePageInner() {
             <span className="font-medium text-gray-800">
               {isLoading ? '…' : `${totalCount} ${totalCount === 1 ? 'property' : 'properties'}`}
             </span>
-            {searchQuery && (
-              <span> for &ldquo;{searchQuery}&rdquo;</span>
-            )}
+            {searchQuery && <span> for &ldquo;{searchQuery}&rdquo;</span>}
           </p>
 
           {/* Sort dropdown */}
@@ -261,12 +261,14 @@ function BrowsePageInner() {
             <button
               type="button"
               onClick={() => setSortOpen((o) => !o)}
-              className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] rounded"
+              className="flex items-center gap-1 rounded text-sm font-medium text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
               aria-haspopup="listbox"
               aria-expanded={sortOpen}
             >
               {SORT_LABELS[sort]}
-              <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-gray-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`}
+              />
             </button>
 
             {sortOpen && (
@@ -279,7 +281,10 @@ function BrowsePageInner() {
                   <li key={key} role="option" aria-selected={sort === key}>
                     <button
                       type="button"
-                      onClick={() => { setSort(key); setSortOpen(false) }}
+                      onClick={() => {
+                        setSort(key)
+                        setSortOpen(false)
+                      }}
                       className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 ${
                         sort === key ? 'font-semibold text-gray-900' : 'text-gray-600'
                       }`}
@@ -303,8 +308,19 @@ function BrowsePageInner() {
               viewBox="0 0 24 24"
               aria-label="Loading listings"
             >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
             </svg>
           </div>
         ) : listings.length === 0 ? (
@@ -334,7 +350,7 @@ function BrowsePageInner() {
             <button
               type="button"
               onClick={resetFilters}
-              className="mt-4 text-sm font-medium text-[var(--color-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] rounded"
+              className="mt-4 rounded text-sm font-medium text-[var(--color-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
             >
               Clear all filters
             </button>
@@ -371,7 +387,7 @@ function BrowsePageInner() {
               type="button"
               onClick={() => setApiPage((p) => Math.max(1, p - 1))}
               disabled={apiPage <= 1}
-              className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+              className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               Previous
             </button>
@@ -382,7 +398,7 @@ function BrowsePageInner() {
               type="button"
               onClick={() => setApiPage((p) => Math.min(totalPages, p + 1))}
               disabled={apiPage >= totalPages}
-              className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+              className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
             </button>

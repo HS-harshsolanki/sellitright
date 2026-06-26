@@ -20,7 +20,13 @@ export const metadata: Metadata = {
   title: 'SellItRight - Find Your Perfect Home',
   description:
     'Browse thousands of verified flat listings across India. Find apartments, villas, and independent houses for sale — directly from owners, no brokerage.',
-  keywords: ['flat for sale', 'property in India', 'buy apartment', 'real estate India', 'no brokerage'],
+  keywords: [
+    'flat for sale',
+    'property in India',
+    'buy apartment',
+    'real estate India',
+    'no brokerage',
+  ],
   authors: [{ name: 'SellItRight' }],
   manifest: '/manifest.json',
   appleWebApp: {
@@ -55,9 +61,7 @@ export const metadata: Metadata = {
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [
-      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
 }
 
@@ -68,7 +72,7 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className="bg-background min-h-screen font-sans antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

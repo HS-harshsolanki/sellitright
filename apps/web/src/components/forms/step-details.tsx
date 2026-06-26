@@ -1,7 +1,13 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { type BHKType, type Facing, type Furnishing, type Parking, useSellFormStore } from '@/stores/sell-form.store'
+import {
+  type BHKType,
+  type Facing,
+  type Furnishing,
+  type Parking,
+  useSellFormStore,
+} from '@/stores/sell-form.store'
 import { Minus, Plus } from 'lucide-react'
 
 const AMENITY_LIST = [
@@ -69,7 +75,7 @@ interface CounterProps {
 function Counter({ label, value, min = 0, max = 20, onChange }: CounterProps) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className="text-foreground text-sm font-medium">{label}</span>
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -77,8 +83,8 @@ function Counter({ label, value, min = 0, max = 20, onChange }: CounterProps) {
           disabled={value <= min}
           aria-label={`Decrease ${label}`}
           className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-full border border-border',
-            'transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-30',
+            'border-border flex h-9 w-9 items-center justify-center rounded-full border',
+            'hover:border-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30',
           )}
         >
           <Minus className="h-3.5 w-3.5" />
@@ -90,8 +96,8 @@ function Counter({ label, value, min = 0, max = 20, onChange }: CounterProps) {
           disabled={value >= max}
           aria-label={`Increase ${label}`}
           className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-full border border-border',
-            'transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-30',
+            'border-border flex h-9 w-9 items-center justify-center rounded-full border',
+            'hover:border-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30',
           )}
         >
           <Plus className="h-3.5 w-3.5" />
@@ -123,10 +129,12 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
   return (
     <div className="space-y-8">
       <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
           Tell us about your property
         </h2>
-        <p className="text-muted-foreground">Add details to help buyers understand your property better.</p>
+        <p className="text-muted-foreground">
+          Add details to help buyers understand your property better.
+        </p>
       </div>
 
       {/* BHK */}
@@ -143,7 +151,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
               onClick={() => setDetails({ bhkType: opt.value })}
               className={cn(
                 'rounded-full border-2 px-4 py-2 text-sm font-medium transition-all',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                 details.bhkType === opt.value
                   ? 'border-primary bg-primary text-white'
                   : bhkMissing
@@ -156,7 +164,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
           ))}
         </div>
         {bhkMissing && (
-          <p role="alert" className="text-xs text-destructive">
+          <p role="alert" className="text-destructive text-xs">
             Please select a BHK configuration.
           </p>
         )}
@@ -179,11 +187,13 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
             aria-invalid={areaMissing ? 'true' : undefined}
             className={cn(
               inputBase,
-              areaMissing ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary',
+              areaMissing
+                ? 'border-destructive focus:border-destructive'
+                : 'border-border focus:border-primary',
             )}
           />
           {areaMissing && (
-            <p role="alert" className="text-xs text-destructive">
+            <p role="alert" className="text-destructive text-xs">
               Please enter the built-up area.
             </p>
           )}
@@ -248,7 +258,10 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
           id="facing"
           value={details.facing ?? ''}
           onChange={(e) => setDetails({ facing: (e.target.value as Facing) || null })}
-          className={cn(inputBase, 'cursor-pointer appearance-none border-border focus:border-primary')}
+          className={cn(
+            inputBase,
+            'border-border focus:border-primary cursor-pointer appearance-none',
+          )}
         >
           <option value="">Select facing</option>
           {FACING_OPTIONS.map((opt) => (
@@ -273,7 +286,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
                 onClick={() => setDetails({ furnishing: opt.value })}
                 className={cn(
                   'rounded-xl border-2 p-4 text-left transition-all',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                   isSelected
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-primary/40',
@@ -287,7 +300,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
                 >
                   {opt.label}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{opt.description}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">{opt.description}</p>
               </button>
             )
           })}
@@ -295,7 +308,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
       </fieldset>
 
       {/* Counters */}
-      <div className="space-y-4 rounded-xl border border-border p-4">
+      <div className="border-border space-y-4 rounded-xl border p-4">
         <Counter
           label="Bathrooms"
           value={details.bathrooms}
@@ -303,7 +316,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
           max={10}
           onChange={(val) => setDetails({ bathrooms: val })}
         />
-        <div className="border-t border-border" />
+        <div className="border-border border-t" />
         <Counter
           label="Balconies"
           value={details.balconies}
@@ -325,7 +338,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
               onClick={() => setDetails({ parking: opt.value })}
               className={cn(
                 'rounded-full border-2 px-4 py-2 text-sm font-medium transition-all',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                 details.parking === opt.value
                   ? 'border-primary bg-primary text-white'
                   : 'border-border text-foreground hover:border-primary/50',
@@ -350,7 +363,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
           placeholder="e.g. 3"
           value={details.ageOfProperty}
           onChange={(e) => setDetails({ ageOfProperty: e.target.value })}
-          className={cn(inputBase, 'max-w-xs border-border focus:border-primary')}
+          className={cn(inputBase, 'border-border focus:border-primary max-w-xs')}
         />
       </div>
 
@@ -364,7 +377,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
               <label
                 key={amenity}
                 className={cn(
-                  'flex cursor-pointer items-center gap-2.5 rounded-lg border border-border px-3 py-2.5 transition-colors',
+                  'border-border flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 transition-colors',
                   isChecked ? 'border-primary bg-primary/5' : 'hover:border-primary/40',
                 )}
               >
@@ -372,9 +385,14 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => toggleAmenity(amenity)}
-                  className="h-4 w-4 cursor-pointer accent-primary"
+                  className="accent-primary h-4 w-4 cursor-pointer"
                 />
-                <span className={cn('text-sm', isChecked ? 'font-medium text-primary' : 'text-foreground')}>
+                <span
+                  className={cn(
+                    'text-sm',
+                    isChecked ? 'text-primary font-medium' : 'text-foreground',
+                  )}
+                >
                   {amenity}
                 </span>
               </label>

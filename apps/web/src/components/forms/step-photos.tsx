@@ -80,9 +80,7 @@ export function StepPhotos() {
 
   async function uploadFile(file: File, index: number): Promise<void> {
     const updateState = (patch: Partial<FileUploadState>) =>
-      setUploadStates((prev) =>
-        prev.map((s, i) => (i === index ? { ...s, ...patch } : s)),
-      )
+      setUploadStates((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)))
 
     try {
       updateState({ progress: 0, error: null })
@@ -95,7 +93,7 @@ export function StepPhotos() {
         body: formData,
       })
 
-      const json = await res.json() as { url?: string; error?: string }
+      const json = (await res.json()) as { url?: string; error?: string }
 
       if (!res.ok || !json.url) {
         updateState({ progress: null, error: json.error ?? 'Upload failed.' })
@@ -167,13 +165,13 @@ export function StepPhotos() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
           Add photos of your property
         </h2>
         <p className="text-muted-foreground">
           Listings with great photos get{' '}
-          <span className="font-medium text-foreground">3x more enquiries</span>.
-          Upload photos or paste image URLs — you can also skip for now.
+          <span className="text-foreground font-medium">3x more enquiries</span>. Upload photos or
+          paste image URLs — you can also skip for now.
         </p>
       </div>
 
@@ -196,21 +194,21 @@ export function StepPhotos() {
             onDragLeave={handleDragLeave}
             className={cn(
               'flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed py-10 text-center transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
               isDragging
                 ? 'border-primary bg-primary/5'
                 : 'border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50',
               !canAdd && 'cursor-not-allowed opacity-50',
             )}
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
-              <Upload className="h-5 w-5 text-muted-foreground" />
+            <div className="bg-muted flex h-11 w-11 items-center justify-center rounded-full">
+              <Upload className="text-muted-foreground h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">
+              <p className="text-foreground text-sm font-medium">
                 {isDragging ? 'Drop files here' : 'Click to upload or drag and drop'}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-0.5 text-xs">
                 JPEG, PNG, WebP — max {MAX_FILE_SIZE_MB}MB per file
               </p>
             </div>
@@ -234,12 +232,12 @@ export function StepPhotos() {
               {uploadStates.map((state, i) => (
                 <li
                   key={`${state.file.name}-${i}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm"
+                  className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm"
                 >
-                  <span className="truncate text-foreground">{state.file.name}</span>
+                  <span className="text-foreground truncate">{state.file.name}</span>
                   {state.error ? (
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className="text-xs text-destructive">{state.error}</span>
+                      <span className="text-destructive text-xs">{state.error}</span>
                       <button
                         type="button"
                         onClick={() => dismissUploadError(i)}
@@ -252,7 +250,7 @@ export function StepPhotos() {
                   ) : state.progress === 100 ? (
                     <span className="shrink-0 text-xs font-medium text-green-600">Done</span>
                   ) : (
-                    <span className="shrink-0 text-xs text-muted-foreground">
+                    <span className="text-muted-foreground shrink-0 text-xs">
                       {state.progress !== null ? `${state.progress}%` : 'Uploading...'}
                     </span>
                   )}
@@ -262,29 +260,33 @@ export function StepPhotos() {
           )}
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+        <div className="border-border bg-muted/30 text-muted-foreground rounded-xl border px-4 py-3 text-sm">
           File upload requires Supabase Storage. Paste a URL instead.
         </div>
       )}
 
       {/* URL input row */}
       <div className="space-y-2">
-        <label htmlFor="photo-url" className="block text-sm font-medium text-foreground">
+        <label htmlFor="photo-url" className="text-foreground block text-sm font-medium">
           {supabaseEnabled ? (
             <>
               Or paste an image URL{' '}
-              <span className="font-normal text-muted-foreground">(Unsplash, Cloudinary, etc.)</span>
+              <span className="text-muted-foreground font-normal">
+                (Unsplash, Cloudinary, etc.)
+              </span>
             </>
           ) : (
             <>
               Image URL{' '}
-              <span className="font-normal text-muted-foreground">(Unsplash, Cloudinary, etc.)</span>
+              <span className="text-muted-foreground font-normal">
+                (Unsplash, Cloudinary, etc.)
+              </span>
             </>
           )}
         </label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Link className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Link className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <input
               id="photo-url"
               ref={inputRef}
@@ -301,8 +303,8 @@ export function StepPhotos() {
               aria-invalid={inputError ? 'true' : undefined}
               aria-describedby={inputError ? 'photo-url-error' : undefined}
               className={cn(
-                'w-full rounded-lg border bg-white py-3 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground',
-                'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
+                'text-foreground placeholder:text-muted-foreground w-full rounded-lg border bg-white py-3 pl-9 pr-4 text-sm',
+                'focus:ring-primary/20 transition-colors focus:outline-none focus:ring-2',
                 inputError
                   ? 'border-destructive focus:border-destructive'
                   : 'border-border focus:border-primary',
@@ -317,10 +319,10 @@ export function StepPhotos() {
             aria-label="Add image URL"
             className={cn(
               'flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-3 text-sm font-semibold transition-all',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
               canAdd
-                ? 'bg-primary text-white hover:bg-primary/90'
-                : 'cursor-not-allowed bg-muted text-muted-foreground',
+                ? 'bg-primary hover:bg-primary/90 text-white'
+                : 'bg-muted text-muted-foreground cursor-not-allowed',
             )}
           >
             <ImagePlus className="h-4 w-4" />
@@ -328,11 +330,11 @@ export function StepPhotos() {
           </button>
         </div>
         {inputError && (
-          <p id="photo-url-error" role="alert" className="text-xs text-destructive">
+          <p id="photo-url-error" role="alert" className="text-destructive text-xs">
             {inputError}
           </p>
         )}
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {photos.length}/{MAX_PHOTOS} photos added — press Enter or click Add
         </p>
       </div>
@@ -340,14 +342,14 @@ export function StepPhotos() {
       {/* Photo grid */}
       {photos.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             The first photo will be the cover image shown in search results.
           </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {photos.map((url, index) => (
               <div
                 key={url}
-                className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-muted"
+                className="border-border bg-muted group relative aspect-[4/3] overflow-hidden rounded-xl border"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -370,7 +372,7 @@ export function StepPhotos() {
                   }}
                 />
                 {index === 0 && (
-                  <div className="absolute left-2 top-2 rounded-md bg-foreground/80 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                  <div className="bg-foreground/80 absolute left-2 top-2 rounded-md px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
                     Cover
                   </div>
                 )}
@@ -381,7 +383,7 @@ export function StepPhotos() {
                   className={cn(
                     'absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full',
                     'bg-destructive/90 text-white opacity-0 backdrop-blur-sm transition-opacity',
-                    'group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
+                    'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white group-hover:opacity-100',
                   )}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -394,13 +396,13 @@ export function StepPhotos() {
 
       {/* Empty state hint */}
       {photos.length === 0 && uploadStates.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-border bg-muted/30 py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <X className="h-5 w-5 text-muted-foreground" />
+        <div className="border-border bg-muted/30 flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed py-12 text-center">
+          <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+            <X className="text-muted-foreground h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">No photos yet</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="text-foreground text-sm font-medium">No photos yet</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">
               {supabaseEnabled
                 ? 'Upload files above, paste a URL, or skip this step and add photos later.'
                 : 'Paste a URL above, or skip this step and add photos later.'}

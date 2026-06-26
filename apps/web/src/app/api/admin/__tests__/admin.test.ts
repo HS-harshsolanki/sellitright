@@ -49,7 +49,13 @@ describe('GET /api/admin/listings', () => {
     const { GET } = await import('../listings/route')
     const res = await GET(makeReq('http://localhost/api/admin/listings'))
     expect(res.status).toBe(200)
-    const data = await res.json() as { listings: unknown[]; counts: { PENDING_REVIEW: number; ACTIVE: number; REJECTED: number; DELETED: number }; total: number; page: number; totalPages: number }
+    const data = (await res.json()) as {
+      listings: unknown[]
+      counts: { PENDING_REVIEW: number; ACTIVE: number; REJECTED: number; DELETED: number }
+      total: number
+      page: number
+      totalPages: number
+    }
     expect(data).toHaveProperty('listings')
     expect(data).toHaveProperty('counts')
     expect(data.counts).toHaveProperty('PENDING_REVIEW')
@@ -65,7 +71,7 @@ describe('GET /api/admin/listings', () => {
     const { GET } = await import('../listings/route')
     const res = await GET(makeReq('http://localhost/api/admin/listings?status=ACTIVE'))
     expect(res.status).toBe(200)
-    const data = await res.json() as { listings: Array<{ status: string }> }
+    const data = (await res.json()) as { listings: Array<{ status: string }> }
     data.listings.forEach((l) => expect(l.status).toBe('ACTIVE'))
   })
 
@@ -73,10 +79,19 @@ describe('GET /api/admin/listings', () => {
     const { GET } = await import('../listings/route')
     const res = await GET(makeReq('http://localhost/api/admin/listings?q=Koramangala'))
     expect(res.status).toBe(200)
-    const data = await res.json() as { listings: Array<{ city: string; locality: string; title: string; seller: { name: string; phone: string } }> }
+    const data = (await res.json()) as {
+      listings: Array<{
+        city: string
+        locality: string
+        title: string
+        seller: { name: string; phone: string }
+      }>
+    }
     // All results should mention Koramangala in title, locality, or city
     data.listings.forEach((l) => {
-      const hay = [l.title, l.locality, l.city, l.seller.name, l.seller.phone].join(' ').toLowerCase()
+      const hay = [l.title, l.locality, l.city, l.seller.name, l.seller.phone]
+        .join(' ')
+        .toLowerCase()
       expect(hay).toContain('koramangala')
     })
   })
@@ -86,7 +101,7 @@ describe('GET /api/admin/listings', () => {
     // min limit is 10; request page 2 of a 10-per-page query — mock has 12 total
     const res = await GET(makeReq('http://localhost/api/admin/listings?page=2&limit=10'))
     expect(res.status).toBe(200)
-    const data = await res.json() as { listings: unknown[]; page: number; totalPages: number }
+    const data = (await res.json()) as { listings: unknown[]; page: number; totalPages: number }
     expect(data.page).toBe(2)
     expect(data.listings.length).toBeLessThanOrEqual(10)
   })
@@ -100,7 +115,10 @@ describe('POST /api/admin/listings/[id]/approve', () => {
   it('returns 401 without key', async () => {
     const { POST } = await import('../listings/[id]/approve/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-010/approve', { method: 'POST', key: null }),
+      makeReq('http://localhost/api/admin/listings/listing-010/approve', {
+        method: 'POST',
+        key: null,
+      }),
       { params: Promise.resolve({ id: 'listing-010' }) },
     )
     expect(res.status).toBe(401)
@@ -118,11 +136,14 @@ describe('POST /api/admin/listings/[id]/approve', () => {
   it('approves a pending listing', async () => {
     const { POST } = await import('../listings/[id]/approve/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-010/approve', { method: 'POST', body: {} }),
+      makeReq('http://localhost/api/admin/listings/listing-010/approve', {
+        method: 'POST',
+        body: {},
+      }),
       { params: Promise.resolve({ id: 'listing-010' }) },
     )
     expect(res.status).toBe(200)
-    const data = await res.json() as { status: string }
+    const data = (await res.json()) as { status: string }
     expect(data.status).toBe('ACTIVE')
   })
 })
@@ -135,7 +156,10 @@ describe('POST /api/admin/listings/[id]/reject', () => {
   it('returns 401 without key', async () => {
     const { POST } = await import('../listings/[id]/reject/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-011/reject', { method: 'POST', key: null }),
+      makeReq('http://localhost/api/admin/listings/listing-011/reject', {
+        method: 'POST',
+        key: null,
+      }),
       { params: Promise.resolve({ id: 'listing-011' }) },
     )
     expect(res.status).toBe(401)
@@ -144,7 +168,10 @@ describe('POST /api/admin/listings/[id]/reject', () => {
   it('returns 400 when reason is missing', async () => {
     const { POST } = await import('../listings/[id]/reject/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-011/reject', { method: 'POST', body: { reason: '' } }),
+      makeReq('http://localhost/api/admin/listings/listing-011/reject', {
+        method: 'POST',
+        body: { reason: '' },
+      }),
       { params: Promise.resolve({ id: 'listing-011' }) },
     )
     expect(res.status).toBe(400)
@@ -153,7 +180,10 @@ describe('POST /api/admin/listings/[id]/reject', () => {
   it('returns 400 when reason is whitespace', async () => {
     const { POST } = await import('../listings/[id]/reject/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-011/reject', { method: 'POST', body: { reason: '   ' } }),
+      makeReq('http://localhost/api/admin/listings/listing-011/reject', {
+        method: 'POST',
+        body: { reason: '   ' },
+      }),
       { params: Promise.resolve({ id: 'listing-011' }) },
     )
     expect(res.status).toBe(400)
@@ -162,11 +192,14 @@ describe('POST /api/admin/listings/[id]/reject', () => {
   it('rejects a listing with a valid reason', async () => {
     const { POST } = await import('../listings/[id]/reject/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-011/reject', { method: 'POST', body: { reason: 'Fake listing — duplicate' } }),
+      makeReq('http://localhost/api/admin/listings/listing-011/reject', {
+        method: 'POST',
+        body: { reason: 'Fake listing — duplicate' },
+      }),
       { params: Promise.resolve({ id: 'listing-011' }) },
     )
     expect(res.status).toBe(200)
-    const data = await res.json() as { status: string; rejectionReason: string }
+    const data = (await res.json()) as { status: string; rejectionReason: string }
     expect(data.status).toBe('REJECTED')
     expect(data.rejectionReason).toBe('Fake listing — duplicate')
   })
@@ -187,7 +220,12 @@ describe('GET /api/admin/audit-log', () => {
     const { GET } = await import('../audit-log/route')
     const res = await GET(makeReq('http://localhost/api/admin/audit-log'))
     expect(res.status).toBe(200)
-    const data = await res.json() as { entries: unknown[]; total: number; page: number; totalPages: number }
+    const data = (await res.json()) as {
+      entries: unknown[]
+      total: number
+      page: number
+      totalPages: number
+    }
     expect(Array.isArray(data.entries)).toBe(true)
     expect(typeof data.total).toBe('number')
     expect(typeof data.page).toBe('number')
@@ -198,7 +236,7 @@ describe('GET /api/admin/audit-log', () => {
     const { GET } = await import('../audit-log/route')
     const res = await GET(makeReq('http://localhost/api/admin/audit-log?action=approved'))
     expect(res.status).toBe(200)
-    const data = await res.json() as { entries: Array<{ action: string }> }
+    const data = (await res.json()) as { entries: Array<{ action: string }> }
     data.entries.forEach((e) => expect(e.action).toBe('approved'))
   })
 })
@@ -211,7 +249,10 @@ describe('POST /api/admin/listings/[id]/note', () => {
   it('returns 401 without key', async () => {
     const { POST } = await import('../listings/[id]/note/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-001/note', { method: 'POST', key: null }),
+      makeReq('http://localhost/api/admin/listings/listing-001/note', {
+        method: 'POST',
+        key: null,
+      }),
       { params: Promise.resolve({ id: 'listing-001' }) },
     )
     expect(res.status).toBe(401)
@@ -220,7 +261,10 @@ describe('POST /api/admin/listings/[id]/note', () => {
   it('returns 400 when note is empty', async () => {
     const { POST } = await import('../listings/[id]/note/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-001/note', { method: 'POST', body: { note: '' } }),
+      makeReq('http://localhost/api/admin/listings/listing-001/note', {
+        method: 'POST',
+        body: { note: '' },
+      }),
       { params: Promise.resolve({ id: 'listing-001' }) },
     )
     expect(res.status).toBe(400)
@@ -229,11 +273,14 @@ describe('POST /api/admin/listings/[id]/note', () => {
   it('saves a verification note', async () => {
     const { POST } = await import('../listings/[id]/note/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-001/note', { method: 'POST', body: { note: 'Verified via phone callback' } }),
+      makeReq('http://localhost/api/admin/listings/listing-001/note', {
+        method: 'POST',
+        body: { note: 'Verified via phone callback' },
+      }),
       { params: Promise.resolve({ id: 'listing-001' }) },
     )
     expect(res.status).toBe(200)
-    const data = await res.json() as { ok: boolean }
+    const data = (await res.json()) as { ok: boolean }
     expect(data.ok).toBe(true)
   })
 })
@@ -246,7 +293,10 @@ describe('POST /api/admin/listings/[id]/delete', () => {
   it('returns 401 without key', async () => {
     const { POST } = await import('../listings/[id]/delete/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-001/delete', { method: 'POST', key: null }),
+      makeReq('http://localhost/api/admin/listings/listing-001/delete', {
+        method: 'POST',
+        key: null,
+      }),
       { params: Promise.resolve({ id: 'listing-001' }) },
     )
     expect(res.status).toBe(401)
@@ -255,7 +305,10 @@ describe('POST /api/admin/listings/[id]/delete', () => {
   it('returns 401 with wrong key', async () => {
     const { POST } = await import('../listings/[id]/delete/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-001/delete', { method: 'POST', key: 'bad-key' }),
+      makeReq('http://localhost/api/admin/listings/listing-001/delete', {
+        method: 'POST',
+        key: 'bad-key',
+      }),
       { params: Promise.resolve({ id: 'listing-001' }) },
     )
     expect(res.status).toBe(401)
@@ -264,7 +317,10 @@ describe('POST /api/admin/listings/[id]/delete', () => {
   it('returns 404 for unknown listing', async () => {
     const { POST } = await import('../listings/[id]/delete/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/nonexistent-id/delete', { method: 'POST', body: {} }),
+      makeReq('http://localhost/api/admin/listings/nonexistent-id/delete', {
+        method: 'POST',
+        body: {},
+      }),
       { params: Promise.resolve({ id: 'nonexistent-id' }) },
     )
     expect(res.status).toBe(404)
@@ -273,11 +329,14 @@ describe('POST /api/admin/listings/[id]/delete', () => {
   it('deletes an ACTIVE listing and returns status DELETED', async () => {
     const { POST } = await import('../listings/[id]/delete/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-001/delete', { method: 'POST', body: {} }),
+      makeReq('http://localhost/api/admin/listings/listing-001/delete', {
+        method: 'POST',
+        body: {},
+      }),
       { params: Promise.resolve({ id: 'listing-001' }) },
     )
     expect(res.status).toBe(200)
-    const data = await res.json() as { status: string }
+    const data = (await res.json()) as { status: string }
     expect(data.status).toBe('DELETED')
   })
 
@@ -291,7 +350,7 @@ describe('POST /api/admin/listings/[id]/delete', () => {
       { params: Promise.resolve({ id: 'listing-002' }) },
     )
     expect(res.status).toBe(200)
-    const data = await res.json() as { status: string }
+    const data = (await res.json()) as { status: string }
     expect(data.status).toBe('DELETED')
   })
 
@@ -299,16 +358,22 @@ describe('POST /api/admin/listings/[id]/delete', () => {
     // First reject listing-011 so it has REJECTED status
     const { POST: rejectPost } = await import('../listings/[id]/reject/route')
     await rejectPost(
-      makeReq('http://localhost/api/admin/listings/listing-011/reject', { method: 'POST', body: { reason: 'Duplicate listing' } }),
+      makeReq('http://localhost/api/admin/listings/listing-011/reject', {
+        method: 'POST',
+        body: { reason: 'Duplicate listing' },
+      }),
       { params: Promise.resolve({ id: 'listing-011' }) },
     )
     const { POST } = await import('../listings/[id]/delete/route')
     const res = await POST(
-      makeReq('http://localhost/api/admin/listings/listing-011/delete', { method: 'POST', body: {} }),
+      makeReq('http://localhost/api/admin/listings/listing-011/delete', {
+        method: 'POST',
+        body: {},
+      }),
       { params: Promise.resolve({ id: 'listing-011' }) },
     )
     expect(res.status).toBe(200)
-    const data = await res.json() as { status: string }
+    const data = (await res.json()) as { status: string }
     expect(data.status).toBe('DELETED')
   })
 
@@ -316,13 +381,16 @@ describe('POST /api/admin/listings/[id]/delete', () => {
     // Delete a listing to populate audit log
     const { POST: deletePost } = await import('../listings/[id]/delete/route')
     await deletePost(
-      makeReq('http://localhost/api/admin/listings/listing-003/delete', { method: 'POST', body: {} }),
+      makeReq('http://localhost/api/admin/listings/listing-003/delete', {
+        method: 'POST',
+        body: {},
+      }),
       { params: Promise.resolve({ id: 'listing-003' }) },
     )
     const { GET } = await import('../audit-log/route')
     const res = await GET(makeReq('http://localhost/api/admin/audit-log?action=deleted'))
     expect(res.status).toBe(200)
-    const data = await res.json() as { entries: Array<{ action: string }>; total: number }
+    const data = (await res.json()) as { entries: Array<{ action: string }>; total: number }
     expect(data.total).toBeGreaterThan(0)
     data.entries.forEach((e) => expect(e.action).toBe('deleted'))
   })

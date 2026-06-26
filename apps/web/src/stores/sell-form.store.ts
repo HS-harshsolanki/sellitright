@@ -6,7 +6,15 @@ export type PropertyType = 'APARTMENT' | 'VILLA' | 'INDEPENDENT_HOUSE' | 'PLOT' 
 export type BHKType = 'ONE_BHK' | 'TWO_BHK' | 'THREE_BHK' | 'FOUR_BHK' | 'FIVE_PLUS_BHK'
 export type Furnishing = 'FURNISHED' | 'SEMI_FURNISHED' | 'UNFURNISHED'
 export type Parking = 'COVERED' | 'OPEN' | 'BOTH' | 'NONE'
-export type Facing = 'NORTH' | 'SOUTH' | 'EAST' | 'WEST' | 'NORTH_EAST' | 'NORTH_WEST' | 'SOUTH_EAST' | 'SOUTH_WEST'
+export type Facing =
+  | 'NORTH'
+  | 'SOUTH'
+  | 'EAST'
+  | 'WEST'
+  | 'NORTH_EAST'
+  | 'NORTH_WEST'
+  | 'SOUTH_EAST'
+  | 'SOUTH_WEST'
 
 export interface LocationData {
   city: string
@@ -159,16 +167,13 @@ export const useSellFormStore = create<SellFormState>()(
 
       setPropertyType: (type) => set({ propertyType: type }),
 
-      setLocation: (data) =>
-        set((state) => ({ location: { ...state.location, ...data } })),
+      setLocation: (data) => set((state) => ({ location: { ...state.location, ...data } })),
 
-      setDetails: (data) =>
-        set((state) => ({ details: { ...state.details, ...data } })),
+      setDetails: (data) => set((state) => ({ details: { ...state.details, ...data } })),
 
       setPhotos: (photos) => set({ photos }),
 
-      setPricing: (data) =>
-        set((state) => ({ pricing: { ...state.pricing, ...data } })),
+      setPricing: (data) => set((state) => ({ pricing: { ...state.pricing, ...data } })),
 
       setDraftId: (id) => set({ draftId: id }),
 

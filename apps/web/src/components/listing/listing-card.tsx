@@ -66,12 +66,10 @@ export function ListingCard({
   const recency = recencyText(days)
 
   return (
-    <div className="group relative rounded-2xl bg-white border border-[var(--color-border)] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-transparent">
+    <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-all duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-xl">
       <Link href={`/listing/${id}`} className="block p-3">
-
         {/* ── Image area ──────────────────────────────────────────────────────── */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[var(--color-muted)]">
-
           {images[currentImage] && (
             <Image
               src={images[currentImage].url}
@@ -85,14 +83,14 @@ export function ListingCard({
 
           {/* Gradient fade — bottom — anchors overlaid badges */}
           <div
-            className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-20"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.38) 0%, transparent 100%)' }}
             aria-hidden="true"
           />
 
           {/* Photo count badge — top-left */}
           {total > 0 && (
-            <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-sm px-2.5 py-1 text-xs font-medium text-white">
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
               <Camera className="h-3 w-3" aria-hidden="true" />
               {total}
             </span>
@@ -105,7 +103,7 @@ export function ListingCard({
                 type="button"
                 onClick={prev}
                 aria-label="Previous photo"
-                className="absolute left-2 top-1/2 -translate-y-1/2 hidden h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none sm:flex"
+                className="absolute left-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 opacity-0 shadow-md transition-opacity focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100 sm:flex"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -113,7 +111,7 @@ export function ListingCard({
                 type="button"
                 onClick={next}
                 aria-label="Next photo"
-                className="absolute right-2 top-1/2 -translate-y-1/2 hidden h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none sm:flex"
+                className="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 opacity-0 shadow-md transition-opacity focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100 sm:flex"
               >
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -127,9 +125,12 @@ export function ListingCard({
                 <button
                   key={idx}
                   type="button"
-                  onClick={(e) => { e.preventDefault(); setCurrentImage(idx) }}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setCurrentImage(idx)
+                  }}
                   aria-label={`View photo ${idx + 1}`}
-                  className="h-4 flex items-center px-0.5"
+                  className="flex h-4 items-center px-0.5"
                 >
                   <span
                     className={cn(
@@ -144,7 +145,7 @@ export function ListingCard({
 
           {/* Verified badge — bottom-left, above gradient */}
           {isVerified && (
-            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-sm px-2.5 py-1 text-xs font-medium text-gray-900 shadow-sm">
+            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-gray-900 shadow-sm backdrop-blur-sm">
               <ShieldCheck className="h-3 w-3 text-emerald-600" aria-hidden="true" />
               Verified
             </span>
@@ -154,10 +155,14 @@ export function ListingCard({
         {/* ── Heart — top-right of image ──────────────────────────────────────── */}
         <button
           type="button"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsFavorited((f) => !f) }}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setIsFavorited((f) => !f)
+          }}
           aria-label={isFavorited ? 'Remove from favourites' : 'Save to favourites'}
           aria-pressed={isFavorited}
-          className="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-sm transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+          className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
         >
           <Heart
             className={cn(
@@ -170,9 +175,8 @@ export function ListingCard({
 
         {/* ── Content area ────────────────────────────────────────────────────── */}
         <div className="mt-2 px-1">
-
           {/* Location — primary identity, deserves prominence */}
-          <p className="text-[15px] font-semibold leading-snug text-[var(--color-foreground)] truncate">
+          <p className="truncate text-[15px] font-semibold leading-snug text-[var(--color-foreground)]">
             {locality}, {city}
           </p>
 
@@ -182,7 +186,9 @@ export function ListingCard({
               <Bed className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
               {formatBHK(bhkType)}
             </span>
-            <span className="text-[var(--color-border)]" aria-hidden="true">|</span>
+            <span className="text-[var(--color-border)]" aria-hidden="true">
+              |
+            </span>
             <span className="inline-flex items-center gap-1">
               <Maximize2 className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
               {formatArea(builtUpArea)}
@@ -190,7 +196,7 @@ export function ListingCard({
           </div>
 
           {/* Divider — visual breathing room before price */}
-          <div className="mt-3 mb-2.5 h-px bg-[var(--color-border)]" aria-hidden="true" />
+          <div className="mb-2.5 mt-3 h-px bg-[var(--color-border)]" aria-hidden="true" />
 
           {/* Price — the decision-maker, must command the eye */}
           <p className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
@@ -201,7 +207,6 @@ export function ListingCard({
           {recency && (
             <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">{recency}</p>
           )}
-
         </div>
       </Link>
     </div>

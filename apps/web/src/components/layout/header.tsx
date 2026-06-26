@@ -4,14 +4,29 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { Suspense, useEffect, useRef, useState } from 'react'
-import {
-  Menu,
-  Plus,
-  LogOut,
-  LayoutDashboard,
-  User,
-  UserPlus,
-} from 'lucide-react'
+import { Menu, Plus, LogOut, LayoutDashboard, User, UserPlus } from 'lucide-react'
+
+function useHasListings(userId: string | undefined): boolean {
+  const [hasListings, setHasListings] = useState(false)
+
+  useEffect(() => {
+    if (!userId) {
+      setHasListings(false)
+      return
+    }
+    fetch('/api/dashboard/listings?limit=1')
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        if (data && typeof data === 'object' && 'listings' in data) {
+          const d = data as { listings: unknown[] }
+          setHasListings(d.listings.length > 0)
+        }
+      })
+      .catch(() => {})
+  }, [userId])
+
+  return hasListings
+}
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { HeaderSearch } from '@/components/layout/header-search'
 import { cn } from '@/lib/utils'
@@ -22,13 +37,13 @@ function Logo() {
   return (
     <Link
       href="/"
-      className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] rounded"
+      className="shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
       aria-label="SellItRight home"
     >
       <span className="block text-lg font-bold tracking-tight text-[var(--color-primary)] md:hidden">
         SIR
       </span>
-      <span className="hidden md:block text-xl font-bold tracking-tight leading-none">
+      <span className="hidden text-xl font-bold leading-none tracking-tight md:block">
         <span className="text-[var(--color-primary)]">Sell</span>
         <span className="text-[var(--color-foreground)]">ItRight</span>
       </span>
@@ -38,7 +53,7 @@ function Logo() {
 
 function SearchFallback() {
   return (
-    <div className="relative flex-1 max-w-md h-10 sm:h-11 rounded-full bg-[var(--color-muted)] border border-[var(--color-border)]" />
+    <div className="relative h-10 max-w-md flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] sm:h-11" />
   )
 }
 
@@ -47,10 +62,11 @@ function SearchFallback() {
 interface UserDropdownProps {
   name: string | null
   email: string | null
+  hasListings: boolean
   onSignOut: () => void
 }
 
-function UserDropdown({ name, email, onSignOut }: UserDropdownProps) {
+function UserDropdown({ name, email, hasListings, onSignOut }: UserDropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -65,7 +81,9 @@ function UserDropdown({ name, email, onSignOut }: UserDropdownProps) {
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [open])
@@ -106,35 +124,45 @@ function UserDropdown({ name, email, onSignOut }: UserDropdownProps) {
           aria-label="Account options"
           className={cn(
             'absolute right-0 top-[calc(100%+8px)] z-[100] w-56',
-            'rounded-xl border border-[var(--color-border)] bg-white shadow-xl overflow-hidden',
+            'overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-xl',
           )}
         >
-          <div className="px-4 py-3 border-b border-[var(--color-border)]">
-            <p className="text-sm font-semibold text-[var(--color-foreground)] truncate">
+          <div className="border-b border-[var(--color-border)] px-4 py-3">
+            <p className="truncate text-sm font-semibold text-[var(--color-foreground)]">
               {name ?? 'My Account'}
             </p>
             {email && (
-              <p className="text-xs text-[var(--color-muted-foreground)] truncate mt-0.5">{email}</p>
+              <p className="mt-0.5 truncate text-xs text-[var(--color-muted-foreground)]">
+                {email}
+              </p>
             )}
           </div>
 
           <div className="py-1">
-            <Link
-              href="/dashboard"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
-            >
-              <LayoutDashboard className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
-              Dashboard
-            </Link>
+            {hasListings && (
+              <Link
+                href="/dashboard"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+              >
+                <LayoutDashboard
+                  className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+                  aria-hidden="true"
+                />
+                Dashboard
+              </Link>
+            )}
             <Link
               href="/sell"
               role="menuitem"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
             >
-              <Plus className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
+              <Plus
+                className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
               Post Property
             </Link>
             <Link
@@ -143,7 +171,10 @@ function UserDropdown({ name, email, onSignOut }: UserDropdownProps) {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
             >
-              <User className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
+              <User
+                className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
               My Profile
             </Link>
           </div>
@@ -152,7 +183,10 @@ function UserDropdown({ name, email, onSignOut }: UserDropdownProps) {
             <button
               type="button"
               role="menuitem"
-              onClick={() => { setOpen(false); onSignOut() }}
+              onClick={() => {
+                setOpen(false)
+                onSignOut()
+              }}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50"
             >
               <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -170,11 +204,12 @@ function UserDropdown({ name, email, onSignOut }: UserDropdownProps) {
 interface MobileSheetProps {
   name: string | null
   isLoggedIn: boolean
+  hasListings: boolean
   pathname: string
   onSignOut: () => void
 }
 
-function MobileSheet({ name, isLoggedIn, pathname, onSignOut }: MobileSheetProps) {
+function MobileSheet({ name, isLoggedIn, hasListings, pathname, onSignOut }: MobileSheetProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -183,7 +218,7 @@ function MobileSheet({ name, isLoggedIn, pathname, onSignOut }: MobileSheetProps
           aria-label="Open menu"
           className={cn(
             'flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-white',
-            'pl-2.5 pr-1 py-1',
+            'py-1 pl-2.5 pr-1',
             'text-[var(--color-muted-foreground)] transition-shadow duration-200 hover:shadow-sm',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
           )}
@@ -225,18 +260,20 @@ function MobileSheet({ name, isLoggedIn, pathname, onSignOut }: MobileSheetProps
 
           {isLoggedIn ? (
             <>
-              <Link
-                href="/dashboard"
-                className={cn(
-                  'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
-                  pathname.startsWith('/dashboard')
-                    ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
-                    : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
-                )}
-              >
-                <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Dashboard
-              </Link>
+              {hasListings && (
+                <Link
+                  href="/dashboard"
+                  className={cn(
+                    'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
+                    pathname.startsWith('/dashboard')
+                      ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
+                      : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
+                  )}
+                >
+                  <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  Dashboard
+                </Link>
+              )}
               <Link
                 href="/profile"
                 className={cn(
@@ -291,6 +328,7 @@ export function Header() {
   const { user, loading, signOut } = useAuth()
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
+  const hasListings = useHasListings(user?.id)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0)
@@ -299,7 +337,10 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const name = user?.user_metadata?.full_name ?? (user?.email?.includes('@') ? user.email.split('@')[0] : (user?.email ?? null)) ?? null
+  const name =
+    user?.user_metadata?.full_name ??
+    (user?.email?.includes('@') ? user.email.split('@')[0] : (user?.email ?? null)) ??
+    null
   const email = user?.email ?? null
 
   return (
@@ -311,7 +352,6 @@ export function Header() {
       )}
     >
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:h-16 sm:gap-4 sm:px-6">
-
         {/* Zone 1: Logo */}
         <Logo />
 
@@ -323,7 +363,7 @@ export function Header() {
         </div>
 
         {/* Zone 3: Right actions — desktop */}
-        <div className="hidden md:flex shrink-0 items-center gap-3">
+        <div className="hidden shrink-0 items-center gap-3 md:flex">
           <Link
             href="/sell"
             className={cn(
@@ -337,15 +377,18 @@ export function Header() {
 
           {/* Loading skeleton to avoid layout shift */}
           {loading ? (
-            <div className="h-9 w-9 rounded-full bg-[var(--color-muted)] animate-pulse" aria-hidden="true" />
+            <div
+              className="h-9 w-9 animate-pulse rounded-full bg-[var(--color-muted)]"
+              aria-hidden="true"
+            />
           ) : user ? (
-            <UserDropdown name={name} email={email} onSignOut={signOut} />
+            <UserDropdown name={name} email={email} hasListings={hasListings} onSignOut={signOut} />
           ) : (
             <Link
               href="/login"
               className={cn(
                 'rounded-full px-4 py-2 text-sm font-medium text-[var(--color-muted-foreground)]',
-                'transition-colors duration-150 hover:text-[var(--color-foreground)] hover:bg-[var(--color-muted)]',
+                'transition-colors duration-150 hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
               )}
             >
@@ -356,14 +399,8 @@ export function Header() {
 
         {/* Mobile only */}
         <div className="shrink-0 md:hidden">
-          <MobileSheet
-            name={name}
-            isLoggedIn={!!user}
-            pathname={pathname}
-            onSignOut={signOut}
-          />
+          <MobileSheet name={name} isLoggedIn={!!user} hasListings={hasListings} pathname={pathname} onSignOut={signOut} />
         </div>
-
       </div>
     </header>
   )

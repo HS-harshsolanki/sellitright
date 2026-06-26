@@ -5,7 +5,16 @@ import { formatPrice } from '@/lib/format'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Eye, LayoutGrid, MapPin, Plus, TrendingUp, AlertCircle, Loader2, Users } from 'lucide-react'
+import {
+  Eye,
+  LayoutGrid,
+  MapPin,
+  Plus,
+  TrendingUp,
+  AlertCircle,
+  Loader2,
+  Users,
+} from 'lucide-react'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import type { MockListing, ListingStatus } from '@/lib/mock-data'
 import { MOCK_LISTINGS } from '@/lib/mock-data'
@@ -137,14 +146,24 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, icon, accent = false }: StatCardProps) {
   return (
-    <div className={cn('flex items-start gap-4 rounded-xl border border-border bg-white p-4', accent && 'border-primary/20 bg-primary/5')}>
-      <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', accent ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>
+    <div
+      className={cn(
+        'border-border flex items-start gap-4 rounded-xl border bg-white p-4',
+        accent && 'border-primary/20 bg-primary/5',
+      )}
+    >
+      <div
+        className={cn(
+          'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+          accent ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+        )}
+      >
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-muted-foreground text-sm">{label}</p>
         <p className={cn('text-2xl font-bold', accent && 'text-primary')}>{value}</p>
-        {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+        {sub && <p className="text-muted-foreground mt-0.5 text-xs">{sub}</p>}
       </div>
     </div>
   )
@@ -159,8 +178,8 @@ function ListingCard({ listing }: ListingCardProps) {
   const cover = listing.images[0]?.url
 
   return (
-    <article className="group overflow-hidden rounded-xl border border-border bg-white transition-shadow hover:shadow-md">
-      <div className="relative aspect-[16/9] overflow-hidden bg-muted">
+    <article className="border-border group overflow-hidden rounded-xl border bg-white transition-shadow hover:shadow-md">
+      <div className="bg-muted relative aspect-[16/9] overflow-hidden">
         {cover ? (
           <Image
             src={cover}
@@ -170,22 +189,40 @@ function ListingCard({ listing }: ListingCardProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9.75L12 3l9 6.75V21H3V9.75z" />
+          <div className="text-muted-foreground flex h-full items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M3 9.75L12 3l9 6.75V21H3V9.75z"
+              />
             </svg>
           </div>
         )}
-        <span className={cn('absolute left-2 top-2 rounded-full px-2 py-0.5 text-xs font-semibold', statusConfig.className)}>
+        <span
+          className={cn(
+            'absolute left-2 top-2 rounded-full px-2 py-0.5 text-xs font-semibold',
+            statusConfig.className,
+          )}
+        >
           {statusConfig.label}
         </span>
       </div>
 
       <div className="p-4">
-        <h3 className="line-clamp-1 font-semibold text-foreground">{listing.title}</h3>
-        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+        <h3 className="text-foreground line-clamp-1 font-semibold">{listing.title}</h3>
+        <div className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
           <MapPin className="h-3 w-3 shrink-0" />
-          <span className="truncate">{listing.locality}, {listing.city}</span>
+          <span className="truncate">
+            {listing.locality}, {listing.city}
+          </span>
         </div>
 
         {listing.status === 'REJECTED' && listing.rejectionReason && (
@@ -196,8 +233,8 @@ function ListingCard({ listing }: ListingCardProps) {
         )}
 
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-base font-bold text-foreground">{formatPrice(listing.price)}</p>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <p className="text-foreground text-base font-bold">{formatPrice(listing.price)}</p>
+          <div className="text-muted-foreground flex items-center gap-1 text-xs">
             <Eye className="h-3.5 w-3.5" />
             <span>{listing.viewCount}</span>
           </div>
@@ -207,21 +244,30 @@ function ListingCard({ listing }: ListingCardProps) {
           {listing.status === 'DRAFT' ? (
             <Link
               href="/sell"
-              className={cn('flex-1 rounded-lg border border-primary py-2 text-center text-xs font-medium text-primary', 'transition-colors hover:bg-primary/5')}
+              className={cn(
+                'border-primary text-primary flex-1 rounded-lg border py-2 text-center text-xs font-medium',
+                'hover:bg-primary/5 transition-colors',
+              )}
             >
               Resume Draft
             </Link>
           ) : (
             <Link
               href={`/listings/${listing.id}/edit`}
-              className={cn('flex-1 rounded-lg border border-border py-2 text-center text-xs font-medium text-foreground', 'transition-colors hover:bg-muted')}
+              className={cn(
+                'border-border text-foreground flex-1 rounded-lg border py-2 text-center text-xs font-medium',
+                'hover:bg-muted transition-colors',
+              )}
             >
               Edit
             </Link>
           )}
           <Link
             href={`/listing/${listing.id}`}
-            className={cn('flex-1 rounded-lg border border-border py-2 text-center text-xs font-medium text-foreground', 'transition-colors hover:bg-muted')}
+            className={cn(
+              'border-border text-foreground flex-1 rounded-lg border py-2 text-center text-xs font-medium',
+              'hover:bg-muted transition-colors',
+            )}
           >
             View
           </Link>
@@ -239,59 +285,72 @@ interface BuyerInterestCardProps {
 
 function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardProps) {
   const [confirmDecline, setConfirmDecline] = useState(false)
-  const statusCfg = INTEREST_STATUS_CONFIG[item.status] ?? { label: item.status, className: 'bg-gray-100 text-gray-600' }
-  const dateStr = new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const statusCfg = INTEREST_STATUS_CONFIG[item.status] ?? {
+    label: item.status,
+    className: 'bg-gray-100 text-gray-600',
+  }
+  const dateStr = new Date(item.createdAt).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
+    <div className="border-border rounded-xl border bg-white p-4">
       {/* Row 1: Name + status badge + listing */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-foreground">{item.fullName}</p>
-            <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', statusCfg.className)}>
+            <p className="text-foreground font-semibold">{item.fullName}</p>
+            <span
+              className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', statusCfg.className)}
+            >
               {statusCfg.label}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {item.listingTitle}{item.listingCity ? ` · ${item.listingCity}` : ''}
+          <p className="text-muted-foreground mt-0.5 truncate text-xs">
+            {item.listingTitle}
+            {item.listingCity ? ` · ${item.listingCity}` : ''}
           </p>
         </div>
       </div>
 
       {/* Row 2: Metadata chips */}
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+        <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-xs font-medium">
           {PURPOSE_LABEL[item.purpose] ?? item.purpose}
         </span>
-        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+        <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-xs font-medium">
           {TIMELINE_LABEL[item.timeline] ?? item.timeline}
         </span>
-        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+        <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-xs font-medium">
           {FUNDING_LABEL[item.funding] ?? item.funding}
         </span>
       </div>
 
       {/* Row 3: Message */}
       {item.message && (
-        <div className="mt-3 rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
+        <div className="bg-muted/60 text-muted-foreground mt-3 rounded-lg px-3 py-2 text-sm">
           &ldquo;{item.message}&rdquo;
         </div>
       )}
 
       {/* Row 4: Date */}
-      <p className="mt-3 text-xs text-muted-foreground">Requested on {dateStr}</p>
+      <p className="text-muted-foreground mt-3 text-xs">Requested on {dateStr}</p>
 
       {/* Row 5: Actions (PENDING only) */}
       {item.status === 'PENDING' && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {confirmDecline ? (
             <>
-              <p className="mr-1 text-xs text-muted-foreground">Decline this request?</p>
+              <p className="text-muted-foreground mr-1 text-xs">Decline this request?</p>
               <button
                 type="button"
                 disabled={actionLoading}
-                onClick={() => { void onAction(item.id, 'DECLINED'); setConfirmDecline(false) }}
+                onClick={() => {
+                  void onAction(item.id, 'DECLINED')
+                  setConfirmDecline(false)
+                }}
                 className={cn(
                   'rounded-lg border border-red-400 px-3 py-1.5 text-xs font-semibold text-red-600',
                   'transition-colors hover:bg-red-50 disabled:opacity-50',
@@ -303,7 +362,7 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
                 type="button"
                 disabled={actionLoading}
                 onClick={() => setConfirmDecline(false)}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                className="border-border text-muted-foreground hover:bg-muted rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -335,7 +394,7 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
               <button
                 type="button"
                 disabled={actionLoading}
-                className="px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                className="text-muted-foreground hover:text-foreground px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
               >
                 Later
               </button>
@@ -383,7 +442,7 @@ function BuyersTabContent({
     <div className="space-y-4">
       {/* Filter row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 overflow-x-auto rounded-xl bg-muted p-1">
+        <div className="bg-muted flex gap-1 overflow-x-auto rounded-xl p-1">
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.value}
@@ -391,7 +450,9 @@ function BuyersTabContent({
               onClick={() => onStatusFilter(f.value)}
               className={cn(
                 'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
-                statusFilter === f.value ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                statusFilter === f.value
+                  ? 'text-foreground bg-white shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {f.label}
@@ -401,7 +462,7 @@ function BuyersTabContent({
         <select
           value={sort}
           onChange={(e) => onSort(e.target.value as 'newest' | 'oldest')}
-          className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="border-border text-foreground focus:ring-ring rounded-lg border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2"
         >
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
@@ -411,22 +472,27 @@ function BuyersTabContent({
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
         </div>
       ) : error ? (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+        <div
+          className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          role="alert"
+        >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <span>{error}</span>
         </div>
       ) : interests.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-16 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-            <Users className="h-8 w-8 text-muted-foreground" />
+        <div className="border-border flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-16 text-center">
+          <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+            <Users className="text-muted-foreground h-8 w-8" />
           </div>
-          <h3 className="text-base font-semibold text-foreground">
-            {statusFilter === 'ALL' ? 'No buyer requests yet' : `No ${statusFilter.toLowerCase()} requests`}
+          <h3 className="text-foreground text-base font-semibold">
+            {statusFilter === 'ALL'
+              ? 'No buyer requests yet'
+              : `No ${statusFilter.toLowerCase()} requests`}
           </h3>
-          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 max-w-xs text-sm">
             {statusFilter === 'ALL'
               ? 'When buyers express interest in your listings, their requests will appear here.'
               : `No requests with ${statusFilter.toLowerCase()} status.`}
@@ -450,24 +516,50 @@ function BuyersTabContent({
 
 function EmptyState({ tab }: { tab: Exclude<TabFilter, 'buyers'> }) {
   const messages: Record<Exclude<TabFilter, 'buyers'>, { title: string; sub: string }> = {
-    all: { title: 'No listings yet', sub: 'Start selling by creating your first property listing.' },
+    all: {
+      title: 'No listings yet',
+      sub: 'Start selling by creating your first property listing.',
+    },
     active: { title: 'No active listings', sub: 'Your published listings will appear here.' },
-    draft: { title: 'No drafts', sub: "Listings you've saved but not yet published will appear here." },
+    draft: {
+      title: 'No drafts',
+      sub: "Listings you've saved but not yet published will appear here.",
+    },
     pending: { title: 'No pending listings', sub: 'Listings awaiting review will appear here.' },
-    rejected: { title: 'No rejected listings', sub: 'Listings rejected by our team will appear here.' },
+    rejected: {
+      title: 'No rejected listings',
+      sub: 'Listings rejected by our team will appear here.',
+    },
     sold: { title: 'No sold listings', sub: "Properties you've marked as sold will appear here." },
   }
   const msg = messages[tab]
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9.75L12 3l9 6.75V21H3V9.75z" />
+    <div className="border-border flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-16 text-center">
+      <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="text-muted-foreground h-8 w-8"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M3 9.75L12 3l9 6.75V21H3V9.75z"
+          />
         </svg>
       </div>
-      <h3 className="text-base font-semibold text-foreground">{msg.title}</h3>
-      <p className="mt-1 max-w-xs text-sm text-muted-foreground">{msg.sub}</p>
-      <Link href="/sell" className={cn('mt-6 flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white', 'transition-colors hover:bg-primary/90')}>
+      <h3 className="text-foreground text-base font-semibold">{msg.title}</h3>
+      <p className="text-muted-foreground mt-1 max-w-xs text-sm">{msg.sub}</p>
+      <Link
+        href="/sell"
+        className={cn(
+          'bg-primary mt-6 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white',
+          'hover:bg-primary/90 transition-colors',
+        )}
+      >
         <Plus className="h-4 w-4" />
         Start selling
       </Link>
@@ -497,7 +589,7 @@ export default function DashboardPage() {
         if (isSupabaseConfigured()) {
           const res = await fetch('/api/dashboard/listings')
           if (res.ok) {
-            const json = await res.json() as { listings: DashboardListing[] }
+            const json = (await res.json()) as { listings: DashboardListing[] }
             setListings(json.listings.map(toDisplayListing))
           } else if (res.status === 401) {
             setFetchError('You need to be signed in to view your listings.')
@@ -529,7 +621,7 @@ export default function DashboardPage() {
         const params = new URLSearchParams({ status: interestStatusFilter, sort: interestSort })
         const res = await fetch(`/api/dashboard/interests?${params.toString()}`)
         if (res.ok) {
-          const json = await res.json() as { interests: SellerInterestItem[] }
+          const json = (await res.json()) as { interests: SellerInterestItem[] }
           setInterests(json.interests)
         } else if (res.status === 401) {
           setInterestError('Sign in to view buyer requests.')
@@ -557,14 +649,20 @@ export default function DashboardPage() {
         body: JSON.stringify({ action }),
       })
       if (res.ok) {
-        const json = await res.json() as { id: string; status: string; updatedAt: string }
+        const json = (await res.json()) as { id: string; status: string; updatedAt: string }
         setInterests((prev) =>
           prev.map((item) =>
-            item.id === json.id ? { ...item, status: json.status as SellerInterestItem['status'], updatedAt: json.updatedAt } : item,
+            item.id === json.id
+              ? {
+                  ...item,
+                  status: json.status as SellerInterestItem['status'],
+                  updatedAt: json.updatedAt,
+                }
+              : item,
           ),
         )
       } else {
-        const err = await res.json() as { error?: string }
+        const err = (await res.json()) as { error?: string }
         setInterestError(err.error ?? 'Failed to update request.')
       }
     } catch {
@@ -592,31 +690,61 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-foreground sm:text-2xl">My Listings</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Manage and track your property listings</p>
+          <h1 className="text-foreground text-xl font-bold sm:text-2xl">My Listings</h1>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            Manage and track your property listings
+          </p>
         </div>
-        <Link href="/sell" className={cn('hidden items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white sm:flex', 'transition-colors hover:bg-primary/90')}>
+        <Link
+          href="/sell"
+          className={cn(
+            'bg-primary hidden items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white sm:flex',
+            'hover:bg-primary/90 transition-colors',
+          )}
+        >
           <Plus className="h-4 w-4" />
           New listing
         </Link>
       </div>
 
       {fetchError && activeTab !== 'buyers' && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+        <div
+          className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          role="alert"
+        >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <span>{fetchError}</span>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatCard label="Total Listings" value={stats.total} icon={<LayoutGrid className="h-5 w-5" />} />
-        <StatCard label="Active" value={stats.active} sub="Currently live" icon={<TrendingUp className="h-5 w-5" />} accent />
+        <StatCard
+          label="Total Listings"
+          value={stats.total}
+          icon={<LayoutGrid className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Active"
+          value={stats.active}
+          sub="Currently live"
+          icon={<TrendingUp className="h-5 w-5" />}
+          accent
+        />
         <div className="col-span-2 sm:col-span-1">
-          <StatCard label="Views This Month" value={stats.views.toLocaleString('en-IN')} sub="Across all listings" icon={<Eye className="h-5 w-5" />} />
+          <StatCard
+            label="Views This Month"
+            value={stats.views.toLocaleString('en-IN')}
+            sub="Across all listings"
+            icon={<Eye className="h-5 w-5" />}
+          />
         </div>
       </div>
 
-      <div role="tablist" aria-label="Filter listings" className="flex gap-1 overflow-x-auto rounded-xl bg-muted p-1">
+      <div
+        role="tablist"
+        aria-label="Filter listings"
+        className="bg-muted flex gap-1 overflow-x-auto rounded-xl p-1"
+      >
         {TAB_OPTIONS.map((tab) => (
           <button
             key={tab.value}
@@ -626,8 +754,10 @@ export default function DashboardPage() {
             onClick={() => setActiveTab(tab.value)}
             className={cn(
               'flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-              activeTab === tab.value ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+              activeTab === tab.value
+                ? 'text-foreground bg-white shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
             )}
           >
             {tab.label}
@@ -649,7 +779,7 @@ export default function DashboardPage() {
         />
       ) : loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
         </div>
       ) : filteredListings.length === 0 ? (
         <EmptyState tab={activeTab as Exclude<TabFilter, 'buyers'>} />
@@ -662,7 +792,14 @@ export default function DashboardPage() {
       )}
 
       <div className="fixed bottom-24 right-4 sm:hidden">
-        <Link href="/sell" aria-label="Create new listing" className={cn('flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg', 'transition-transform hover:scale-105 active:scale-95')}>
+        <Link
+          href="/sell"
+          aria-label="Create new listing"
+          className={cn(
+            'bg-primary flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg',
+            'transition-transform hover:scale-105 active:scale-95',
+          )}
+        >
           <Plus className="h-6 w-6" />
         </Link>
       </div>

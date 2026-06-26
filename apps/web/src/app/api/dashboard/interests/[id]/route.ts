@@ -29,10 +29,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
   const action = (body as { action?: unknown })?.action
   if (action !== 'ACCEPTED' && action !== 'DECLINED') {
-    return NextResponse.json(
-      { error: 'action must be "ACCEPTED" or "DECLINED".' },
-      { status: 400 },
-    )
+    return NextResponse.json({ error: 'action must be "ACCEPTED" or "DECLINED".' }, { status: 400 })
   }
 
   // Verify the interest exists and belongs to this seller

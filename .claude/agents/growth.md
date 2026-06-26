@@ -41,12 +41,14 @@ Generate strategies for:
    - "3 flats already listed in your building" → social proof drives more
 
 Metrics:
+
 - Viral coefficient (K-factor): target > 1.0 (each user brings > 1 new user)
 - Referral conversion rate: target > 15%
 - Organic traffic: target 500 visits/month by month 3
 - Owner acquisition cost: target ₹0 (fully organic)
 
 Output:
+
 - Prioritized growth experiments (effort vs impact matrix)
 - Implementation spec for top 3 experiments
 - Success/failure criteria for each experiment

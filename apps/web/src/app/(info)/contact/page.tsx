@@ -3,7 +3,8 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Contact — SellItRight',
-  description: 'Get in touch with the SellItRight team for support, feedback, or to report a listing.',
+  description:
+    'Get in touch with the SellItRight team for support, feedback, or to report a listing.',
 }
 
 const TOPICS = [
@@ -30,15 +31,17 @@ const TOPICS = [
 export default function ContactPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-
       {/* Hero */}
       <div className="mb-12">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">Contact</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
+          Contact
+        </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl">
           We&apos;re here to help
         </h1>
         <p className="mt-4 text-base leading-relaxed text-[var(--color-muted-foreground)]">
-          We read every message and aim to respond within one business day. Choose the topic that best fits your question below.
+          We read every message and aim to respond within one business day. Choose the topic that
+          best fits your question below.
         </p>
       </div>
 
@@ -47,10 +50,12 @@ export default function ContactPage() {
         {TOPICS.map(({ title, body, email, cta }) => (
           <div key={title} className="rounded-xl border border-[var(--color-border)] p-5">
             <p className="font-semibold text-[var(--color-foreground)]">{title}</p>
-            <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-muted-foreground)]">{body}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+              {body}
+            </p>
             <a
               href={`mailto:${email}?subject=${encodeURIComponent(cta + ' — SellItRight')}`}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-foreground)] underline underline-offset-2 hover:opacity-70 transition-opacity"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
             >
               {cta}
               <span aria-hidden="true">→</span>
@@ -61,13 +66,18 @@ export default function ContactPage() {
 
       {/* Response time note */}
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-5 py-4 text-sm text-[var(--color-muted-foreground)]">
-        <span className="font-medium text-[var(--color-foreground)]">Response times:</span> General support within 1 business day. Listing reports within 24 hours. Privacy requests within 30 days as required by applicable law.
+        <span className="font-medium text-[var(--color-foreground)]">Response times:</span> General
+        support within 1 business day. Listing reports within 24 hours. Privacy requests within 30
+        days as required by applicable law.
       </div>
 
       {/* Back to browsing */}
       <p className="mt-8 text-sm text-[var(--color-muted-foreground)]">
         Looking for a property?{' '}
-        <Link href="/" className="font-medium text-[var(--color-foreground)] underline underline-offset-2 hover:opacity-70 transition-opacity">
+        <Link
+          href="/"
+          className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
+        >
           Browse listings →
         </Link>
       </p>

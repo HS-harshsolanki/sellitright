@@ -29,7 +29,9 @@ export default function ProfilePage() {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    }
   }, [])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -115,8 +117,7 @@ export default function ProfilePage() {
             {displayName || email || 'Anonymous'}
           </p>
           <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
-            Signed in via{' '}
-            <span className="capitalize font-medium">{provider}</span>
+            Signed in via <span className="font-medium capitalize">{provider}</span>
           </p>
         </div>
       </div>
@@ -124,7 +125,7 @@ export default function ProfilePage() {
       {/* Edit form */}
       <form
         onSubmit={handleSave}
-        className="rounded-2xl border border-[var(--color-border)] bg-white p-5 space-y-4"
+        className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white p-5"
       >
         <h2 className="text-sm font-semibold text-[var(--color-foreground)]">Account details</h2>
 
@@ -137,7 +138,10 @@ export default function ProfilePage() {
             Display name
           </label>
           <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] focus-within:ring-2 focus-within:ring-[var(--color-ring)]">
-            <User className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
+            <User
+              className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+              aria-hidden="true"
+            />
             <input
               id="display-name"
               type="text"
@@ -157,7 +161,10 @@ export default function ProfilePage() {
               Email address
             </p>
             <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]">
-              <Mail className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
+              <Mail
+                className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
               <span className="px-3 text-sm text-[var(--color-muted-foreground)]">{email}</span>
             </div>
             <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
@@ -173,21 +180,22 @@ export default function ProfilePage() {
               Phone number
             </p>
             <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]">
-              <Phone className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
+              <Phone
+                className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
               <span className="px-3 text-sm text-[var(--color-muted-foreground)]">{phone}</span>
             </div>
           </div>
         )}
 
         {error && (
-          <p className="text-sm text-red-600" role="alert">{error}</p>
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
         )}
 
-        <Button
-          type="submit"
-          className="h-11 w-full text-sm font-semibold"
-          disabled={saving}
-        >
+        <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={saving}>
           {saving ? (
             <span className="flex items-center gap-2">
               <Spinner className="h-4 w-4" />
@@ -213,7 +221,7 @@ export default function ProfilePage() {
         <Button
           type="button"
           variant="outline"
-          className="h-11 w-full gap-2 border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-300"
+          className="h-11 w-full gap-2 border-red-200 text-sm font-medium text-red-600 hover:border-red-300 hover:bg-red-50"
           onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4" aria-hidden="true" />

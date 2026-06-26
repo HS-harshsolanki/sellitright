@@ -31,10 +31,22 @@ export async function GET(request: NextRequest) {
     try {
       // Count query for sidebar badges (all statuses, no search filter)
       const [pendingRes, activeRes, rejectedRes, deletedRes] = await Promise.all([
-        supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'PENDING_REVIEW'),
-        supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
-        supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'REJECTED'),
-        supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'DELETED'),
+        supabase
+          .from('listings')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'PENDING_REVIEW'),
+        supabase
+          .from('listings')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'ACTIVE'),
+        supabase
+          .from('listings')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'REJECTED'),
+        supabase
+          .from('listings')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'DELETED'),
       ])
 
       const counts = {
@@ -53,9 +65,7 @@ export async function GET(request: NextRequest) {
 
       // Text search across multiple columns — use Supabase .or() with ilike
       if (query) {
-        q = q.or(
-          `title.ilike.%${query}%,city.ilike.%${query}%,locality.ilike.%${query}%`,
-        )
+        q = q.or(`title.ilike.%${query}%,city.ilike.%${query}%,locality.ilike.%${query}%`)
       }
 
       // Sorting
@@ -83,7 +93,9 @@ export async function GET(request: NextRequest) {
   // ── In-memory fallback ───────────────────────────────────────────────────
   // This path means SUPABASE_SERVICE_ROLE_KEY is not set.
   // Real submitted listings are in Supabase and will NOT appear here.
-  console.warn('[admin/listings] Running on mock data — add SUPABASE_SERVICE_ROLE_KEY to .env.local to see real listings')
+  console.warn(
+    '[admin/listings] Running on mock data — add SUPABASE_SERVICE_ROLE_KEY to .env.local to see real listings',
+  )
   let results: MockListing[] = getAllListings()
 
   if (status) results = results.filter((l) => l.status === status)
@@ -98,7 +110,8 @@ export async function GET(request: NextRequest) {
     )
   }
   if (city) results = results.filter((l) => l.city.toLowerCase() === city)
-  if (propertyType) results = results.filter((l) => l.propertyType.toLowerCase() === propertyType.toLowerCase())
+  if (propertyType)
+    results = results.filter((l) => l.propertyType.toLowerCase() === propertyType.toLowerCase())
 
   results = [...results].sort((a, b) => {
     const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()

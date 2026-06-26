@@ -17,9 +17,13 @@ export function Footer() {
           <div className="flex flex-col gap-1">
             <Link href="/" className="flex items-center gap-1.5" aria-label="SellItRight home">
               <Home className="h-5 w-5 text-[var(--color-primary)]" aria-hidden="true" />
-              <span className="font-bold text-base tracking-tight text-[var(--color-foreground)]">SellItRight</span>
+              <span className="text-base font-bold tracking-tight text-[var(--color-foreground)]">
+                SellItRight
+              </span>
             </Link>
-            <p className="text-xs text-[var(--color-muted-foreground)]">Find your perfect home across India.</p>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              Find your perfect home across India.
+            </p>
           </div>
 
           {/* Links */}
@@ -29,7 +33,7 @@ export function Footer() {
                 <li key={href}>
                   <Link
                     href={href}
-                    className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors"
+                    className="text-sm text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)]"
                   >
                     {label}
                   </Link>

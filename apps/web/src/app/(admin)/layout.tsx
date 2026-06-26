@@ -11,10 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
             <span className="text-sm font-semibold text-gray-900">SellItRight Panel</span>
           </div>
-          <Link
-            href="/"
-            className="text-sm text-gray-500 transition-colors hover:text-gray-900"
-          >
+          <Link href="/" className="text-sm text-gray-500 transition-colors hover:text-gray-900">
             Back to site
           </Link>
         </div>

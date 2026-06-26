@@ -93,7 +93,9 @@ test.describe('Dashboard — mocked listings data', () => {
       return
     }
     await expect(
-      page.getByRole('heading', { name: /my listings/i }).or(page.getByText(/my listings/i).first()),
+      page
+        .getByRole('heading', { name: /my listings/i })
+        .or(page.getByText(/my listings/i).first()),
     ).toBeVisible({ timeout: 8000 })
   })
 

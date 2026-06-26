@@ -40,10 +40,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return NextResponse.json(
-      { error: `File too large. Max size is 10MB.` },
-      { status: 400 },
-    )
+    return NextResponse.json({ error: `File too large. Max size is 10MB.` }, { status: 400 })
   }
 
   // Use service-role client so Storage RLS doesn't block the upload
@@ -62,13 +59,11 @@ export async function POST(request: NextRequest) {
   const arrayBuffer = await file.arrayBuffer()
   const buffer = new Uint8Array(arrayBuffer)
 
-  const { error: uploadError } = await admin.storage
-    .from('photos')
-    .upload(path, buffer, {
-      contentType: file.type,
-      cacheControl: '3600',
-      upsert: false,
-    })
+  const { error: uploadError } = await admin.storage.from('photos').upload(path, buffer, {
+    contentType: file.type,
+    cacheControl: '3600',
+    upsert: false,
+  })
 
   if (uploadError) {
     console.error('[upload/photo] storage error:', uploadError.message)

@@ -12,26 +12,29 @@ export async function GET(request: NextRequest) {
     const parsed = listingFilterSchema.parse(raw)
 
     const {
-      city, locality, bhkType, furnishing, propertyType,
-      minPrice, maxPrice, page, limit, sort,
+      city,
+      locality,
+      bhkType,
+      furnishing,
+      propertyType,
+      minPrice,
+      maxPrice,
+      page,
+      limit,
+      sort,
     } = parsed
 
     // ── Supabase path ──────────────────────────────────────────────────────
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient()
       if (supabase) {
-        let query = supabase
-          .from('listings')
-          .select('*', { count: 'exact' })
-          .eq('status', 'ACTIVE')
+        let query = supabase.from('listings').select('*', { count: 'exact' }).eq('status', 'ACTIVE')
 
         if (city) {
           // city param is also used as a general search query from the header search bar.
           // Match against city, locality, and title so searches like "Koramangala" or
           // "3 BHK Pune" surface relevant results.
-          query = query.or(
-            `city.ilike.%${city}%,locality.ilike.%${city}%,title.ilike.%${city}%`,
-          )
+          query = query.or(`city.ilike.%${city}%,locality.ilike.%${city}%,title.ilike.%${city}%`)
         }
         if (locality) query = query.ilike('locality', `%${locality}%`)
         if (bhkType) query = query.eq('bhk_type', bhkType)
@@ -76,7 +79,8 @@ export async function GET(request: NextRequest) {
           l.title.toLowerCase().includes(q),
       )
     }
-    if (locality) filtered = filtered.filter((l) => l.locality.toLowerCase().includes(locality.toLowerCase()))
+    if (locality)
+      filtered = filtered.filter((l) => l.locality.toLowerCase().includes(locality.toLowerCase()))
     if (bhkType) filtered = filtered.filter((l) => l.bhkType === bhkType)
     if (furnishing) filtered = filtered.filter((l) => l.furnishing === furnishing)
     if (propertyType) filtered = filtered.filter((l) => l.propertyType === propertyType)
@@ -85,7 +89,8 @@ export async function GET(request: NextRequest) {
 
     if (sort === 'price_asc') filtered.sort((a, b) => a.price - b.price)
     else if (sort === 'price_desc') filtered.sort((a, b) => b.price - a.price)
-    else if (sort === 'newest') filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    else if (sort === 'newest')
+      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     else filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
     const total = filtered.length
@@ -95,7 +100,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ listings, total, page, totalPages, _mockFallback: true })
   } catch (error) {
     if (error instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid query parameters', issues: error.errors }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Invalid query parameters', issues: error.errors },
+        { status: 400 },
+      )
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

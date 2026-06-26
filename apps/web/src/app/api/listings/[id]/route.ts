@@ -4,10 +4,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { createServiceClient } from '@/lib/supabase/server'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
   // ── Supabase path ──────────────────────────────────────────────────────────
