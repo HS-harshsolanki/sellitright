@@ -49,12 +49,13 @@ describe('GET /api/admin/listings', () => {
     const { GET } = await import('../listings/route')
     const res = await GET(makeReq('http://localhost/api/admin/listings'))
     expect(res.status).toBe(200)
-    const data = await res.json() as { listings: unknown[]; counts: { PENDING_REVIEW: number; ACTIVE: number; REJECTED: number }; total: number; page: number; totalPages: number }
+    const data = await res.json() as { listings: unknown[]; counts: { PENDING_REVIEW: number; ACTIVE: number; REJECTED: number; DELETED: number }; total: number; page: number; totalPages: number }
     expect(data).toHaveProperty('listings')
     expect(data).toHaveProperty('counts')
     expect(data.counts).toHaveProperty('PENDING_REVIEW')
     expect(data.counts).toHaveProperty('ACTIVE')
     expect(data.counts).toHaveProperty('REJECTED')
+    expect(data.counts).toHaveProperty('DELETED')
     expect(typeof data.total).toBe('number')
     expect(typeof data.page).toBe('number')
     expect(typeof data.totalPages).toBe('number')
@@ -234,5 +235,95 @@ describe('POST /api/admin/listings/[id]/note', () => {
     expect(res.status).toBe(200)
     const data = await res.json() as { ok: boolean }
     expect(data.ok).toBe(true)
+  })
+})
+
+// ── Tests: POST /api/admin/listings/[id]/delete ───────────────────────────────
+
+describe('POST /api/admin/listings/[id]/delete', () => {
+  beforeEach(() => vi.resetModules())
+
+  it('returns 401 without key', async () => {
+    const { POST } = await import('../listings/[id]/delete/route')
+    const res = await POST(
+      makeReq('http://localhost/api/admin/listings/listing-001/delete', { method: 'POST', key: null }),
+      { params: Promise.resolve({ id: 'listing-001' }) },
+    )
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 401 with wrong key', async () => {
+    const { POST } = await import('../listings/[id]/delete/route')
+    const res = await POST(
+      makeReq('http://localhost/api/admin/listings/listing-001/delete', { method: 'POST', key: 'bad-key' }),
+      { params: Promise.resolve({ id: 'listing-001' }) },
+    )
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 404 for unknown listing', async () => {
+    const { POST } = await import('../listings/[id]/delete/route')
+    const res = await POST(
+      makeReq('http://localhost/api/admin/listings/nonexistent-id/delete', { method: 'POST', body: {} }),
+      { params: Promise.resolve({ id: 'nonexistent-id' }) },
+    )
+    expect(res.status).toBe(404)
+  })
+
+  it('deletes an ACTIVE listing and returns status DELETED', async () => {
+    const { POST } = await import('../listings/[id]/delete/route')
+    const res = await POST(
+      makeReq('http://localhost/api/admin/listings/listing-001/delete', { method: 'POST', body: {} }),
+      { params: Promise.resolve({ id: 'listing-001' }) },
+    )
+    expect(res.status).toBe(200)
+    const data = await res.json() as { status: string }
+    expect(data.status).toBe('DELETED')
+  })
+
+  it('accepts an optional reason', async () => {
+    const { POST } = await import('../listings/[id]/delete/route')
+    const res = await POST(
+      makeReq('http://localhost/api/admin/listings/listing-002/delete', {
+        method: 'POST',
+        body: { reason: 'Fraudulent listing reported by multiple users' },
+      }),
+      { params: Promise.resolve({ id: 'listing-002' }) },
+    )
+    expect(res.status).toBe(200)
+    const data = await res.json() as { status: string }
+    expect(data.status).toBe('DELETED')
+  })
+
+  it('deletes a REJECTED listing (any status is deletable)', async () => {
+    // First reject listing-011 so it has REJECTED status
+    const { POST: rejectPost } = await import('../listings/[id]/reject/route')
+    await rejectPost(
+      makeReq('http://localhost/api/admin/listings/listing-011/reject', { method: 'POST', body: { reason: 'Duplicate listing' } }),
+      { params: Promise.resolve({ id: 'listing-011' }) },
+    )
+    const { POST } = await import('../listings/[id]/delete/route')
+    const res = await POST(
+      makeReq('http://localhost/api/admin/listings/listing-011/delete', { method: 'POST', body: {} }),
+      { params: Promise.resolve({ id: 'listing-011' }) },
+    )
+    expect(res.status).toBe(200)
+    const data = await res.json() as { status: string }
+    expect(data.status).toBe('DELETED')
+  })
+
+  it('deleted action appears in audit log filter', async () => {
+    // Delete a listing to populate audit log
+    const { POST: deletePost } = await import('../listings/[id]/delete/route')
+    await deletePost(
+      makeReq('http://localhost/api/admin/listings/listing-003/delete', { method: 'POST', body: {} }),
+      { params: Promise.resolve({ id: 'listing-003' }) },
+    )
+    const { GET } = await import('../audit-log/route')
+    const res = await GET(makeReq('http://localhost/api/admin/audit-log?action=deleted'))
+    expect(res.status).toBe(200)
+    const data = await res.json() as { entries: Array<{ action: string }>; total: number }
+    expect(data.total).toBeGreaterThan(0)
+    data.entries.forEach((e) => expect(e.action).toBe('deleted'))
   })
 })

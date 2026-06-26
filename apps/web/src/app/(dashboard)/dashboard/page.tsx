@@ -28,6 +28,7 @@ const STATUS_CONFIG: Record<ListingStatus, { label: string; className: string }>
   INACTIVE: { label: 'Inactive', className: 'bg-muted text-muted-foreground' },
   PENDING_REVIEW: { label: 'Pending Review', className: 'bg-orange-100 text-orange-700' },
   REJECTED: { label: 'Rejected', className: 'bg-red-100 text-red-700' },
+  DELETED: { label: 'Deleted', className: 'bg-gray-200 text-gray-500 line-through' },
 }
 
 // Shape returned by /api/dashboard/listings
@@ -172,7 +173,7 @@ function ListingCard({ listing }: ListingCardProps) {
             </Link>
           ) : (
             <Link
-              href={`/dashboard/listings/${listing.id}/edit`}
+              href={`/listings/${listing.id}/edit`}
               className={cn('flex-1 rounded-lg border border-border py-2 text-center text-xs font-medium text-foreground', 'transition-colors hover:bg-muted')}
             >
               Edit
@@ -328,7 +329,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="fixed bottom-20 right-4 sm:hidden">
+      <div className="fixed bottom-24 right-4 sm:hidden">
         <Link href="/sell" aria-label="Create new listing" className={cn('flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg', 'transition-transform hover:scale-105 active:scale-95')}>
           <Plus className="h-6 w-6" />
         </Link>

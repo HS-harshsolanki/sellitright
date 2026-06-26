@@ -1,7 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState, useCallback, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import React, { Suspense, useEffect, useState, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -11,12 +10,13 @@ import type { AuditEntry } from '@/lib/audit-log'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type TabValue = 'PENDING_REVIEW' | 'ACTIVE' | 'REJECTED' | 'AUDIT_LOG'
+type TabValue = 'PENDING_REVIEW' | 'ACTIVE' | 'REJECTED' | 'DELETED' | 'AUDIT_LOG'
 
 interface StatusCounts {
   PENDING_REVIEW: number
   ACTIVE: number
   REJECTED: number
+  DELETED: number
 }
 
 interface ListingsResponse {
@@ -40,6 +40,7 @@ const STATUS_TABS: { label: string; value: TabValue }[] = [
   { label: 'Pending Review', value: 'PENDING_REVIEW' },
   { label: 'Active', value: 'ACTIVE' },
   { label: 'Rejected', value: 'REJECTED' },
+  { label: 'Deleted', value: 'DELETED' },
   { label: 'Audit Log', value: 'AUDIT_LOG' },
 ]
 
@@ -47,6 +48,7 @@ const STATUS_BADGE: Record<ListingStatus, string> = {
   PENDING_REVIEW: 'bg-yellow-100 text-yellow-800',
   ACTIVE: 'bg-green-100 text-green-800',
   REJECTED: 'bg-red-100 text-red-800',
+  DELETED: 'bg-gray-200 text-gray-500 line-through',
   DRAFT: 'bg-gray-100 text-gray-700',
   SOLD: 'bg-blue-100 text-blue-800',
   INACTIVE: 'bg-gray-100 text-gray-700',
@@ -56,6 +58,7 @@ const STATUS_LABEL: Record<ListingStatus, string> = {
   PENDING_REVIEW: 'Pending',
   ACTIVE: 'Active',
   REJECTED: 'Rejected',
+  DELETED: 'Deleted',
   DRAFT: 'Draft',
   SOLD: 'Sold',
   INACTIVE: 'Inactive',
@@ -85,6 +88,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   rejected: 'Rejected',
   note_added: 'Note Added',
   status_changed: 'Status Changed',
+  deleted: 'Deleted',
 }
 
 const AUDIT_ACTION_BADGE: Record<string, string> = {
@@ -92,6 +96,7 @@ const AUDIT_ACTION_BADGE: Record<string, string> = {
   rejected: 'bg-red-100 text-red-800',
   note_added: 'bg-blue-100 text-blue-800',
   status_changed: 'bg-gray-100 text-gray-700',
+  deleted: 'bg-gray-200 text-gray-600',
 }
 
 const PAGE_SIZES = [10, 25, 50]
@@ -104,13 +109,16 @@ interface DetailModalProps {
   onClose: () => void
   onApproved: (updated: MockListing) => void
   onRejected: (updated: MockListing) => void
+  onDeleted: (updated: MockListing) => void
 }
 
-function DetailModal({ listing, adminKey, onClose, onApproved, onRejected }: DetailModalProps) {
+function DetailModal({ listing, adminKey, onClose, onApproved, onRejected, onDeleted }: DetailModalProps) {
   const [note, setNote] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
-  const [loading, setLoading] = useState<'approve' | 'reject' | 'note' | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteReason, setDeleteReason] = useState('')
+  const [loading, setLoading] = useState<'approve' | 'reject' | 'note' | 'delete' | null>(null)
   const [noteSaved, setNoteSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const noteRef = useRef<HTMLTextAreaElement>(null)
@@ -187,6 +195,25 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected }: Det
     }
   }
 
+  async function handleDelete() {
+    setLoading('delete')
+    setError(null)
+    try {
+      const res = await fetch(`/api/admin/listings/${listing.id}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        body: JSON.stringify({ reason: deleteReason.trim() || undefined }),
+      })
+      if (!res.ok) { setError('Failed to delete listing.'); return }
+      const updated = (await res.json()) as MockListing
+      onDeleted(updated)
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const daysPending = Math.floor(
     (Date.now() - new Date(listing.createdAt).getTime()) / (1000 * 60 * 60 * 24),
   )
@@ -255,7 +282,7 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected }: Det
             </div>
             <div>
               <p className="text-xs text-gray-500">Type</p>
-              <p className="font-medium text-gray-900">{formatBHK(listing.bhkType)} · {listing.propertyType.replace('_', ' ')}</p>
+              <p className="font-medium text-gray-900">{formatBHK(listing.bhkType)} · {listing.propertyType.replace(/_/g, ' ')}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Location</p>
@@ -270,7 +297,7 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected }: Det
             </div>
             <div>
               <p className="text-xs text-gray-500">Furnishing</p>
-              <p className="font-medium text-gray-900">{listing.furnishing.replace('_', ' ')}</p>
+              <p className="font-medium text-gray-900">{listing.furnishing.replace(/_/g, ' ')}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Submitted</p>
@@ -402,6 +429,56 @@ function DetailModal({ listing, adminKey, onClose, onApproved, onRejected }: Det
             )}
           </div>
         )}
+
+        {/* Delete — available for all statuses except already-deleted */}
+        {listing.status !== 'DELETED' && (
+          <div className={cn('px-6 py-4', listing.status === 'PENDING_REVIEW' ? 'border-t border-dashed border-gray-200' : 'border-t border-gray-200')}>
+            {!showDeleteConfirm ? (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={loading !== null}
+                className="text-xs font-medium text-red-500 hover:text-red-700 hover:underline disabled:opacity-40"
+              >
+                Delete listing
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+                  You are about to permanently hide <span className="font-semibold">{listing.title}</span>. This listing will no longer be visible to sellers or buyers.
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                    Reason <span className="font-normal text-gray-400">(optional)</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    placeholder="E.g. fraudulent listing, reported by multiple users..."
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => void handleDelete()}
+                    disabled={loading !== null}
+                  >
+                    {loading === 'delete' ? 'Deleting...' : 'Confirm Delete'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setShowDeleteConfirm(false); setDeleteReason('') }}
+                    disabled={loading !== null}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -461,6 +538,7 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
           <option value="note_added">Note Added</option>
+          <option value="deleted">Deleted</option>
         </select>
         <span className="text-sm text-gray-500">{total} entries</span>
       </div>
@@ -540,18 +618,59 @@ function AuditLogTab({ adminKey }: AuditLogTabProps) {
 
 // ── Main Admin Page ───────────────────────────────────────────────────────────
 
+const STORAGE_KEY = 'sir-admin-key'
+
 function AdminPageContent() {
-  const searchParams = useSearchParams()
-  const adminKey = searchParams.get('key') ?? ''
+  const [adminKey, setAdminKey] = useState('')
+  const [keyInput, setKeyInput] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
+
+  // Hydrate from localStorage on mount (client-only)
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) setAdminKey(stored)
+  }, [])
+
+  async function handleUnlock(e: React.FormEvent) {
+    e.preventDefault()
+    const key = keyInput.trim()
+    if (!key) return
+    setLoginLoading(true)
+    setLoginError(null)
+    try {
+      const res = await fetch('/api/admin/listings?limit=10', {
+        headers: { 'x-admin-key': key },
+      })
+      if (res.ok) {
+        localStorage.setItem(STORAGE_KEY, key)
+        setAdminKey(key)
+      } else {
+        setLoginError(res.status === 401 ? 'Invalid admin key.' : 'Unable to verify key. Try again.')
+      }
+    } catch {
+      setLoginError('Network error. Please try again.')
+    } finally {
+      setLoginLoading(false)
+    }
+  }
+
+  function handleLock() {
+    localStorage.removeItem(STORAGE_KEY)
+    setAdminKey('')
+    setKeyInput('')
+    setLoginError(null)
+  }
 
   const [listings, setListings] = useState<MockListing[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabValue>('PENDING_REVIEW')
-  const [counts, setCounts] = useState<StatusCounts>({ PENDING_REVIEW: 0, ACTIVE: 0, REJECTED: 0 })
+  const [counts, setCounts] = useState<StatusCounts>({ PENDING_REVIEW: 0, ACTIVE: 0, REJECTED: 0, DELETED: 0 })
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [pageSize, setPageSize] = useState(25)
+  const [isMockFallback, setIsMockFallback] = useState(false)
 
   // Search + filters (persist across tabs)
   const [query, setQuery] = useState('')
@@ -592,11 +711,12 @@ function AdminPageContent() {
         setError(res.status === 401 ? 'Unauthorized' : 'Failed to load listings')
         return
       }
-      const data = (await res.json()) as ListingsResponse
+      const data = (await res.json()) as ListingsResponse & { _mockFallback?: boolean }
       setListings(data.listings)
       setTotal(data.total)
       setTotalPages(data.totalPages)
       setCounts(data.counts)
+      setIsMockFallback(data._mockFallback === true)
     } catch {
       setError('Network error. Please try again.')
     } finally {
@@ -694,12 +814,33 @@ function AdminPageContent() {
     })
   }
 
-  // ── Unauthorized ──────────────────────────────────────────────────────────
+  // ── Login form ────────────────────────────────────────────────────────────
   if (!adminKey) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-        <p className="text-2xl font-semibold text-gray-900">Unauthorized</p>
-        <p className="mt-2 text-sm text-gray-500">Access denied.</p>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center">
+        <form
+          onSubmit={(e) => void handleUnlock(e)}
+          className="w-full max-w-sm space-y-4"
+        >
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Admin Access</h1>
+            <p className="mt-1 text-sm text-gray-500">Enter your admin key to continue.</p>
+          </div>
+          <Input
+            type="password"
+            placeholder="Admin key"
+            value={keyInput}
+            onChange={(e) => setKeyInput(e.target.value)}
+            autoFocus
+            autoComplete="current-password"
+          />
+          {loginError && (
+            <p className="text-sm text-red-600">{loginError}</p>
+          )}
+          <Button type="submit" className="w-full" disabled={loginLoading || !keyInput.trim()}>
+            {loginLoading ? 'Verifying...' : 'Unlock'}
+          </Button>
+        </form>
       </div>
     )
   }
@@ -743,19 +884,49 @@ function AdminPageContent() {
             setCounts((prev) => ({ ...prev, PENDING_REVIEW: Math.max(0, prev.PENDING_REVIEW - 1), REJECTED: prev.REJECTED + 1 }))
             setSelectedListing(null)
           }}
+          onDeleted={(updated) => {
+            setListings((prev) => prev.filter((l) => l.id !== updated.id))
+            setCounts((prev) => ({
+              ...prev,
+              [activeTab]: Math.max(0, (prev[activeTab as keyof StatusCounts] ?? 0) - 1),
+              DELETED: prev.DELETED + 1,
+            }))
+            setSelectedListing(null)
+          }}
         />
       )}
 
       <div>
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900">Listing Review</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Approve or reject property listings submitted by sellers.
-          </p>
+        {/* Mock fallback warning — shown when SUPABASE_SERVICE_ROLE_KEY is missing */}
+        {isMockFallback && (
+          <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Showing demo data — real listings not visible</p>
+              <p className="mt-0.5 text-xs text-amber-700">
+                <code className="rounded bg-amber-100 px-1 py-0.5">SUPABASE_SERVICE_ROLE_KEY</code> is not set in <code className="rounded bg-amber-100 px-1 py-0.5">.env.local</code>.
+                Add it from Supabase Dashboard → Settings → API → service_role key, then restart the server.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Listing Review</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Approve or reject property listings submitted by sellers.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleLock} className="shrink-0">
+            Lock
+          </Button>
         </div>
 
         {/* Summary cards */}
-        <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-yellow-700">Pending</p>
             <p className="mt-1 text-2xl font-bold text-yellow-900">{counts.PENDING_REVIEW}</p>
@@ -767,6 +938,10 @@ function AdminPageContent() {
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-red-700">Rejected</p>
             <p className="mt-1 text-2xl font-bold text-red-900">{counts.REJECTED}</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Deleted</p>
+            <p className="mt-1 text-2xl font-bold text-gray-700">{counts.DELETED}</p>
           </div>
         </div>
 
@@ -867,9 +1042,8 @@ function AdminPageContent() {
                       (Date.now() - new Date(listing.createdAt).getTime()) / (1000 * 60 * 60 * 24),
                     )
                     return (
-                      <>
+                      <React.Fragment key={listing.id}>
                         <tr
-                          key={listing.id}
                           className="cursor-pointer align-top hover:bg-gray-50"
                           onClick={() => setSelectedListing(listing)}
                         >
@@ -972,7 +1146,7 @@ function AdminPageContent() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     )
                   })}
                 </tbody>

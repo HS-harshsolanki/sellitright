@@ -26,7 +26,7 @@ export type Furnishing = 'FURNISHED' | 'SEMI_FURNISHED' | 'UNFURNISHED'
 
 export type Parking = 'COVERED' | 'OPEN' | 'BOTH' | 'NONE'
 
-export type ListingStatus = 'DRAFT' | 'ACTIVE' | 'SOLD' | 'INACTIVE' | 'PENDING_REVIEW' | 'REJECTED'
+export type ListingStatus = 'DRAFT' | 'ACTIVE' | 'SOLD' | 'INACTIVE' | 'PENDING_REVIEW' | 'REJECTED' | 'DELETED'
 
 export interface MockSeller {
   id: string

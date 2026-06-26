@@ -52,6 +52,9 @@ enum ListingStatus {
   ACTIVE
   SOLD
   INACTIVE
+  PENDING_REVIEW
+  REJECTED
+  DELETED
 }
 
 // User profile data — mirrors the Supabase auth.users row via supabase_id.

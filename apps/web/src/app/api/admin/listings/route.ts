@@ -30,16 +30,18 @@ export async function GET(request: NextRequest) {
   if (supabase) {
     try {
       // Count query for sidebar badges (all statuses, no search filter)
-      const [pendingRes, activeRes, rejectedRes] = await Promise.all([
+      const [pendingRes, activeRes, rejectedRes, deletedRes] = await Promise.all([
         supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'PENDING_REVIEW'),
         supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
         supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'REJECTED'),
+        supabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'DELETED'),
       ])
 
       const counts = {
         PENDING_REVIEW: pendingRes.count ?? 0,
         ACTIVE: activeRes.count ?? 0,
         REJECTED: rejectedRes.count ?? 0,
+        DELETED: deletedRes.count ?? 0,
       }
 
       // Main listings query
@@ -79,6 +81,9 @@ export async function GET(request: NextRequest) {
   }
 
   // ── In-memory fallback ───────────────────────────────────────────────────
+  // This path means SUPABASE_SERVICE_ROLE_KEY is not set.
+  // Real submitted listings are in Supabase and will NOT appear here.
+  console.warn('[admin/listings] Running on mock data — add SUPABASE_SERVICE_ROLE_KEY to .env.local to see real listings')
   let results: MockListing[] = getAllListings()
 
   if (status) results = results.filter((l) => l.status === status)
@@ -109,7 +114,8 @@ export async function GET(request: NextRequest) {
     PENDING_REVIEW: allListings.filter((l) => l.status === 'PENDING_REVIEW').length,
     ACTIVE: allListings.filter((l) => l.status === 'ACTIVE').length,
     REJECTED: allListings.filter((l) => l.status === 'REJECTED').length,
+    DELETED: allListings.filter((l) => l.status === 'DELETED').length,
   }
 
-  return NextResponse.json({ listings, total, page, totalPages, counts })
+  return NextResponse.json({ listings, total, page, totalPages, counts, _mockFallback: true })
 }

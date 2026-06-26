@@ -1,4 +1,4 @@
-export type AuditAction = 'approved' | 'rejected' | 'note_added' | 'status_changed'
+export type AuditAction = 'approved' | 'rejected' | 'note_added' | 'status_changed' | 'deleted'
 
 export interface AuditEntry {
   id: string
