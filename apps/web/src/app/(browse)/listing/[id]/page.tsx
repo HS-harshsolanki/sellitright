@@ -182,7 +182,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
             </Link>
             {isOwner && (
               <Link
-                href={`/sell/edit/${listing.id}`}
+                href={`/dashboard/listings/${listing.id}/edit`}
                 className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
               >
                 <Pencil className="h-3.5 w-3.5" aria-hidden="true" />

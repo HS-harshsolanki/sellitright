@@ -2,17 +2,28 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
+const PROPERTY_TYPES = ['APARTMENT', 'VILLA', 'PLOT', 'INDEPENDENT_HOUSE', 'PENTHOUSE'] as const
+const BHK_TYPES = [
+  'ONE_BHK',
+  'TWO_BHK',
+  'THREE_BHK',
+  'FOUR_BHK',
+  'FIVE_PLUS_BHK',
+  'STUDIO',
+] as const
+const FURNISHING_TYPES = ['UNFURNISHED', 'SEMI_FURNISHED', 'FULLY_FURNISHED'] as const
+
 // Partial schema — all fields optional for draft autosave
 const draftSchema = z.object({
   id: z.string().uuid().optional(), // present on update, absent on first save
-  propertyType: z.string().optional(),
-  bhkType: z.string().optional(),
+  propertyType: z.enum(PROPERTY_TYPES).optional(),
+  bhkType: z.enum(BHK_TYPES).optional(),
   builtUpArea: z.number().int().positive().optional(),
   carpetArea: z.number().int().positive().optional(),
   floor: z.number().int().min(0).optional(),
   totalFloors: z.number().int().positive().optional(),
   facing: z.string().optional(),
-  furnishing: z.string().optional(),
+  furnishing: z.enum(FURNISHING_TYPES).optional(),
   ageOfProperty: z.number().int().min(0).optional(),
   bathrooms: z.number().int().min(1).optional(),
   balconies: z.number().int().min(0).optional(),

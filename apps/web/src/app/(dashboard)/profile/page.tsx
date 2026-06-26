@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
   const [displayName, setDisplayName] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setDisplayName(user.user_metadata?.full_name ?? '')
+      setPhoneNumber(user.user_metadata?.phone ?? user.phone ?? '')
     }
   }, [user])
 
@@ -70,7 +72,7 @@ export default function ProfilePage() {
     setSaved(false)
 
     const { error } = await createClient().auth.updateUser({
-      data: { full_name: displayName },
+      data: { full_name: displayName, phone: phoneNumber },
     })
 
     setSaving(false)
@@ -174,21 +176,33 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Phone (read-only) */}
-        {phone && (
-          <div>
-            <p className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]">
-              Phone number
-            </p>
-            <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]">
-              <Phone
-                className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
-                aria-hidden="true"
-              />
-              <span className="px-3 text-sm text-[var(--color-muted-foreground)]">{phone}</span>
-            </div>
+        {/* Phone number — editable; stored in user_metadata */}
+        <div>
+          <label
+            htmlFor="phone-number"
+            className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
+          >
+            Contact phone number
+          </label>
+          <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] focus-within:ring-2 focus-within:ring-[var(--color-ring)]">
+            <Phone
+              className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+              aria-hidden="true"
+            />
+            <input
+              id="phone-number"
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="+91 98765 43210"
+              className="h-full flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-[var(--color-muted-foreground)]"
+              autoComplete="tel"
+            />
           </div>
-        )}
+          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+            Shared with buyers only after you accept their request.
+          </p>
+        </div>
 
         {error && (
           <p className="text-sm text-[var(--color-destructive)]" role="alert">

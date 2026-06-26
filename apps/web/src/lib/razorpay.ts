@@ -21,11 +21,10 @@ export function verifyRazorpaySignature(
   paymentId: string,
   signature: string,
 ): boolean {
+  const secret = process.env.RAZORPAY_KEY_SECRET
+  if (!secret) return false // reject all verifications when secret not configured
   const body = `${orderId}|${paymentId}`
-  const expected = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET ?? '')
-    .update(body)
-    .digest('hex')
+  const expected = crypto.createHmac('sha256', secret).update(body).digest('hex')
   try {
     return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'))
   } catch {
@@ -38,10 +37,9 @@ export function verifyRazorpaySignature(
  * rawBody must be the original request body as a string (not parsed JSON).
  */
 export function verifyWebhookSignature(rawBody: string, signature: string): boolean {
-  const expected = crypto
-    .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET ?? '')
-    .update(rawBody)
-    .digest('hex')
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET
+  if (!secret) return false // reject all webhooks when secret not configured
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
   try {
     return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'))
   } catch {

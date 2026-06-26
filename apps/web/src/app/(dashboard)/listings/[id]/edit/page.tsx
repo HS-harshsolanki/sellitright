@@ -15,7 +15,12 @@ interface EditPageProps {
 export default async function EditListingPage({ params }: EditPageProps) {
   const { id } = await params
 
-  const supabase = await createClient()
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  try {
+    supabase = await createClient()
+  } catch {
+    redirect(`/login?next=/dashboard/listings/${id}/edit`)
+  }
 
   const {
     data: { user },

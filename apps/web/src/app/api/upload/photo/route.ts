@@ -10,7 +10,12 @@ const ACCEPTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 // Returns { url: string }.
 export async function POST(request: NextRequest) {
   // Auth check — must be logged in
-  const supabase = await createClient()
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  try {
+    supabase = await createClient()
+  } catch {
+    return NextResponse.json({ error: 'Sign in to upload photos.' }, { status: 401 })
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser()

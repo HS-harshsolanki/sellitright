@@ -269,7 +269,7 @@ function ListingCard({ listing }: ListingCardProps) {
             </Link>
           ) : (
             <Link
-              href={`/listings/${listing.id}/edit`}
+              href={`/dashboard/listings/${listing.id}/edit`}
               className={cn(
                 'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
                 'transition-colors hover:bg-[var(--color-muted)]',

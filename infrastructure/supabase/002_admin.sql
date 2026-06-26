@@ -23,7 +23,7 @@ create table if not exists public.audit_log (
   id              uuid primary key default gen_random_uuid(),
   listing_id      text not null,          -- UUID or mock ID
   listing_title   text not null,
-  action          text not null check (action in ('approved', 'rejected', 'note_added', 'status_changed')),
+  action          text not null check (action in ('approved', 'rejected', 'note_added', 'status_changed', 'deleted')),
   previous_status text,
   new_status      text,
   actor_id        text not null,          -- admin identifier (user id or 'api_key')

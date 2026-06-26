@@ -84,18 +84,25 @@ export async function POST(request: NextRequest) {
     .eq('id', payment.id)
 
   // ── Unlock contact ────────────────────────────────────────────────────────
-  // Placeholder contacts — same as verify route until real lookup is wired
-  const sellerPhone = `+91-XXXXXXXXXX (uid: ${payment.seller_id.slice(0, 8)})`
-  const buyerPhone = `+91-XXXXXXXXXX (uid: ${payment.buyer_id.slice(0, 8)})`
+  const [sellerAuthResult, buyerAuthResult] = await Promise.all([
+    admin.auth.admin.getUserById(payment.seller_id),
+    admin.auth.admin.getUserById(payment.buyer_id),
+  ])
+  const sellerPhone =
+    sellerAuthResult.data.user?.phone ?? sellerAuthResult.data.user?.user_metadata?.phone ?? null
+  const sellerEmail = sellerAuthResult.data.user?.email ?? null
+  const buyerPhone =
+    buyerAuthResult.data.user?.phone ?? buyerAuthResult.data.user?.user_metadata?.phone ?? null
+  const buyerEmail = buyerAuthResult.data.user?.email ?? null
 
   await admin
     .from('buyer_interest')
     .update({
       contact_unlocked: true,
       seller_phone: sellerPhone,
-      seller_email: null,
+      seller_email: sellerEmail,
       buyer_phone: buyerPhone,
-      buyer_email: null,
+      buyer_email: buyerEmail,
     })
     .eq('id', payment.interest_id)
 

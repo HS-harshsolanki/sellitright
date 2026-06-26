@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { rejectListing } from '@/lib/listing-store'
 import { auditLog } from '@/lib/audit-log'
@@ -8,7 +9,13 @@ const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
 function isAuthorized(request: NextRequest): boolean {
   if (!ADMIN_KEY) return false
-  return request.headers.get('x-admin-key') === ADMIN_KEY
+  const provided = request.headers.get('x-admin-key') ?? ''
+  if (provided.length !== ADMIN_KEY.length) return false
+  try {
+    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
+  } catch {
+    return false
+  }
 }
 
 interface RejectBody {
@@ -39,6 +46,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   // ── Supabase path ────────────────────────────────────────────────────────
   const supabase = createServiceClient()
   if (supabase) {
+    // Fetch current status first for accurate audit log
+    const { data: current } = await supabase.from('listings').select('status').eq('id', id).single()
+
     const { data, error } = await supabase
       .from('listings')
       .update({ status: 'REJECTED', rejection_reason: reason })
@@ -59,7 +69,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       listing_id: id,
       listing_title: data.title,
       action: 'rejected',
-      previous_status: 'PENDING_REVIEW',
+      previous_status: current?.status ?? 'PENDING_REVIEW',
       new_status: 'REJECTED',
       actor_id: 'api_key',
       actor_role: 'reviewer',

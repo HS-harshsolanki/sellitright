@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getListingByIdFromStore } from '@/lib/listing-store'
 import { auditLog } from '@/lib/audit-log'
@@ -7,7 +8,13 @@ const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
 function isAuthorized(request: NextRequest): boolean {
   if (!ADMIN_KEY) return false
-  return request.headers.get('x-admin-key') === ADMIN_KEY
+  const provided = request.headers.get('x-admin-key') ?? ''
+  if (provided.length !== ADMIN_KEY.length) return false
+  try {
+    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
+  } catch {
+    return false
+  }
 }
 
 interface NoteBody {

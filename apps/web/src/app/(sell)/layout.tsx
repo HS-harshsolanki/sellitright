@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: 'List Your Property — SellItRight',
@@ -11,7 +13,17 @@ interface SellLayoutProps {
   children: React.ReactNode
 }
 
-export default function SellLayout({ children }: SellLayoutProps) {
+export default async function SellLayout({ children }: SellLayoutProps) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  if (supabaseUrl.startsWith('https://') && !supabaseUrl.includes('<your-project-ref>')) {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      redirect('/login?next=/sell')
+    }
+  }
   return (
     <div className="flex min-h-screen flex-col bg-white">
       {/* Minimal top bar */}

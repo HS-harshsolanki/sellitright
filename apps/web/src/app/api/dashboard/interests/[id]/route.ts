@@ -11,7 +11,12 @@ interface RouteContext {
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const { id } = await params
 
-  const supabase = await createClient()
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  try {
+    supabase = await createClient()
+  } catch {
+    return NextResponse.json({ error: 'Sign in to manage buyer requests.' }, { status: 401 })
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -166,7 +166,7 @@ function UserDropdown({ name, email, hasListings, onSignOut }: UserDropdownProps
               Post Property
             </Link>
             <Link
-              href="/profile"
+              href="/dashboard/profile"
               role="menuitem"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
@@ -275,10 +275,10 @@ function MobileSheet({ name, isLoggedIn, hasListings, pathname, onSignOut }: Mob
                 </Link>
               )}
               <Link
-                href="/profile"
+                href="/dashboard/profile"
                 className={cn(
                   'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
-                  pathname.startsWith('/profile')
+                  pathname.startsWith('/dashboard/profile')
                     ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
                     : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
                 )}
