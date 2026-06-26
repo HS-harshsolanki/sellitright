@@ -11,12 +11,18 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Redirect to the intended destination (or home)
-      const redirectTo = next.startsWith('/') ? next : '/'
-      return NextResponse.redirect(`${origin}${redirectTo}`)
+      // Guard against open redirects (//evil.com) and auth loops
+      const safePath =
+        next.startsWith('/') && !next.startsWith('//') && next !== '/login'
+          ? next
+          : '/'
+      return NextResponse.redirect(`${origin}${safePath}`)
     }
+
+    // Code exchange failed — likely redirect URL mismatch in Supabase dashboard
+    console.error('[auth/callback] exchangeCodeForSession failed:', error.message, '| origin:', origin)
   }
 
-  // Auth error — redirect to login with error hint
+  // No code or exchange failed — redirect to login with error hint
   return NextResponse.redirect(`${origin}/login?error=auth_failed`)
 }

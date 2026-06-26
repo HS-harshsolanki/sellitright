@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 interface AuthContextValue {
   user: User | null
@@ -14,25 +14,27 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   session: null,
-  loading: true,
+  loading: false,
   signOut: async () => {},
 })
 
 export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
-  const supabase = createClient()
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(isSupabaseConfigured())
 
   useEffect(() => {
-    // Hydrate initial session
+    // Skip if Supabase is not configured (placeholder env vars)
+    if (!isSupabaseConfigured()) return
+
+    const supabase = createClient()
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    // Keep in sync with Supabase auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -42,10 +44,11 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     })
 
     return () => subscription.unsubscribe()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function signOut() {
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
     await supabase.auth.signOut()
   }
 

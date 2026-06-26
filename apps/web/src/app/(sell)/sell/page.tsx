@@ -13,9 +13,10 @@ import {
   type SellStep,
   useSellFormStore,
 } from '@/stores/sell-form.store'
+import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 
 const pageVariants = {
   enter: (direction: number) => ({
@@ -34,9 +35,62 @@ const pageVariants = {
   }),
 }
 
+function SaveIndicator({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
+  if (status === 'idle') return null
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      {status === 'saving' && (
+        <>
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Saving draft…
+        </>
+      )}
+      {status === 'saved' && (
+        <>
+          <CheckCircle2 className="h-3 w-3 text-green-500" />
+          Draft saved
+        </>
+      )}
+      {status === 'error' && (
+        <span className="text-destructive">Draft save failed</span>
+      )}
+    </span>
+  )
+}
+
+// Build the draft payload from current store state
+function buildDraftPayload(state: ReturnType<typeof useSellFormStore.getState>) {
+  const { draftId, propertyType, location, details, photos, pricing } = state
+  return {
+    ...(draftId ? { id: draftId } : {}),
+    propertyType: propertyType ?? undefined,
+    bhkType: details.bhkType ?? undefined,
+    builtUpArea: details.builtUpArea ? parseInt(details.builtUpArea, 10) : undefined,
+    carpetArea: details.carpetArea ? parseInt(details.carpetArea, 10) : undefined,
+    floor: details.floor ? parseInt(details.floor, 10) : undefined,
+    totalFloors: details.totalFloors ? parseInt(details.totalFloors, 10) : undefined,
+    facing: details.facing ?? undefined,
+    furnishing: details.furnishing ?? undefined,
+    ageOfProperty: details.ageOfProperty ? parseInt(details.ageOfProperty, 10) : undefined,
+    bathrooms: details.bathrooms,
+    balconies: details.balconies,
+    parking: details.parking ?? undefined,
+    address: location.address || undefined,
+    city: location.city || undefined,
+    locality: location.locality || undefined,
+    state: location.state || undefined,
+    pincode: location.pincode || undefined,
+    amenities: details.amenities,
+    imageUrls: photos,
+    price: pricing.price ? Number(pricing.price.replace(/,/g, '')) : undefined,
+    title: pricing.title || undefined,
+    description: pricing.description || undefined,
+  }
+}
+
 export default function SellPage() {
-  const { currentStep, nextStep, prevStep, goToStep, propertyType, location, details, pricing } =
-    useSellFormStore()
+  const store = useSellFormStore()
+  const { currentStep, nextStep, prevStep, goToStep, propertyType, location, details, pricing, draftId, saveStatus, setDraftId, setSaveStatus } = store
 
   const [showErrors, setShowErrors] = useState(false)
 
@@ -46,6 +100,56 @@ export default function SellPage() {
 
   const isFirstStep = currentIndex === 0
   const isReviewStep = currentStep === 'review'
+
+  // ── Autosave ─────────────────────────────────────────────────────────────────
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isSaving = useRef(false)
+
+  async function saveDraft() {
+    if (!isSupabaseConfigured()) return
+    if (isSaving.current) return
+
+    const state = useSellFormStore.getState()
+    // Don't autosave until the user has at least picked a property type
+    if (!state.propertyType) return
+
+    isSaving.current = true
+    setSaveStatus('saving')
+
+    try {
+      const payload = buildDraftPayload(state)
+      const res = await fetch('/api/listings/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        const json = await res.json() as { id: string }
+        if (!state.draftId && json.id) setDraftId(json.id)
+        setSaveStatus('saved')
+      } else {
+        setSaveStatus('error')
+      }
+    } catch {
+      setSaveStatus('error')
+    } finally {
+      isSaving.current = false
+    }
+  }
+
+  // Subscribe to store changes and debounce autosave (1.5s after last change)
+  useEffect(() => {
+    const unsubscribe = useSellFormStore.subscribe(() => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+      autosaveTimer.current = setTimeout(() => { void saveDraft() }, 1500)
+    })
+    return () => {
+      unsubscribe()
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function canProceed(): boolean {
     switch (currentStep) {
@@ -80,7 +184,6 @@ export default function SellPage() {
     prevStep()
   }
 
-  // Build the current step component with showErrors threaded in.
   function renderStep(step: SellStep) {
     switch (step) {
       case 'property-type':
@@ -94,7 +197,7 @@ export default function SellPage() {
       case 'pricing':
         return <StepPricing showErrors={showErrors} />
       case 'review':
-        return <StepReview />
+        return <StepReview draftId={draftId} />
     }
   }
 
@@ -113,10 +216,6 @@ export default function SellPage() {
             return (
               <div key={step} className="flex flex-1 items-center">
                 <div className="flex flex-col items-center gap-1">
-                  {/*
-                    Past steps are interactive: clicking navigates back.
-                    Active and future steps are static.
-                  */}
                   {isPast ? (
                     <button
                       type="button"
@@ -177,10 +276,9 @@ export default function SellPage() {
           })}
         </div>
 
-        {/* Mobile: progress bar + step counter with back tap on label */}
+        {/* Mobile: progress bar + step counter */}
         <div className="sm:hidden">
           <div className="mb-2 flex items-center justify-between text-xs">
-            {/* Tap the label to go back one step (when not on the first step) */}
             {!isFirstStep ? (
               <button
                 type="button"
@@ -209,6 +307,11 @@ export default function SellPage() {
             />
           </div>
         </div>
+
+        {/* Autosave indicator */}
+        <div className="flex justify-end">
+          <SaveIndicator status={saveStatus} />
+        </div>
       </div>
 
       {/* Step content with animated transitions */}
@@ -227,7 +330,7 @@ export default function SellPage() {
         </AnimatePresence>
       </div>
 
-      {/* Navigation — fixed on mobile, static on desktop */}
+      {/* Navigation */}
       {!isReviewStep && (
         <div
           className={cn(
@@ -268,7 +371,7 @@ export default function SellPage() {
         </div>
       )}
 
-      {/* Bottom padding on mobile to account for fixed nav */}
+      {/* Bottom padding on mobile for fixed nav */}
       {!isReviewStep && <div className="h-24 sm:hidden" aria-hidden="true" />}
     </>
   )

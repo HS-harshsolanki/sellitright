@@ -57,6 +57,8 @@ export const STEP_LABELS: Record<SellStep, string> = {
   review: 'Review & publish',
 }
 
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+
 interface SellFormState {
   currentStep: SellStep
   propertyType: PropertyType | null
@@ -65,6 +67,11 @@ interface SellFormState {
   /** Array of image URLs (strings). Serializable — safe for zustand/persist. */
   photos: string[]
   pricing: PricingData
+
+  /** Supabase listing id once a draft has been saved server-side */
+  draftId: string | null
+  /** Last autosave status — shown in the UI */
+  saveStatus: SaveStatus
 
   // Actions
   setStep: (step: SellStep) => void
@@ -76,6 +83,8 @@ interface SellFormState {
   setDetails: (data: Partial<DetailsData>) => void
   setPhotos: (photos: string[]) => void
   setPricing: (data: Partial<PricingData>) => void
+  setDraftId: (id: string) => void
+  setSaveStatus: (status: SaveStatus) => void
   reset: () => void
 }
 
@@ -118,6 +127,8 @@ export const useSellFormStore = create<SellFormState>()(
       details: DEFAULT_DETAILS,
       photos: [],
       pricing: DEFAULT_PRICING,
+      draftId: null,
+      saveStatus: 'idle',
 
       setStep: (step) => set({ currentStep: step }),
 
@@ -157,6 +168,10 @@ export const useSellFormStore = create<SellFormState>()(
       setPricing: (data) =>
         set((state) => ({ pricing: { ...state.pricing, ...data } })),
 
+      setDraftId: (id) => set({ draftId: id }),
+
+      setSaveStatus: (status) => set({ saveStatus: status }),
+
       reset: () =>
         set({
           currentStep: 'property-type',
@@ -165,6 +180,8 @@ export const useSellFormStore = create<SellFormState>()(
           details: DEFAULT_DETAILS,
           photos: [],
           pricing: DEFAULT_PRICING,
+          draftId: null,
+          saveStatus: 'idle',
         }),
     }),
     {
@@ -177,6 +194,7 @@ export const useSellFormStore = create<SellFormState>()(
         details: state.details,
         photos: state.photos,
         pricing: state.pricing,
+        draftId: state.draftId,
       }),
     },
   ),

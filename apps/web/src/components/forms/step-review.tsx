@@ -127,7 +127,12 @@ function buildAutoDescription(
 
 type SubmitState = 'idle' | 'loading' | 'success' | 'error'
 
-export function StepReview() {
+interface StepReviewProps {
+  /** If a draft was autosaved, we patch it to PENDING_REVIEW instead of creating a new record */
+  draftId?: string | null
+}
+
+export function StepReview({ draftId }: StepReviewProps) {
   const { propertyType, location, details, photos, pricing, goToStep, reset } =
     useSellFormStore()
 
@@ -182,6 +187,8 @@ export function StepReview() {
       pincode: location.pincode,
       amenities: details.amenities,
       imageUrls: photos,
+      // Pass draftId so the API can update the existing row instead of inserting a new one
+      ...(draftId ? { draftId } : {}),
     }
 
     try {

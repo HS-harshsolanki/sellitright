@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
+    // Skip optimization in dev — avoids SSL cert issues when proxying external images locally
+    unoptimized: process.env.NODE_ENV === 'development',
   },
 }
 

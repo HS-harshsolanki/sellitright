@@ -3,7 +3,7 @@
 import { useAuth } from '@/lib/supabase/auth-context'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { User, Mail, Phone, LogOut, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -25,9 +25,12 @@ function Spinner({ className }: { className?: string }) {
 export default function ProfilePage() {
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
-  const supabase = createClient()
-
   const [displayName, setDisplayName] = useState('')
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }
+  }, [])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -63,7 +66,7 @@ export default function ProfilePage() {
     setError('')
     setSaved(false)
 
-    const { error } = await supabase.auth.updateUser({
+    const { error } = await createClient().auth.updateUser({
       data: { full_name: displayName },
     })
 
@@ -73,7 +76,8 @@ export default function ProfilePage() {
       setError(error.message)
     } else {
       setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = setTimeout(() => setSaved(false), 3000)
     }
   }
 
