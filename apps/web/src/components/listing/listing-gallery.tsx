@@ -106,14 +106,16 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
               exit="exit"
               className="absolute inset-0"
             >
-              <Image
-                src={images[activeIndex]!.url}
-                alt={images[activeIndex]!.caption ?? `${title} — photo ${activeIndex + 1}`}
-                fill
-                className="object-cover"
-                sizes="100vw"
-                priority={activeIndex === 0}
-              />
+              {images[activeIndex] && (
+                <Image
+                  src={images[activeIndex].url}
+                  alt={images[activeIndex].caption ?? `${title} — photo ${activeIndex + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="100vw"
+                  priority={activeIndex === 0}
+                />
+              )}
             </motion.div>
           </AnimatePresence>
 
@@ -297,13 +299,15 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
                   exit="exit"
                   className="relative h-full w-full"
                 >
-                  <Image
-                    src={images[activeIndex]!.url}
-                    alt={images[activeIndex]!.caption ?? `${title} — photo ${activeIndex + 1}`}
-                    fill
-                    className="object-contain"
-                    sizes="100vw"
-                  />
+                  {images[activeIndex] && (
+                    <Image
+                      src={images[activeIndex].url}
+                      alt={images[activeIndex].caption ?? `${title} — photo ${activeIndex + 1}`}
+                      fill
+                      className="object-contain"
+                      sizes="100vw"
+                    />
+                  )}
                 </motion.div>
               </AnimatePresence>
 

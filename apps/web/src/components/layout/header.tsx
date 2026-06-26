@@ -138,7 +138,7 @@ function UserDropdown({ name, email, onSignOut }: UserDropdownProps) {
               Post Property
             </Link>
             <Link
-              href="/dashboard/profile"
+              href="/profile"
               role="menuitem"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
@@ -238,7 +238,7 @@ function MobileSheet({ name, isLoggedIn, pathname, onSignOut }: MobileSheetProps
                 Dashboard
               </Link>
               <Link
-                href="/dashboard/profile"
+                href="/profile"
                 className={cn(
                   'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
                   pathname.startsWith('/profile')
@@ -299,7 +299,7 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const name = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
+  const name = user?.user_metadata?.full_name ?? (user?.email?.includes('@') ? user.email.split('@')[0] : (user?.email ?? null)) ?? null
   const email = user?.email ?? null
 
   return (

@@ -167,8 +167,9 @@ function BudgetPopover({ current, onApply, onClear }: BudgetPopoverProps) {
 
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <label className="mb-1 block text-xs text-gray-500">Min (Lakhs)</label>
+          <label htmlFor="budget-min" className="mb-1 block text-xs text-gray-500">Min (Lakhs)</label>
           <input
+            id="budget-min"
             type="number"
             min={0}
             placeholder="e.g. 50"
@@ -179,8 +180,9 @@ function BudgetPopover({ current, onApply, onClear }: BudgetPopoverProps) {
         </div>
         <span className="mt-5 text-gray-400">–</span>
         <div className="flex-1">
-          <label className="mb-1 block text-xs text-gray-500">Max (Lakhs)</label>
+          <label htmlFor="budget-max" className="mb-1 block text-xs text-gray-500">Max (Lakhs)</label>
           <input
+            id="budget-max"
             type="number"
             min={0}
             placeholder="e.g. 100"

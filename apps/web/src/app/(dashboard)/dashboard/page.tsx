@@ -5,12 +5,12 @@ import { formatPrice } from '@/lib/format'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Eye, LayoutGrid, MapPin, Plus, TrendingUp, AlertCircle, Loader2 } from 'lucide-react'
+import { Eye, LayoutGrid, MapPin, Plus, TrendingUp, AlertCircle, Loader2, Users } from 'lucide-react'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import type { MockListing, ListingStatus } from '@/lib/mock-data'
 import { MOCK_LISTINGS } from '@/lib/mock-data'
 
-type TabFilter = 'all' | 'active' | 'draft' | 'pending' | 'rejected' | 'sold'
+type TabFilter = 'all' | 'active' | 'draft' | 'pending' | 'rejected' | 'sold' | 'buyers'
 
 const TAB_OPTIONS: { value: TabFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -19,6 +19,7 @@ const TAB_OPTIONS: { value: TabFilter; label: string }[] = [
   { value: 'pending', label: 'Pending' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'sold', label: 'Sold' },
+  { value: 'buyers', label: 'Interested Buyers' },
 ]
 
 const STATUS_CONFIG: Record<ListingStatus, { label: string; className: string }> = {
@@ -29,6 +30,46 @@ const STATUS_CONFIG: Record<ListingStatus, { label: string; className: string }>
   PENDING_REVIEW: { label: 'Pending Review', className: 'bg-orange-100 text-orange-700' },
   REJECTED: { label: 'Rejected', className: 'bg-red-100 text-red-700' },
   DELETED: { label: 'Deleted', className: 'bg-gray-200 text-gray-500 line-through' },
+}
+
+const PURPOSE_LABEL: Record<string, string> = {
+  SELF: 'Own use',
+  INVESTMENT: 'Investment',
+}
+
+const TIMELINE_LABEL: Record<string, string> = {
+  IMMEDIATELY: 'Immediately',
+  WITHIN_30_DAYS: 'Within 30 days',
+  ONE_TO_THREE_MONTHS: '1–3 months',
+  EXPLORING: 'Just exploring',
+}
+
+const FUNDING_LABEL: Record<string, string> = {
+  CASH_READY: 'Cash ready',
+  LOAN_APPROVED: 'Loan approved',
+  LOAN_IN_PROGRESS: 'Loan in progress',
+}
+
+const INTEREST_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  PENDING: { label: 'Pending', className: 'bg-yellow-100 text-yellow-700' },
+  ACCEPTED: { label: 'Accepted', className: 'bg-green-100 text-green-700' },
+  DECLINED: { label: 'Declined', className: 'bg-red-100 text-red-700' },
+  WITHDRAWN: { label: 'Withdrawn', className: 'bg-gray-100 text-gray-500' },
+}
+
+interface SellerInterestItem {
+  id: string
+  listingId: string
+  listingTitle: string
+  listingCity: string
+  fullName: string
+  purpose: 'SELF' | 'INVESTMENT'
+  timeline: 'IMMEDIATELY' | 'WITHIN_30_DAYS' | 'ONE_TO_THREE_MONTHS' | 'EXPLORING'
+  funding: 'CASH_READY' | 'LOAN_APPROVED' | 'LOAN_IN_PROGRESS'
+  message: string | null
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'WITHDRAWN'
+  createdAt: string
+  updatedAt: string
 }
 
 // Shape returned by /api/dashboard/listings
@@ -147,7 +188,6 @@ function ListingCard({ listing }: ListingCardProps) {
           <span className="truncate">{listing.locality}, {listing.city}</span>
         </div>
 
-        {/* Rejection reason */}
         {listing.status === 'REJECTED' && listing.rejectionReason && (
           <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -191,8 +231,225 @@ function ListingCard({ listing }: ListingCardProps) {
   )
 }
 
-function EmptyState({ tab }: { tab: TabFilter }) {
-  const messages: Record<TabFilter, { title: string; sub: string }> = {
+interface BuyerInterestCardProps {
+  item: SellerInterestItem
+  onAction: (id: string, action: 'ACCEPTED' | 'DECLINED') => Promise<void>
+  actionLoading: boolean
+}
+
+function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardProps) {
+  const [confirmDecline, setConfirmDecline] = useState(false)
+  const statusCfg = INTEREST_STATUS_CONFIG[item.status] ?? { label: item.status, className: 'bg-gray-100 text-gray-600' }
+  const dateStr = new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+
+  return (
+    <div className="rounded-xl border border-border bg-white p-4">
+      {/* Row 1: Name + status badge + listing */}
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-foreground">{item.fullName}</p>
+            <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', statusCfg.className)}>
+              {statusCfg.label}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {item.listingTitle}{item.listingCity ? ` · ${item.listingCity}` : ''}
+          </p>
+        </div>
+      </div>
+
+      {/* Row 2: Metadata chips */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          {PURPOSE_LABEL[item.purpose] ?? item.purpose}
+        </span>
+        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          {TIMELINE_LABEL[item.timeline] ?? item.timeline}
+        </span>
+        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          {FUNDING_LABEL[item.funding] ?? item.funding}
+        </span>
+      </div>
+
+      {/* Row 3: Message */}
+      {item.message && (
+        <div className="mt-3 rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
+          &ldquo;{item.message}&rdquo;
+        </div>
+      )}
+
+      {/* Row 4: Date */}
+      <p className="mt-3 text-xs text-muted-foreground">Requested on {dateStr}</p>
+
+      {/* Row 5: Actions (PENDING only) */}
+      {item.status === 'PENDING' && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {confirmDecline ? (
+            <>
+              <p className="mr-1 text-xs text-muted-foreground">Decline this request?</p>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => { void onAction(item.id, 'DECLINED'); setConfirmDecline(false) }}
+                className={cn(
+                  'rounded-lg border border-red-400 px-3 py-1.5 text-xs font-semibold text-red-600',
+                  'transition-colors hover:bg-red-50 disabled:opacity-50',
+                )}
+              >
+                {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Yes, decline'}
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => setConfirmDecline(false)}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => void onAction(item.id, 'ACCEPTED')}
+                className={cn(
+                  'rounded-lg border border-green-500 px-3 py-1.5 text-xs font-semibold text-green-700',
+                  'transition-colors hover:bg-green-50 disabled:opacity-50',
+                )}
+              >
+                {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Accept'}
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => setConfirmDecline(true)}
+                className={cn(
+                  'rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600',
+                  'transition-colors hover:bg-red-50 disabled:opacity-50',
+                )}
+              >
+                Decline
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+              >
+                Later
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+type InterestStatusFilter = 'ALL' | 'PENDING' | 'ACCEPTED' | 'DECLINED'
+
+interface BuyersTabContentProps {
+  interests: SellerInterestItem[]
+  loading: boolean
+  error: string | null
+  statusFilter: InterestStatusFilter
+  sort: 'newest' | 'oldest'
+  actionLoadingId: string | null
+  onStatusFilter: (s: InterestStatusFilter) => void
+  onSort: (s: 'newest' | 'oldest') => void
+  onAction: (id: string, action: 'ACCEPTED' | 'DECLINED') => Promise<void>
+}
+
+function BuyersTabContent({
+  interests,
+  loading,
+  error,
+  statusFilter,
+  sort,
+  actionLoadingId,
+  onStatusFilter,
+  onSort,
+  onAction,
+}: BuyersTabContentProps) {
+  const STATUS_FILTERS: { value: InterestStatusFilter; label: string }[] = [
+    { value: 'ALL', label: 'All' },
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'ACCEPTED', label: 'Accepted' },
+    { value: 'DECLINED', label: 'Declined' },
+  ]
+
+  return (
+    <div className="space-y-4">
+      {/* Filter row */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 overflow-x-auto rounded-xl bg-muted p-1">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => onStatusFilter(f.value)}
+              className={cn(
+                'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+                statusFilter === f.value ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => onSort(e.target.value as 'newest' | 'oldest')}
+          className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : error ? (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <span>{error}</span>
+        </div>
+      ) : interests.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border py-16 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <Users className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground">
+            {statusFilter === 'ALL' ? 'No buyer requests yet' : `No ${statusFilter.toLowerCase()} requests`}
+          </h3>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+            {statusFilter === 'ALL'
+              ? 'When buyers express interest in your listings, their requests will appear here.'
+              : `No requests with ${statusFilter.toLowerCase()} status.`}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {interests.map((item) => (
+            <BuyerInterestCard
+              key={item.id}
+              item={item}
+              onAction={onAction}
+              actionLoading={actionLoadingId === item.id}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EmptyState({ tab }: { tab: Exclude<TabFilter, 'buyers'> }) {
+  const messages: Record<Exclude<TabFilter, 'buyers'>, { title: string; sub: string }> = {
     all: { title: 'No listings yet', sub: 'Start selling by creating your first property listing.' },
     active: { title: 'No active listings', sub: 'Your published listings will appear here.' },
     draft: { title: 'No drafts', sub: "Listings you've saved but not yet published will appear here." },
@@ -223,6 +480,14 @@ export default function DashboardPage() {
   const [listings, setListings] = useState<MockListing[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+
+  // Interested Buyers state
+  const [interests, setInterests] = useState<SellerInterestItem[]>([])
+  const [interestLoading, setInterestLoading] = useState(false)
+  const [interestError, setInterestError] = useState<string | null>(null)
+  const [interestStatusFilter, setInterestStatusFilter] = useState<InterestStatusFilter>('PENDING')
+  const [interestSort, setInterestSort] = useState<'newest' | 'oldest'>('newest')
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -255,10 +520,65 @@ export default function DashboardPage() {
     void load()
   }, [])
 
+  useEffect(() => {
+    if (activeTab !== 'buyers') return
+    async function fetchInterests() {
+      setInterestLoading(true)
+      setInterestError(null)
+      try {
+        const params = new URLSearchParams({ status: interestStatusFilter, sort: interestSort })
+        const res = await fetch(`/api/dashboard/interests?${params.toString()}`)
+        if (res.ok) {
+          const json = await res.json() as { interests: SellerInterestItem[] }
+          setInterests(json.interests)
+        } else if (res.status === 401) {
+          setInterestError('Sign in to view buyer requests.')
+          setInterests([])
+        } else {
+          setInterestError('Failed to load buyer requests. Please refresh.')
+          setInterests([])
+        }
+      } catch {
+        setInterestError('Network error — check your connection and refresh.')
+        setInterests([])
+      } finally {
+        setInterestLoading(false)
+      }
+    }
+    void fetchInterests()
+  }, [activeTab, interestStatusFilter, interestSort])
+
+  async function handleInterestAction(id: string, action: 'ACCEPTED' | 'DECLINED') {
+    setActionLoadingId(id)
+    try {
+      const res = await fetch(`/api/dashboard/interests/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      if (res.ok) {
+        const json = await res.json() as { id: string; status: string; updatedAt: string }
+        setInterests((prev) =>
+          prev.map((item) =>
+            item.id === json.id ? { ...item, status: json.status as SellerInterestItem['status'], updatedAt: json.updatedAt } : item,
+          ),
+        )
+      } else {
+        const err = await res.json() as { error?: string }
+        setInterestError(err.error ?? 'Failed to update request.')
+      }
+    } catch {
+      setInterestError('Network error — try again.')
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
+
   const filteredListings = listings.filter((listing) => {
     if (activeTab === 'all') return true
     if (activeTab === 'pending') return listing.status === 'PENDING_REVIEW'
     if (activeTab === 'rejected') return listing.status === 'REJECTED'
+    if (activeTab === 'buyers') return false
     return listing.status.toLowerCase() === activeTab
   })
 
@@ -281,7 +601,7 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {fetchError && (
+      {fetchError && activeTab !== 'buyers' && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <span>{fetchError}</span>
@@ -315,12 +635,24 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {loading ? (
+      {activeTab === 'buyers' ? (
+        <BuyersTabContent
+          interests={interests}
+          loading={interestLoading}
+          error={interestError}
+          statusFilter={interestStatusFilter}
+          sort={interestSort}
+          actionLoadingId={actionLoadingId}
+          onStatusFilter={setInterestStatusFilter}
+          onSort={setInterestSort}
+          onAction={handleInterestAction}
+        />
+      ) : loading ? (
         <div className="flex items-center justify-center py-24">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : filteredListings.length === 0 ? (
-        <EmptyState tab={activeTab} />
+        <EmptyState tab={activeTab as Exclude<TabFilter, 'buyers'>} />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredListings.map((listing) => (

@@ -6,9 +6,9 @@ import {
   Heart,
   BadgeCheck,
   User,
-  CheckSquare,
 } from 'lucide-react'
 import { getListingById } from '@/lib/mock-data'
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { formatPrice, formatBHK, formatArea, formatFloor } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import { ListingGallery } from '@/components/listing/listing-gallery'
@@ -16,6 +16,7 @@ import { PropertyHighlights } from '@/components/listing/property-highlights'
 import { ContactSeller } from '@/components/listing/contact-seller'
 import { MobileBottomBar } from '@/components/listing/mobile-bottom-bar'
 import { ExpandableDescription } from '@/components/listing/expandable-description'
+import { ShowAllAmenities } from '@/components/listing/show-all-amenities'
 
 interface ListingPageProps {
   params: Promise<{ id: string }>
@@ -48,12 +49,66 @@ export async function generateMetadata({ params }: ListingPageProps): Promise<Me
 
 export default async function ListingPage({ params }: ListingPageProps) {
   const { id } = await params
-  const listing = getListingById(id)
-  if (!listing) notFound()
 
+  // ── 1. Try Supabase first (anon client — respects RLS) ──────────────────
   const supabase = await createClient()
+  let listingRaw: ReturnType<typeof getListingById> = undefined
+
+  try {
+    const { data: { user: viewer } } = await supabase.auth.getUser()
+
+    // Fetch by id — RLS allows public read of ACTIVE listings.
+    // If the viewer is the seller, also allow PENDING_REVIEW/DRAFT/INACTIVE preview.
+    const { data, error } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (!error && data) {
+      const isOwner = viewer?.id === data.seller_id
+      const isVisible = data.status === 'ACTIVE' || isOwner
+      if (isVisible) {
+        listingRaw = mapSupabaseListingToMock(data)
+      }
+    }
+  } catch {
+    // Supabase not configured or network error — fall through to mock
+  }
+
+  // ── 2. Fall back to mock data if Supabase returned nothing ──────────────
+  if (!listingRaw) {
+    listingRaw = getListingById(id)
+  }
+
+  // ── 3. 404 if neither source has the listing ────────────────────────────
+  if (!listingRaw) notFound()
+
+  // notFound() throws (`never`), so listingRaw is defined beyond this point.
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const listing = listingRaw!
+
+  // user was already fetched above in the Supabase try block; re-use the session
   const { data: { user } } = await supabase.auth.getUser()
   const isAuthenticated = !!user
+
+  // Check if buyer already has a pending request for this listing (server-side, avoids flash)
+  let hasExistingRequest = false
+  if (user) {
+    try {
+      const { data: existing } = await supabase
+        .from('buyer_interest')
+        .select('id')
+        .eq('listing_id', id)
+        .eq('buyer_id', user.id)
+        .eq('status', 'PENDING')
+        .maybeSingle()
+      hasExistingRequest = !!existing
+    } catch {
+      // buyer_interest table may not exist yet (migration not run) — default to false
+      hasExistingRequest = false
+    }
+  }
 
   const priceStr = formatPrice(listing.price)
   const bhk = formatBHK(listing.bhkType)
@@ -90,11 +145,6 @@ export default async function ListingPage({ params }: ListingPageProps) {
   ]
     .filter(Boolean)
     .join(' · ')
-
-  // Amenities — show max 10, with count for "show all" button
-  const MAX_AMENITIES = 10
-  const visibleAmenities = listing.amenities.slice(0, MAX_AMENITIES)
-  const hiddenAmenitiesCount = listing.amenities.length - MAX_AMENITIES
 
   return (
     <>
@@ -223,28 +273,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                     What this property offers
                   </h2>
 
-                  {/* 2-column amenity grid */}
-                  <div className="grid grid-cols-1 gap-y-3 sm:grid-cols-2 sm:gap-x-6">
-                    {visibleAmenities.map((amenity) => (
-                      <div key={amenity} className="flex items-center gap-3">
-                        <CheckSquare
-                          className="h-4 w-4 shrink-0 text-[var(--color-foreground)]"
-                          aria-hidden="true"
-                        />
-                        <span className="text-sm text-[var(--color-foreground)]">{amenity}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* "Show all amenities" button — only when there are hidden ones */}
-                  {hiddenAmenitiesCount > 0 && (
-                    <button
-                      type="button"
-                      className="mt-6 inline-flex items-center gap-2 rounded-lg border border-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-[var(--color-foreground)] transition hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-                    >
-                      Show all {listing.amenities.length} amenities
-                    </button>
-                  )}
+                  <ShowAllAmenities amenities={listing.amenities} />
                 </section>
 
                 <hr className="border-t border-[var(--color-border)]" />
@@ -276,7 +305,10 @@ export default async function ListingPage({ params }: ListingPageProps) {
               <hr className="mb-8 border-t border-[var(--color-border)]" />
               <ContactSeller
                 seller={listing.seller}
+                listingId={listing.id}
+                listingTitle={listing.title}
                 isAuthenticated={isAuthenticated}
+                hasExistingRequest={hasExistingRequest}
                 price={priceStr}
                 statsLine={statsLine}
               />
@@ -290,7 +322,10 @@ export default async function ListingPage({ params }: ListingPageProps) {
             <div className="sticky top-24">
               <ContactSeller
                 seller={listing.seller}
+                listingId={listing.id}
+                listingTitle={listing.title}
                 isAuthenticated={isAuthenticated}
+                hasExistingRequest={hasExistingRequest}
                 price={priceStr}
                 statsLine={statsLine}
               />
@@ -302,7 +337,13 @@ export default async function ListingPage({ params }: ListingPageProps) {
       </div>
 
       {/* Fixed bottom bar — mobile only */}
-      <MobileBottomBar price={priceStr} listingTitle={listing.title} />
+      <MobileBottomBar
+        price={priceStr}
+        listingTitle={listing.title}
+        listingId={listing.id}
+        isAuthenticated={isAuthenticated}
+        hasExistingRequest={hasExistingRequest}
+      />
     </>
   )
 }

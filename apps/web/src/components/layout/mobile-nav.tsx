@@ -2,24 +2,22 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Search, PlusSquare, User } from 'lucide-react'
+import { Home, Search, PlusSquare, User, LayoutDashboard } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-interface NavTab {
-  href: string
-  label: string
-  icon: React.ElementType
-}
-
-const TABS: NavTab[] = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/', label: 'Search', icon: Search },
-  { href: '/sell', label: 'Sell', icon: PlusSquare },
-  { href: '/login', label: 'Profile', icon: User },
-]
+import { useAuth } from '@/lib/supabase/auth-context'
 
 export function MobileNav() {
   const pathname = usePathname()
+  const { user } = useAuth()
+
+  const tabs = [
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/?focus=search', label: 'Search', icon: Search, matchHref: '/' },
+    { href: '/sell', label: 'Sell', icon: PlusSquare },
+    user
+      ? { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }
+      : { href: '/login', label: 'Profile', icon: User },
+  ]
 
   return (
     <nav
@@ -27,11 +25,12 @@ export function MobileNav() {
       aria-label="Bottom navigation"
     >
       <ul className="flex h-16 items-stretch" role="list">
-        {TABS.map(({ href, label, icon: Icon }) => {
-          const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+        {tabs.map(({ href, label, icon: Icon, matchHref }) => {
+          const checkHref = matchHref ?? href
+          const isActive = checkHref === '/' ? pathname === '/' : pathname.startsWith(checkHref)
 
           return (
-            <li key={href} className="flex-1">
+            <li key={label} className="flex-1">
               <Link
                 href={href}
                 className={cn(

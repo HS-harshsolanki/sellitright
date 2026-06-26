@@ -212,7 +212,9 @@ export function StepReview({ draftId }: StepReviewProps) {
       }
 
       setSubmitState('success')
-      reset()
+      // Clear any autosave error banner so it doesn't show on the success screen
+      useSellFormStore.getState().setSaveStatus('idle')
+      // reset() is deferred — called when user navigates away so the success screen stays visible
     } catch {
       setErrorMessage('Network error — please check your connection and try again.')
       setSubmitState('error')
@@ -228,24 +230,57 @@ export function StepReview({ draftId }: StepReviewProps) {
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold tracking-tight text-foreground">
-            Listing submitted for review
+            Sent for review!
           </h2>
           <p className="max-w-sm text-muted-foreground">
-            Our team will review your listing and publish it within{' '}
-            <span className="font-medium text-foreground">24 hours</span>. You&apos;ll receive an
-            SMS confirmation once it goes live.
+            Your listing is now under review. It will go live within{' '}
+            <span className="font-medium text-foreground">24 hours</span> once approved by our team.
           </p>
         </div>
-        <a
-          href="/dashboard"
-          className={cn(
-            'rounded-xl bg-primary px-8 py-3 text-sm font-bold text-white shadow-sm',
-            'transition-all hover:bg-primary/90 active:scale-[0.98]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          )}
-        >
-          Go to Dashboard
-        </a>
+
+        {/* What happens next */}
+        <div className="w-full max-w-sm rounded-xl border border-border bg-muted/40 px-5 py-4 text-left">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">What happens next</p>
+          <ol className="space-y-2.5">
+            {[
+              'Our team reviews your listing for accuracy',
+              'You get notified once it goes live',
+              'Buyers can contact you directly',
+            ].map((step, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-foreground">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="flex w-full max-w-sm flex-col gap-3">
+          <a
+            href="/dashboard"
+            onClick={() => reset()}
+            className={cn(
+              'rounded-xl bg-primary px-8 py-3 text-center text-sm font-bold text-white shadow-sm',
+              'transition-all hover:bg-primary/90 active:scale-[0.98]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            )}
+          >
+            View my listings
+          </a>
+          <a
+            href="/sell"
+            onClick={() => reset()}
+            className={cn(
+              'rounded-xl border border-border px-8 py-3 text-center text-sm font-semibold text-foreground',
+              'transition-all hover:bg-muted active:scale-[0.98]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            )}
+          >
+            Post another property
+          </a>
+        </div>
       </div>
     )
   }

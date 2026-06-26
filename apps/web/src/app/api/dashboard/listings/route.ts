@@ -17,7 +17,7 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('[dashboard/listings] select error:', error)
+      console.error('[dashboard/listings] select error:', error?.message)
       return NextResponse.json({ error: 'Failed to load listings' }, { status: 500 })
     }
 

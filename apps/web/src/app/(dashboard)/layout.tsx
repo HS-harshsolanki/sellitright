@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { BarChart3, Home, LayoutGrid, Settings, User } from 'lucide-react'
+import { BarChart3, Home, LayoutGrid, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SignOutButton } from '@/components/auth/sign-out-button'
 
@@ -22,31 +22,21 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   {
     href: '/dashboard',
-    label: 'Dashboard',
-    icon: <BarChart3 className="h-4 w-4" />,
-  },
-  {
-    href: '/dashboard/listings',
     label: 'My Listings',
     icon: <LayoutGrid className="h-4 w-4" />,
   },
   {
-    href: '/dashboard/profile',
+    href: '/profile',
     label: 'Profile',
     icon: <User className="h-4 w-4" />,
-  },
-  {
-    href: '/dashboard/settings',
-    label: 'Settings',
-    icon: <Settings className="h-4 w-4" />,
   },
 ]
 
 const BOTTOM_NAV_ITEMS = [
   { href: '/', label: 'Browse', icon: <Home className="h-5 w-5" /> },
-  { href: '/dashboard', label: 'Dashboard', icon: <BarChart3 className="h-5 w-5" /> },
-  { href: '/dashboard/listings', label: 'Listings', icon: <LayoutGrid className="h-5 w-5" /> },
-  { href: '/dashboard/profile', label: 'Profile', icon: <User className="h-5 w-5" /> },
+  { href: '/dashboard', label: 'Listings', icon: <LayoutGrid className="h-5 w-5" /> },
+  { href: '/sell', label: 'Post', icon: <BarChart3 className="h-5 w-5" /> },
+  { href: '/profile', label: 'Profile', icon: <User className="h-5 w-5" /> },
 ]
 
 function SidebarNav() {

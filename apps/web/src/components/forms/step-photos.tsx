@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { useSellFormStore } from '@/stores/sell-form.store'
 import { ImagePlus, Link, Trash2, Upload, X } from 'lucide-react'
 import { useRef, useState } from 'react'
@@ -85,28 +85,25 @@ export function StepPhotos() {
       )
 
     try {
-      const client = createClient()
-      const uuid = crypto.randomUUID()
-      const path = `listings/${uuid}/${file.name}`
-
       updateState({ progress: 0, error: null })
 
-      const { error } = await client.storage.from('photos').upload(path, file, {
-        cacheControl: '3600',
-        upsert: false,
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/upload/photo', {
+        method: 'POST',
+        body: formData,
       })
 
-      if (error) {
-        updateState({ progress: null, error: `Upload failed: ${error.message}` })
+      const json = await res.json() as { url?: string; error?: string }
+
+      if (!res.ok || !json.url) {
+        updateState({ progress: null, error: json.error ?? 'Upload failed.' })
         return
       }
 
-      const { data: publicUrlData } = client.storage.from('photos').getPublicUrl(path)
-      const publicUrl = publicUrlData.publicUrl
-
       updateState({ progress: 100 })
-
-      setPhotos([...useSellFormStore.getState().photos, publicUrl])
+      setPhotos([...useSellFormStore.getState().photos, json.url])
 
       setTimeout(() => {
         setUploadStates((prev) => prev.filter((_, i) => i !== index))
@@ -133,7 +130,7 @@ export function StepPhotos() {
     setUploadStates((prev) => [...prev, ...newStates])
 
     for (let i = 0; i < toProcess.length; i++) {
-      if (!newStates[i]!.error) {
+      if (!newStates[i]?.error) {
         await uploadFile(toProcess[i]!, startIndex + i)
       }
     }

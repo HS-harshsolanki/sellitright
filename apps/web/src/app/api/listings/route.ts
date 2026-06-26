@@ -25,7 +25,14 @@ export async function GET(request: NextRequest) {
           .select('*', { count: 'exact' })
           .eq('status', 'ACTIVE')
 
-        if (city) query = query.ilike('city', `%${city}%`)
+        if (city) {
+          // city param is also used as a general search query from the header search bar.
+          // Match against city, locality, and title so searches like "Koramangala" or
+          // "3 BHK Pune" surface relevant results.
+          query = query.or(
+            `city.ilike.%${city}%,locality.ilike.%${city}%,title.ilike.%${city}%`,
+          )
+        }
         if (locality) query = query.ilike('locality', `%${locality}%`)
         if (bhkType) query = query.eq('bhk_type', bhkType)
         if (furnishing) query = query.eq('furnishing', furnishing)
@@ -60,7 +67,15 @@ export async function GET(request: NextRequest) {
     // ── Mock fallback ──────────────────────────────────────────────────────
     let filtered = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE')
 
-    if (city) filtered = filtered.filter((l) => l.city.toLowerCase().includes(city.toLowerCase()))
+    if (city) {
+      const q = city.toLowerCase()
+      filtered = filtered.filter(
+        (l) =>
+          l.city.toLowerCase().includes(q) ||
+          l.locality.toLowerCase().includes(q) ||
+          l.title.toLowerCase().includes(q),
+      )
+    }
     if (locality) filtered = filtered.filter((l) => l.locality.toLowerCase().includes(locality.toLowerCase()))
     if (bhkType) filtered = filtered.filter((l) => l.bhkType === bhkType)
     if (furnishing) filtered = filtered.filter((l) => l.furnishing === furnishing)
@@ -77,7 +92,7 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.max(1, Math.ceil(total / limit))
     const listings = filtered.slice((page - 1) * limit, page * limit)
 
-    return NextResponse.json({ listings, total, page, totalPages })
+    return NextResponse.json({ listings, total, page, totalPages, _mockFallback: true })
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json({ error: 'Invalid query parameters', issues: error.errors }, { status: 400 })

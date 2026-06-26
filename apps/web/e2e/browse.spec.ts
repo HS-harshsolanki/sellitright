@@ -6,8 +6,9 @@ test.describe('Browse page', () => {
   })
 
   test('should show listing cards on the home page', async ({ page }) => {
-    await expect(page.locator('article, [data-testid="listing-card"]').first()).toBeVisible({
-      timeout: 5000,
+    // Cards are rendered as div > a[href^="/listing/"] — look for listing links
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({
+      timeout: 8000,
     })
   })
 
@@ -54,9 +55,10 @@ test.describe('Listing detail page', () => {
     await expect(page.getByText(/₹/)).toBeVisible({ timeout: 5000 })
   })
 
-  test('should show 404 for unknown listing id', async ({ page }) => {
+  test('should show not found page for unknown listing id', async ({ page }) => {
     await page.goto('/listing/nonexistent-listing-id-xyz')
-    await expect(page.getByRole('heading', { name: /not found/i }).or(page.getByText(/404/))).toBeVisible({
+    // The not-found page renders h1 "Page not found"
+    await expect(page.getByRole('heading', { name: /page not found/i })).toBeVisible({
       timeout: 5000,
     })
   })

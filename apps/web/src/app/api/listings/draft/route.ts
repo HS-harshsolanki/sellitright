@@ -82,6 +82,9 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         console.error('[draft] update error:', error.message, error.code)
+        if (error.code === 'PGRST116') {
+          return NextResponse.json({ error: 'Draft not found' }, { status: 404 })
+        }
         return NextResponse.json({ error: 'Failed to update draft' }, { status: 500 })
       }
 

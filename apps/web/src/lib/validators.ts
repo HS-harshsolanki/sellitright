@@ -105,6 +105,61 @@ export const listingFilterSchema = z.object({
 export type ListingFilterInput = z.infer<typeof listingFilterSchema>
 
 // ---------------------------------------------------------------------------
+// Buyer Interest (Handshake Model)
+// ---------------------------------------------------------------------------
+
+export const InterestPurposeEnum = z.enum(['SELF', 'INVESTMENT'])
+export const InterestTimelineEnum = z.enum([
+  'IMMEDIATELY',
+  'WITHIN_30_DAYS',
+  'ONE_TO_THREE_MONTHS',
+  'EXPLORING',
+])
+export const InterestFundingEnum = z.enum([
+  'CASH_READY',
+  'LOAN_APPROVED',
+  'LOAN_IN_PROGRESS',
+])
+export const InterestStatusEnum = z.enum(['PENDING', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'])
+
+export const buyerInterestSchema = z.object({
+  fullName: z
+    .string({ required_error: 'Full name is required' })
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be under 100 characters')
+    .trim(),
+  purpose: InterestPurposeEnum,
+  timeline: InterestTimelineEnum,
+  funding: InterestFundingEnum,
+  message: z
+    .string()
+    .max(250, 'Message must be under 250 characters')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+})
+
+export type BuyerInterestInput = z.infer<typeof buyerInterestSchema>
+export type InterestPurpose  = z.infer<typeof InterestPurposeEnum>
+export type InterestTimeline = z.infer<typeof InterestTimelineEnum>
+export type InterestFunding  = z.infer<typeof InterestFundingEnum>
+export type InterestStatus   = z.infer<typeof InterestStatusEnum>
+
+export interface BuyerInterestRecord {
+  id: string
+  listingId: string
+  buyerId: string
+  sellerId: string
+  fullName: string
+  purpose: InterestPurpose
+  timeline: InterestTimeline
+  funding: InterestFunding
+  message: string | null
+  status: InterestStatus
+  createdAt: string
+}
+
+// ---------------------------------------------------------------------------
 // Auth / login schema
 // ---------------------------------------------------------------------------
 

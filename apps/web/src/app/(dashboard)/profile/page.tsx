@@ -153,9 +153,9 @@ export default function ProfilePage() {
         {/* Email (read-only) */}
         {email && (
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]">
+            <p className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]">
               Email address
-            </label>
+            </p>
             <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]">
               <Mail className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
               <span className="px-3 text-sm text-[var(--color-muted-foreground)]">{email}</span>
@@ -169,9 +169,9 @@ export default function ProfilePage() {
         {/* Phone (read-only) */}
         {phone && (
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]">
+            <p className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]">
               Phone number
-            </label>
+            </p>
             <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]">
               <Phone className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
               <span className="px-3 text-sm text-[var(--color-muted-foreground)]">{phone}</span>
