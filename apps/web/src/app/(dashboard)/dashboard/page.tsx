@@ -287,6 +287,19 @@ function ListingCard({ listing }: ListingCardProps) {
           >
             View
           </Link>
+          {(listing.status === 'DRAFT' ||
+            listing.status === 'INACTIVE' ||
+            listing.status === 'REJECTED') && (
+            <Link
+              href={`/dashboard/listings/${listing.id}/delete`}
+              className={cn(
+                'flex-1 rounded-lg border border-red-200 py-2 text-center text-xs font-medium text-red-600',
+                'transition-colors hover:bg-red-50',
+              )}
+            >
+              Delete
+            </Link>
+          )}
         </div>
       </div>
     </article>
@@ -433,13 +446,6 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
                 )}
               >
                 Decline
-              </button>
-              <button
-                type="button"
-                disabled={actionLoading}
-                className="px-3 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] disabled:opacity-50"
-              >
-                Later
               </button>
             </>
           )}
@@ -777,9 +783,9 @@ export default function DashboardPage() {
         />
         <div className="col-span-2 sm:col-span-1">
           <StatCard
-            label="Views This Month"
+            label="Total Views"
             value={stats.views.toLocaleString('en-IN')}
-            sub="Across all listings"
+            sub="Lifetime across all listings"
             icon={<Eye className="h-5 w-5" />}
           />
         </div>

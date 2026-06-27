@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { verifyRazorpaySignature } from '@/lib/razorpay'
+import { verifyRazorpaySignature, isRazorpayConfigured } from '@/lib/razorpay'
 import { createNotification, createNotifications } from '@/lib/notifications'
 
 interface VerifyBody {
@@ -38,9 +38,12 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Verify HMAC signature ─────────────────────────────────────────────────
-  const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)
-  if (!isValid) {
-    return NextResponse.json({ error: 'Payment signature verification failed.' }, { status: 400 })
+  const isDemoOrder = razorpayOrderId.startsWith('demo_order_') && !isRazorpayConfigured()
+  if (!isDemoOrder) {
+    const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)
+    if (!isValid) {
+      return NextResponse.json({ error: 'Payment signature verification failed.' }, { status: 400 })
+    }
   }
 
   // ── Fetch payment row ─────────────────────────────────────────────────────
@@ -61,6 +64,10 @@ export async function POST(request: NextRequest) {
 
   if (payment.buyer_id !== user.id) {
     return NextResponse.json({ error: 'Not authorised.' }, { status: 403 })
+  }
+
+  if (payment.interest_id !== body.interestId) {
+    return NextResponse.json({ error: 'Interest mismatch' }, { status: 403 })
   }
 
   // Idempotent — already succeeded

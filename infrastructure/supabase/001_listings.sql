@@ -17,7 +17,7 @@ create table if not exists public.listings (
   floor            integer,
   total_floors     integer,
   facing           text,
-  furnishing       text,                     -- FURNISHED | SEMI_FURNISHED | UNFURNISHED
+  furnishing       text,                     -- FULLY_FURNISHED | SEMI_FURNISHED | UNFURNISHED
   age_of_property  integer,
   bathrooms        integer default 2,
   balconies        integer default 0,

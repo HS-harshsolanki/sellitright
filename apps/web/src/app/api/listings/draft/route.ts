@@ -34,7 +34,7 @@ const draftSchema = z.object({
   state: z.string().optional(),
   pincode: z.string().optional(),
   amenities: z.array(z.string()).optional(),
-  imageUrls: z.array(z.string()).optional(),
+  imageUrls: z.array(z.string().url()).optional(),
   price: z.number().int().positive().optional(),
   title: z.string().optional(),
   description: z.string().optional(),

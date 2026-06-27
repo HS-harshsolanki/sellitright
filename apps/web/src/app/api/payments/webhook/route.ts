@@ -74,8 +74,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true })
   }
 
+  // ── Fetch buyer_interest to verify status before unlocking ───────────────
+  const { data: interest } = await admin
+    .from('buyer_interest')
+    .select('id, status')
+    .eq('id', payment.interest_id)
+    .maybeSingle()
+
+  if (interest?.status !== 'ACCEPTED') {
+    console.warn('[webhook] Interest not ACCEPTED, skipping contact unlock', interest?.id)
+    return NextResponse.json({ received: true, skipped: true })
+  }
+
   // ── Update payment to SUCCESS ─────────────────────────────────────────────
-  await admin
+  const { error: updateError } = await admin
     .from('payments')
     .update({
       status: 'SUCCESS',
@@ -83,6 +95,11 @@ export async function POST(request: NextRequest) {
       paid_at: new Date().toISOString(),
     })
     .eq('id', payment.id)
+
+  if (updateError) {
+    console.error('[webhook] failed to update payment:', updateError.message)
+    return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+  }
 
   // ── Unlock contact ────────────────────────────────────────────────────────
   const [sellerAuthResult, buyerAuthResult] = await Promise.all([

@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
   // ── Insert PENDING payment row ────────────────────────────────────────────
   const admin = createServiceClient()
   if (admin) {
-    await admin.from('payments').insert({
+    const { error: insertError } = await admin.from('payments').insert({
       buyer_id: user.id,
       seller_id: interest.seller_id,
       listing_id: interest.listing_id,
@@ -104,6 +104,10 @@ export async function POST(request: NextRequest) {
       amount: 4900,
       currency: 'INR',
     })
+    if (insertError) {
+      console.error('[create-order] failed to insert payment row:', insertError.message)
+      return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
+    }
   }
 
   return NextResponse.json({

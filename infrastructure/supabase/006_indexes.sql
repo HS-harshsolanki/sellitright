@@ -17,3 +17,8 @@ create index if not exists listings_property_type_idx
 
 create index if not exists listings_bhk_type_idx
   on public.listings (bhk_type);
+
+-- Payments table indexes
+create index if not exists payments_buyer_id_idx     on public.payments (buyer_id);
+create index if not exists payments_interest_id_idx  on public.payments (interest_id);
+create index if not exists payments_order_id_idx     on public.payments (razorpay_order_id);

@@ -41,6 +41,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 })
   }
 
+  if (body.reason.length > 1000) {
+    return NextResponse.json({ error: 'Reason must be 1000 characters or fewer' }, { status: 400 })
+  }
+
+  if (body.note && body.note.length > 2000) {
+    return NextResponse.json({ error: 'Note must be 2000 characters or fewer' }, { status: 400 })
+  }
+
   const reason = body.reason.trim()
 
   // ── Supabase path ────────────────────────────────────────────────────────

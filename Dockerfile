@@ -8,7 +8,6 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/package.json
-COPY packages/ ./packages/
 RUN pnpm install --frozen-lockfile
 
 # ── builder stage ────────────────────────────────────────────────────────────
@@ -19,6 +18,12 @@ COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
 # Build only the web app
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_SUPABASE_URL=""
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=""
+ARG NEXT_PUBLIC_APP_URL="https://sellitright.fly.dev"
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 RUN pnpm --filter web build
 
 # ── runner stage ─────────────────────────────────────────────────────────────
