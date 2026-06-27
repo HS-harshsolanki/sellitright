@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createNotification } from '@/lib/notifications'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -40,7 +41,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   // Verify the interest exists and belongs to this seller
   const { data: interest, error: fetchErr } = await supabase
     .from('buyer_interest')
-    .select('id, seller_id, status')
+    .select('id, seller_id, buyer_id, status')
     .eq('id', id)
     .single()
 
@@ -78,6 +79,20 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     console.error('[dashboard/interests/[id]] update error:', updateErr.message)
     return NextResponse.json({ error: 'Failed to update request.' }, { status: 500 })
   }
+
+  // Notify buyer — fire-and-forget
+  await createNotification({
+    admin,
+    userId: interest.buyer_id as string,
+    title: action === 'ACCEPTED' ? 'Request accepted' : 'Request declined',
+    message:
+      action === 'ACCEPTED'
+        ? 'The owner accepted your request. Pay ₹49 to unlock their contact details.'
+        : 'The owner declined your contact request.',
+    type: action === 'ACCEPTED' ? 'Accepted' : 'Rejected',
+    entityType: 'interest',
+    entityId: id,
+  })
 
   return NextResponse.json({ id, status: action, updatedAt })
 }

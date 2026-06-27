@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { Suspense, useEffect, useRef, useState } from 'react'
-import { Menu, Plus, LogOut, LayoutDashboard, User, UserPlus } from 'lucide-react'
+import { Menu, Plus, LogOut, LayoutDashboard, User, UserPlus, Bell } from 'lucide-react'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 
 function useHasListings(userId: string | undefined): boolean {
   const [hasListings, setHasListings] = useState(false)
@@ -26,6 +27,27 @@ function useHasListings(userId: string | undefined): boolean {
   }, [userId])
 
   return hasListings
+}
+
+function useUnreadCount(userId: string | undefined): number {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    if (!userId) {
+      setCount(0)
+      return
+    }
+    fetch('/api/notifications?limit=1')
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        if (data && typeof data === 'object' && 'unreadCount' in data) {
+          setCount((data as { unreadCount: number }).unreadCount)
+        }
+      })
+      .catch(() => {})
+  }, [userId])
+
+  return count
 }
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { HeaderSearch } from '@/components/layout/header-search'
@@ -207,9 +229,17 @@ interface MobileSheetProps {
   hasListings: boolean
   pathname: string
   onSignOut: () => void
+  notificationCount?: number
 }
 
-function MobileSheet({ name, isLoggedIn, hasListings, pathname, onSignOut }: MobileSheetProps) {
+function MobileSheet({
+  name,
+  isLoggedIn,
+  hasListings,
+  pathname,
+  onSignOut,
+  notificationCount = 0,
+}: MobileSheetProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -275,6 +305,25 @@ function MobileSheet({ name, isLoggedIn, hasListings, pathname, onSignOut }: Mob
                 </Link>
               )}
               <Link
+                href="/notifications"
+                className={cn(
+                  'flex items-center justify-between gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
+                  pathname.startsWith('/notifications')
+                    ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
+                    : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
+                )}
+              >
+                <span className="flex items-center gap-2.5">
+                  <Bell className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  Notifications
+                </span>
+                {notificationCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-accent)] px-1.5 text-[10px] font-bold text-white">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
+              </Link>
+              <Link
                 href="/dashboard/profile"
                 className={cn(
                   'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
@@ -329,6 +378,7 @@ export function Header() {
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const hasListings = useHasListings(user?.id)
+  const unreadCount = useUnreadCount(user?.id)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0)
@@ -375,6 +425,9 @@ export function Header() {
             Post Property
           </Link>
 
+          {/* Notification bell — authenticated users only */}
+          {!loading && user && <NotificationBell userId={user.id} />}
+
           {/* Loading skeleton to avoid layout shift */}
           {loading ? (
             <div
@@ -405,6 +458,7 @@ export function Header() {
             hasListings={hasListings}
             pathname={pathname}
             onSignOut={signOut}
+            notificationCount={unreadCount}
           />
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { verifyRazorpaySignature } from '@/lib/razorpay'
+import { createNotification, createNotifications } from '@/lib/notifications'
 
 interface VerifyBody {
   razorpayOrderId: string
@@ -138,6 +139,26 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
+
+  // Notify both parties — fire-and-forget
+  await createNotifications({
+    admin,
+    userIds: [interest.seller_id, interest.buyer_id],
+    title: 'Contact details unlocked',
+    message: 'Your connection is complete. Contact details are now available.',
+    type: 'ConnectionUnlocked',
+    entityType: 'interest',
+    entityId: interestId,
+  })
+  await createNotification({
+    admin,
+    userId: interest.seller_id,
+    title: 'Payment received',
+    message: 'A buyer paid ₹49 to unlock your contact details.',
+    type: 'PaymentReceived',
+    entityType: 'payment',
+    entityId: payment.id,
+  })
 
   return NextResponse.json({
     success: true,

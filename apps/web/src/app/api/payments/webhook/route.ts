@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifyWebhookSignature } from '@/lib/razorpay'
+import { createNotification, createNotifications } from '@/lib/notifications'
 
 // Razorpay sends the raw body — Next.js App Router exposes it via request.text()
 // No bodyParser config needed (App Router doesn't use Pages-style config).
@@ -105,6 +106,26 @@ export async function POST(request: NextRequest) {
       buyer_email: buyerEmail,
     })
     .eq('id', payment.interest_id)
+
+  // Notify both parties — fire-and-forget
+  await createNotifications({
+    admin,
+    userIds: [payment.seller_id, payment.buyer_id],
+    title: 'Contact details unlocked',
+    message: 'Your connection is complete. Contact details are now available.',
+    type: 'ConnectionUnlocked',
+    entityType: 'interest',
+    entityId: payment.interest_id,
+  })
+  await createNotification({
+    admin,
+    userId: payment.seller_id,
+    title: 'Payment received',
+    message: 'A buyer paid ₹49 to unlock your contact details.',
+    type: 'PaymentReceived',
+    entityType: 'payment',
+    entityId: payment.id,
+  })
 
   return NextResponse.json({ received: true })
 }

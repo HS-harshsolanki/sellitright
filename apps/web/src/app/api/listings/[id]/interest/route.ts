@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { buyerInterestSchema } from '@/lib/validators'
+import { createNotification } from '@/lib/notifications'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -114,6 +115,20 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       { error: 'Failed to submit request. Please try again.' },
       { status: 500 },
     )
+  }
+
+  // Notify seller — fire-and-forget
+  const admin = createServiceClient()
+  if (admin) {
+    await createNotification({
+      admin,
+      userId: listing.seller_id,
+      title: 'New interest request',
+      message: `${validated.fullName} is interested in your property.`,
+      type: 'InterestRequest',
+      entityType: 'interest',
+      entityId: interest.id,
+    })
   }
 
   return NextResponse.json(
