@@ -334,10 +334,10 @@ create policy "Seller can insert"
     and status in ('DRAFT', 'PENDING_REVIEW')
   );
 
--- Tightened: sellers cannot self-approve to ACTIVE or SOLD
+-- Tightened: sellers cannot self-approve to ACTIVE/SOLD and cannot mutate ACTIVE/SOLD/REJECTED rows
 create policy "Seller can update own listings"
   on public.listings for update
-  using (auth.uid() = seller_id)
+  using (auth.uid() = seller_id and status in ('DRAFT', 'PENDING_REVIEW', 'INACTIVE'))
   with check (
     auth.uid() = seller_id
     and status in ('DRAFT', 'PENDING_REVIEW', 'INACTIVE')
@@ -423,6 +423,7 @@ create policy "Buyer can insert interest"
   with check (
     auth.uid() = buyer_id
     and status = 'PENDING'
+    and seller_id = (select seller_id from public.listings where id = listing_id)
   );
 
 create policy "Buyer can withdraw own interest"

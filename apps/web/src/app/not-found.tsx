@@ -36,7 +36,7 @@ export default function NotFound() {
         </Link>
 
         <Link
-          href="/"
+          href="/properties"
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-6 py-3 text-sm font-semibold text-[var(--color-foreground)] transition hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
         >
           <Search className="h-4 w-4" aria-hidden="true" />

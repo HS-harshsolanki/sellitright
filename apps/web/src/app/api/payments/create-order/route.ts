@@ -94,7 +94,6 @@ export async function POST(request: NextRequest) {
       orderId: `demo_order_${Date.now()}`,
       amount: 4900,
       currency: 'INR',
-      keyId: 'rzp_test_demo',
       demo: true,
     })
   }
@@ -137,7 +136,10 @@ export async function POST(request: NextRequest) {
       receipt: localReceiptId.slice(0, 40),
     })) as { id: string; amount: number; currency: string }
   } catch (err) {
-    console.error('[payments/create-order] Razorpay error:', err)
+    console.error(
+      '[payments/create-order] Razorpay error:',
+      err instanceof Error ? err.message : String(err),
+    )
     // Clean up the pending row since there's no order to pay against
     await admin.from('payments').delete().eq('id', pendingPayment.id)
     return NextResponse.json(
@@ -165,6 +167,5 @@ export async function POST(request: NextRequest) {
     orderId: razorpayOrder.id,
     amount: razorpayOrder.amount,
     currency: razorpayOrder.currency,
-    keyId: process.env.RAZORPAY_KEY_ID,
   })
 }

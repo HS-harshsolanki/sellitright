@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { createNotification, createNotifications } from '@/lib/notifications'
-import { verifyRazorpaySignature, isRazorpayConfigured } from '@/lib/razorpay'
+import { verifyRazorpaySignature } from '@/lib/razorpay'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 interface VerifyBody {
@@ -47,11 +47,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid order ID format.' }, { status: 400 })
   }
 
+  // Validate payment ID format for defence-in-depth
+  const isDemoPaymentId = isDev && razorpayPaymentId.startsWith('demo_pay_')
+  if (!isDemoPaymentId && !/^pay_[A-Za-z0-9]{14,}$/.test(razorpayPaymentId)) {
+    return NextResponse.json({ error: 'Invalid payment ID format.' }, { status: 400 })
+  }
+
   // ── Verify HMAC signature ─────────────────────────────────────────────────
+  // Demo mode is only permitted in development with a demo_ order ID
   const isDemoOrder =
-    process.env.NODE_ENV === 'development' &&
-    razorpayOrderId.startsWith('demo_order_') &&
-    !isRazorpayConfigured()
+    process.env.NODE_ENV === 'development' && razorpayOrderId.startsWith('demo_order_')
   if (!isDemoOrder) {
     const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)
     if (!isValid) {

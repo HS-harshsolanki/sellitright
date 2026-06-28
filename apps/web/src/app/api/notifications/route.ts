@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[notifications] fetch error:', error.message)
-    return NextResponse.json({ notifications: [], total: 0, unreadCount: 0 })
+    return NextResponse.json({ error: 'Failed to fetch notifications.' }, { status: 500 })
   }
 
   const notifications: NotificationItem[] = (data ?? []).map((row) => ({
@@ -82,11 +82,14 @@ export async function GET(request: NextRequest) {
     createdAt: row.created_at as string,
   }))
 
-  return NextResponse.json({
-    notifications,
-    total: count ?? 0,
-    unreadCount: unreadCount ?? 0,
-    page,
-    totalPages: Math.ceil((count ?? 0) / limit),
-  })
+  return NextResponse.json(
+    {
+      notifications,
+      total: count ?? 0,
+      unreadCount: unreadCount ?? 0,
+      page,
+      totalPages: Math.ceil((count ?? 0) / limit),
+    },
+    { headers: { 'Cache-Control': 'no-store' } },
+  )
 }

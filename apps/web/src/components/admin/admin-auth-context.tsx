@@ -28,9 +28,9 @@ export function AdminAuthProvider({ children, onAuthenticated }: ProviderProps) 
   const [adminKey, setAdminKey] = useState<string>('')
   const [isValidating, setIsValidating] = useState(true)
 
-  // Hydrate from localStorage and validate
+  // Hydrate from sessionStorage and validate
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = sessionStorage.getItem(STORAGE_KEY)
     if (!stored) {
       setIsValidating(false)
       onAuthenticated(false)
@@ -42,7 +42,7 @@ export function AdminAuthProvider({ children, onAuthenticated }: ProviderProps) 
           setAdminKey(stored)
           onAuthenticated(true)
         } else {
-          localStorage.removeItem(STORAGE_KEY)
+          sessionStorage.removeItem(STORAGE_KEY)
           onAuthenticated(false)
         }
       })
@@ -65,7 +65,7 @@ export function AdminAuthProvider({ children, onAuthenticated }: ProviderProps) 
   )
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
+    sessionStorage.removeItem(STORAGE_KEY)
     setAdminKey('')
     onAuthenticated(false)
   }, [onAuthenticated])
@@ -94,7 +94,7 @@ export function useAdminLogin() {
         headers: { 'x-admin-key': trimmed },
       })
       if (res.ok) {
-        localStorage.setItem(STORAGE_KEY, trimmed)
+        sessionStorage.setItem(STORAGE_KEY, trimmed)
         onSuccess()
       } else {
         setError(res.status === 401 ? 'Invalid admin key.' : 'Unable to verify key. Try again.')

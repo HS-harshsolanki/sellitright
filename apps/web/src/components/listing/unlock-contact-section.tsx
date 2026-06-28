@@ -1,7 +1,7 @@
 'use client'
 
 import { Lock, Loader2, Phone, Mail, MessageCircle, AlertCircle, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 import { Button } from '@/components/ui/button'
 
@@ -45,6 +45,7 @@ interface UnlockContactSectionProps {
 }
 
 type FlowState = 'idle' | 'ordering' | 'paying' | 'verifying' | 'error'
+type ErrorType = 'order_creation' | 'verification' | 'generic'
 
 // ── Helper: load Razorpay SDK ─────────────────────────────────────────────────
 
@@ -71,6 +72,17 @@ export function UnlockContactSection({
 }: UnlockContactSectionProps) {
   const [flowState, setFlowState] = useState<FlowState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorType, setErrorType] = useState<ErrorType>('generic')
+  const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clear popup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
+    }
+  }, [])
+
+  const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? ''
 
   async function handleUnlock() {
     setFlowState('ordering')
@@ -81,7 +93,6 @@ export function UnlockContactSection({
       orderId: string
       amount: number
       currency: string
-      keyId: string
       demo?: boolean
     }
 
@@ -98,28 +109,22 @@ export function UnlockContactSection({
       }
 
       if (res.status === 409 && json.alreadyPaid) {
-        // Already paid — refetch to get contact details
+        // Already paid — fetch contact details from the dedicated status endpoint
         setFlowState('verifying')
-        const verifyRes = await fetch('/api/payments/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            razorpayOrderId: 'already_paid',
-            razorpayPaymentId: 'already_paid',
-            razorpaySignature: 'already_paid',
-            interestId,
-          }),
-        })
-        const verifyData = (await verifyRes.json()) as {
-          success?: boolean
+        const statusRes = await fetch(
+          `/api/payments/status?interestId=${encodeURIComponent(interestId)}`,
+        )
+        const statusData = (await statusRes.json()) as {
+          unlocked?: boolean
           sellerPhone?: string
           sellerEmail?: string
-          alreadyPaid?: boolean
+          error?: string
         }
-        if (verifyData.sellerPhone) {
-          onUnlocked(verifyData.sellerPhone, verifyData.sellerEmail ?? null)
+        if (statusData.unlocked && statusData.sellerPhone) {
+          onUnlocked(statusData.sellerPhone, statusData.sellerEmail ?? null)
+          return
         }
-        return
+        throw new Error(statusData.error ?? 'Could not retrieve contact details.')
       }
 
       if (!res.ok) {
@@ -174,7 +179,7 @@ export function UnlockContactSection({
     }
 
     const rzp = new window.Razorpay({
-      key: orderData.keyId,
+      key: razorpayKeyId,
       amount: orderData.amount,
       currency: orderData.currency,
       order_id: orderData.orderId,

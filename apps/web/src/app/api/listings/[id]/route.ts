@@ -29,7 +29,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         console.error('[api/listings/[id]] Supabase error:', error.message)
         // Fall through to mock on unexpected errors
       } else if (data) {
-        return NextResponse.json(mapSupabaseListingToMock(data))
+        return NextResponse.json(mapSupabaseListingToMock(data), {
+          headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
+        })
       }
     }
   }

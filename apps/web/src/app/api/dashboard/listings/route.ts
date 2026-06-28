@@ -39,12 +39,10 @@ export async function GET(request: NextRequest) {
     }
 
     const total = count ?? 0
-    return NextResponse.json({
-      listings: data ?? [],
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    })
+    return NextResponse.json(
+      { listings: data ?? [], total, page, totalPages: Math.ceil(total / limit) },
+      { headers: { 'Cache-Control': 'no-store' } },
+    )
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

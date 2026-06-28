@@ -87,7 +87,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
       }
     }
   } catch {
-    // Supabase not configured or network error — fall through to mock
+    // Supabase not configured or network error — fall through to notFound()
   }
 
   // ── 2. 404 if Supabase returned nothing ──────────────────────────────────
@@ -185,7 +185,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
           {/* Back to browse breadcrumb */}
           <div className="mb-3 flex items-center justify-between gap-4">
             <Link
-              href="/"
+              href="/properties"
               className="flex items-center gap-1.5 text-sm text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
             >
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />

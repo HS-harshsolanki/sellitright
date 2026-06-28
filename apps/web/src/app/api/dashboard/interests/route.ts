@@ -99,10 +99,8 @@ export async function GET(request: NextRequest) {
   })
 
   const total = count ?? 0
-  return NextResponse.json({
-    interests,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
-  })
+  return NextResponse.json(
+    { interests, total, page, totalPages: Math.ceil(total / limit) },
+    { headers: { 'Cache-Control': 'no-store' } },
+  )
 }
