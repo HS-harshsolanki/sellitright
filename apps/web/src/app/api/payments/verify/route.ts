@@ -38,7 +38,10 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Verify HMAC signature ─────────────────────────────────────────────────
-  const isDemoOrder = razorpayOrderId.startsWith('demo_order_') && !isRazorpayConfigured()
+  const isDemoOrder =
+    process.env.NODE_ENV === 'development' &&
+    razorpayOrderId.startsWith('demo_order_') &&
+    !isRazorpayConfigured()
   if (!isDemoOrder) {
     const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)
     if (!isValid) {

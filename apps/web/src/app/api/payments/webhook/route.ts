@@ -52,9 +52,8 @@ export async function POST(request: NextRequest) {
 
   const admin = createServiceClient()
   if (!admin) {
-    // Can't process without service role — log and return 200 so Razorpay doesn't retry
     console.error('[webhook] createServiceClient returned null — SUPABASE_SERVICE_ROLE_KEY missing')
-    return NextResponse.json({ received: true })
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 500 })
   }
 
   // ── Find the payment row ──────────────────────────────────────────────────

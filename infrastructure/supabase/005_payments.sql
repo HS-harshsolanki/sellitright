@@ -38,6 +38,16 @@ create policy "Buyer reads own payments"
   for select
   using (auth.uid() = buyer_id);
 
+-- Prevent authenticated clients from directly mutating payment rows.
+-- All writes go through service-role API routes only.
+create policy "No direct payment mutations"
+  on public.payments for update
+  using (false);
+
+create policy "No direct payment deletes"
+  on public.payments for delete
+  using (false);
+
 -- ── buyer_interest additions ──────────────────────────────────────────────────
 -- contact_unlocked: flips to true after successful payment
 -- seller_phone / seller_email: written at verify time, revealed to buyer

@@ -22,5 +22,5 @@ create policy "Seller can update own listings"
   using (auth.uid() = seller_id)
   with check (
     auth.uid() = seller_id
-    and status in ('DRAFT', 'PENDING_REVIEW', 'INACTIVE', 'REJECTED')
+    and status in ('DRAFT', 'PENDING_REVIEW', 'INACTIVE')
   );

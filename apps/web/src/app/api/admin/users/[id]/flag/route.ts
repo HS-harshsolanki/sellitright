@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'node:crypto'
 import { ZodError } from 'zod'
 import { createServiceClient } from '@/lib/supabase/server'
 import { adminFlagUserSchema } from '@/lib/validators'
@@ -8,7 +9,12 @@ const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
 function isAuthorized(request: NextRequest): boolean {
   if (!ADMIN_KEY) return false
-  return request.headers.get('x-admin-key') === ADMIN_KEY
+  const provided = request.headers.get('x-admin-key') ?? ''
+  try {
+    return timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
+  } catch {
+    return false
+  }
 }
 
 interface RouteContext {
