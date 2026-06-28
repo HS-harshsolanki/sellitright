@@ -1,7 +1,9 @@
 import crypto from 'node:crypto'
+
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+
 import { getRazorpayInstance, isRazorpayConfigured } from '@/lib/razorpay'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 // POST /api/payments/create-order
 // Creates a Razorpay order for the ₹49 contact-unlock fee.
@@ -61,6 +63,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'Contact is already unlocked.', alreadyPaid: true },
       { status: 409 },
+    )
+  }
+
+  // ── Rate limit: max 5 PENDING orders per user per 60 s ───────────────────
+  const { count: recentCount } = await supabase
+    .from('payments')
+    .select('id', { count: 'exact', head: true })
+    .eq('buyer_id', user.id)
+    .eq('status', 'PENDING')
+    .gte('created_at', new Date(Date.now() - 60_000).toISOString())
+
+  if ((recentCount ?? 0) >= 5) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait a moment before trying again.' },
+      { status: 429 },
     )
   }
 

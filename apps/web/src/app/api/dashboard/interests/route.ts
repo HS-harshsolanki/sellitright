@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+
 import { createClient } from '@/lib/supabase/server'
 
 export interface SellerInterestItem {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const statusParam = searchParams.get('status') ?? 'ALL'
   const sort = searchParams.get('sort') ?? 'newest'
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
+  const page = Math.min(500, Math.max(1, parseInt(searchParams.get('page') ?? '1', 10)))
   const limit = 20
   const offset = (page - 1) * limit
 
