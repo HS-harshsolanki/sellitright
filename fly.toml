@@ -3,11 +3,8 @@ primary_region = "sin"
 
 [build]
   dockerfile = "Dockerfile"
-
-[build.args]
-  NEXT_PUBLIC_SUPABASE_URL = ""
-  NEXT_PUBLIC_SUPABASE_ANON_KEY = ""
-  NEXT_PUBLIC_APP_URL = "https://sellitright.fly.dev"
+  # NEXT_PUBLIC_* vars are passed via --build-arg in deploy.yml.
+  # Do NOT add [build.args] here — empty strings would bake silently into the image.
 
 [env]
   PORT = "3000"

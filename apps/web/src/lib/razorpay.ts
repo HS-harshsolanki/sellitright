@@ -1,5 +1,6 @@
-import Razorpay from 'razorpay'
 import crypto from 'crypto'
+
+import Razorpay from 'razorpay'
 
 export function getRazorpayInstance(): Razorpay {
   return new Razorpay({
@@ -43,6 +44,10 @@ export function verifyRazorpaySignature(
 export function verifyWebhookSignature(rawBody: string, signature: string): boolean {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET
   if (!secret) return false // reject all webhooks when secret not configured
+  if (!/^[0-9a-f]{64}$/.test(signature)) {
+    console.warn('[razorpay] invalid webhook signature format — expected 64-char hex')
+    return false
+  }
   const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
   try {
     return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'))
