@@ -17,15 +17,19 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'SellItRight - Find Your Perfect Home',
+  metadataBase: new URL('https://sellitright.in'),
+  title: {
+    default: 'SellItRight — Buy Property Directly from Owners',
+    template: '%s | SellItRight',
+  },
   description:
-    'Browse thousands of verified flat listings across India. Find apartments, villas, and independent houses for sale — directly from owners, no brokerage.',
+    'Find verified properties across India. Buy directly from owners with zero broker fees. Browse apartments, villas, and houses — only genuine listings.',
   keywords: [
-    'flat for sale',
-    'property in India',
-    'buy apartment',
-    'real estate India',
-    'no brokerage',
+    'property for sale India',
+    'flat for sale no broker',
+    'buy apartment directly from owner',
+    'real estate India no brokerage',
+    'verified property listings',
   ],
   authors: [{ name: 'SellItRight' }],
   manifest: '/manifest.json',
@@ -40,21 +44,30 @@ export const metadata: Metadata = {
     address: false,
   },
   openGraph: {
-    title: 'SellItRight - Find Your Perfect Home',
+    title: 'SellItRight — Buy Property Directly from Owners',
     description:
-      'Browse thousands of verified flat listings across India. Find apartments, villas, and independent houses for sale — directly from owners, no brokerage.',
+      'Find verified properties across India. Buy directly from owners with zero broker fees.',
     type: 'website',
     locale: 'en_IN',
     siteName: 'SellItRight',
+    url: 'https://sellitright.in',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SellItRight - Find Your Perfect Home',
-    description: 'Browse verified flat listings across India. Buy directly from owners.',
+    title: 'SellItRight — Buy Property Directly from Owners',
+    description: 'Verified properties. Zero broker fees. Connect directly with owners.',
+    site: '@sellitright',
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
   icons: {
     icon: [

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { Suspense, useEffect, useRef, useState } from 'react'
-import { Menu, Plus, LogOut, LayoutDashboard, User, UserPlus, Bell } from 'lucide-react'
+import { Menu, Plus, LogOut, LayoutDashboard, User, UserPlus, Bell, Search } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 
 function useHasListings(userId: string | undefined): boolean {
@@ -29,26 +29,7 @@ function useHasListings(userId: string | undefined): boolean {
   return hasListings
 }
 
-function useUnreadCount(userId: string | undefined): number {
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    if (!userId) {
-      setCount(0)
-      return
-    }
-    fetch('/api/notifications?limit=1')
-      .then((r) => r.json())
-      .then((data: unknown) => {
-        if (data && typeof data === 'object' && 'unreadCount' in data) {
-          setCount((data as { unreadCount: number }).unreadCount)
-        }
-      })
-      .catch(() => {})
-  }, [userId])
-
-  return count
-}
+import { useNotifications } from '@/hooks/use-notifications'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { HeaderSearch } from '@/components/layout/header-search'
 import { cn } from '@/lib/utils'
@@ -62,10 +43,16 @@ function Logo() {
       className="shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
       aria-label="SellItRight home"
     >
-      <span className="block text-lg font-bold tracking-tight text-[var(--color-primary)] md:hidden">
+      <span
+        aria-hidden="true"
+        className="block text-lg font-bold tracking-tight text-[var(--color-primary)] md:hidden"
+      >
         SIR
       </span>
-      <span className="hidden text-xl font-bold leading-none tracking-tight md:block">
+      <span
+        aria-hidden="true"
+        className="hidden text-xl font-bold leading-none tracking-tight md:block"
+      >
         <span className="text-[var(--color-primary)]">Sell</span>
         <span className="text-[var(--color-foreground)]">ItRight</span>
       </span>
@@ -279,6 +266,18 @@ function MobileSheet({
 
         <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
           <Link
+            href="/properties"
+            className={cn(
+              'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
+              pathname.startsWith('/properties')
+                ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
+                : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
+            )}
+          >
+            <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Browse Properties
+          </Link>
+          <Link
             href="/sell"
             className="flex items-center gap-2.5 rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
@@ -378,7 +377,8 @@ export function Header() {
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const hasListings = useHasListings(user?.id)
-  const unreadCount = useUnreadCount(user?.id)
+  // Single shared hook — bell and mobile badge read from the same state
+  const notificationsHook = useNotifications(user?.id)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0)
@@ -415,6 +415,16 @@ export function Header() {
         {/* Zone 3: Right actions — desktop */}
         <div className="hidden shrink-0 items-center gap-3 md:flex">
           <Link
+            href="/properties"
+            className={cn(
+              'rounded-full px-4 py-2 text-sm font-medium text-[var(--color-muted-foreground)]',
+              'transition-colors duration-150 hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
+            )}
+          >
+            Browse
+          </Link>
+          <Link
             href="/sell"
             className={cn(
               'rounded-full bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm',
@@ -426,7 +436,7 @@ export function Header() {
           </Link>
 
           {/* Notification bell — authenticated users only */}
-          {!loading && user && <NotificationBell userId={user.id} />}
+          {!loading && user && <NotificationBell hook={notificationsHook} />}
 
           {/* Loading skeleton to avoid layout shift */}
           {loading ? (
@@ -458,7 +468,7 @@ export function Header() {
             hasListings={hasListings}
             pathname={pathname}
             onSignOut={signOut}
-            notificationCount={unreadCount}
+            notificationCount={notificationsHook.unreadCount}
           />
         </div>
       </div>

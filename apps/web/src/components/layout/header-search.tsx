@@ -41,7 +41,7 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
     } else {
       params.delete('q')
     }
-    router.push(`/?${params.toString()}`)
+    router.push(`/properties?${params.toString()}`)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

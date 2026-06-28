@@ -12,7 +12,7 @@ export function MobileNav() {
 
   const tabs = [
     { href: '/', label: 'Home', icon: Home },
-    { href: '/?focus=search', label: 'Search', icon: Search, matchHref: '/' },
+    { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
     { href: '/sell', label: 'Sell', icon: PlusSquare },
     user
       ? { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }
