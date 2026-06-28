@@ -1,8 +1,101 @@
+import { ArrowRight, ShieldCheck, Eye, Lock, BadgeCheck, Flag, PhoneOff } from 'lucide-react'
 import Link from 'next/link'
-import { MOCK_LISTINGS } from '@/lib/mock-data'
+
 import { ListingCard } from '@/components/listing/listing-card'
+import { MOCK_LISTINGS } from '@/lib/mock-data'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
+
+const PAIN_POINTS = [
+  {
+    icon: PhoneOff,
+    title: 'Broker spam',
+    description: 'You enquire once. Your number gets sold to 12 brokers before evening.',
+  },
+  {
+    icon: Eye,
+    title: 'Fake listings',
+    description: 'Photos from two years ago. Owner moved. Property already sold. You still called.',
+  },
+  {
+    icon: Flag,
+    title: 'Hidden commissions',
+    description: '1–2% of the sale price. Lakhs of rupees. For what, exactly?',
+  },
+  {
+    icon: Lock,
+    title: 'No privacy',
+    description: "Your contact details are shared without consent. You didn't agree to this.",
+  },
+]
+
+const HANDSHAKE_STEPS = [
+  {
+    step: 1,
+    actor: 'Owner',
+    label: 'Lists property',
+    sub: 'Verified, with real photos and details',
+  },
+  { step: 2, actor: 'Buyer', label: 'Sends a request', sub: 'Expresses genuine interest' },
+  { step: 3, actor: 'Owner', label: 'Reviews & approves', sub: 'Full control — no cold contacts' },
+  { step: 4, actor: 'Buyer', label: 'Unlocks contact', sub: 'Pays ₹49 flat to connect' },
+  { step: 5, actor: 'Both', label: 'Conversation begins', sub: 'Direct. No middlemen.' },
+]
+
+const TRUST_PILLARS = [
+  {
+    icon: BadgeCheck,
+    title: 'Manual listing review',
+    description: 'Every listing is reviewed by our team before it goes live. No auto-approvals.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Verified owners',
+    description: 'Owners verify their identity before listing. You know who you are talking to.',
+  },
+  {
+    icon: Lock,
+    title: 'Mutual consent',
+    description:
+      'Owners approve every buyer request. Your number is never shared without your knowledge.',
+  },
+  {
+    icon: Eye,
+    title: 'Privacy by default',
+    description: 'Contact details are hidden until both parties consent to connect.',
+  },
+  {
+    icon: Flag,
+    title: 'Broker reporting',
+    description: 'Spot a broker posing as an owner? One tap to report. We investigate every claim.',
+  },
+  {
+    icon: ArrowRight,
+    title: 'Flat ₹49 connection fee',
+    description: 'No percentage commissions. No hidden charges. A flat fee keeps buyers genuine.',
+  },
+]
+
+const TESTIMONIALS = [
+  {
+    quote:
+      'I listed my 2BHK and had three genuine buyer requests within a week. No broker calls. No spam. Just real people.',
+    name: 'Priya M.',
+    role: 'Owner, Bengaluru',
+  },
+  {
+    quote:
+      'Every other portal sold my number to agents. Here I chose who gets to contact me. That alone is worth it.',
+    name: 'Rahul S.',
+    role: 'Buyer, Pune',
+  },
+  {
+    quote:
+      "The listing review gave me confidence that the properties I was browsing were real. That's rare in this market.",
+    name: 'Ananya K.',
+    role: 'Buyer, Mumbai',
+  },
+]
 
 const TRUST_METRICS = [
   { value: '2,400+', label: 'Verified Owners' },
@@ -10,37 +103,6 @@ const TRUST_METRICS = [
   { value: '1,200+', label: 'Successful Connections' },
   { value: '< 24 hrs', label: 'Average Response' },
 ]
-
-const HOW_IT_WORKS_STEPS = [
-  {
-    step: 1,
-    title: 'Owner Lists Property',
-    description: 'Create a verified listing with photos and details',
-  },
-  {
-    step: 2,
-    title: 'Buyer Sends Request',
-    description: 'Interested buyer sends a connection request',
-  },
-  { step: 3, title: 'Owner Accepts', description: 'Owner reviews and accepts the request' },
-  {
-    step: 4,
-    title: 'Buyer Unlocks Contact',
-    description: 'Buyer pays a small fee to unlock contact details',
-  },
-  { step: 5, title: 'Both Connect', description: 'Direct conversation — no middlemen' },
-]
-
-const COMPARISON_ROWS = [
-  { feature: 'Broker fees', ours: 'None', theirs: '1–2% commission' },
-  { feature: 'Contact spam', ours: 'Zero', theirs: 'Constant calls' },
-  { feature: 'Owner verification', ours: 'Every listing', theirs: 'Varies' },
-  { feature: 'Buyer consent', ours: 'Required', theirs: 'Not required' },
-  { feature: 'Connection fee', ours: '₹49 flat', theirs: 'Negotiated per deal' },
-  { feature: 'Listing fee', ours: 'Free', theirs: 'Paid plans only' },
-]
-
-// ─── Featured listings ─────────────────────────────────────────────────────────
 
 const featured = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE').slice(0, 6)
 
@@ -50,46 +112,71 @@ export default function LandingPage() {
   return (
     <main>
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <section aria-labelledby="hero-heading" className="py-20 md:py-32">
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
+      <section aria-labelledby="hero-heading" className="relative overflow-hidden py-24 md:py-36">
+        {/* Subtle radial glow — purely decorative */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(198,46,73,0.06) 0%, transparent 70%)',
+          }}
+          aria-hidden="true"
+        />
+
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          {/* Trust signal above headline */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] shadow-sm">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
+            Every listing is manually verified
+          </div>
+
           <h1
             id="hero-heading"
-            className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl"
+            className="mt-6 text-4xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-5xl md:text-6xl"
           >
-            Find Your Next Home.{' '}
-            <span className="text-[var(--color-accent)]">Directly From the Owner.</span>
+            Buy or sell property.{' '}
+            <span style={{ color: 'var(--color-accent)' }}>Without brokers.</span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-[var(--color-muted-foreground)] sm:text-xl">
-            No brokers. No spam. Only verified owners and genuine buyers.
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-muted-foreground)]">
+            SellItRight connects verified owners directly with genuine buyers — no spam, no
+            commissions, no middlemen.
           </p>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Link
               href="/properties"
-              aria-label="Browse all properties"
-              className="rounded-full bg-[var(--color-primary)] px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-gray-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 active:scale-[0.97]"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-gray-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 active:scale-[0.97]"
             >
-              Browse Properties
+              Browse Homes
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <Link
               href="/sell"
-              aria-label="Post your property for free"
-              className="rounded-full border border-[var(--color-border)] px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] transition-all hover:bg-[var(--color-muted)] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] transition-all hover:bg-[var(--color-muted)] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
             >
               Post Property Free
             </Link>
           </div>
+
+          <p className="mt-5 text-xs text-[var(--color-muted-foreground)]">
+            Free to list &nbsp;·&nbsp; No broker fees &nbsp;·&nbsp; ₹49 to connect
+          </p>
         </div>
       </section>
 
       {/* ── Trust Metrics ────────────────────────────────────────────────────── */}
-      <section aria-label="Platform statistics" className="bg-[var(--color-muted)] py-14">
+      <section
+        aria-label="Platform statistics"
+        className="border-y border-[var(--color-border)] bg-[var(--color-muted)] py-12"
+      >
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <dl className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {TRUST_METRICS.map(({ value, label }) => (
               <div key={label} className="text-center">
-                <dt className="text-3xl font-bold text-[var(--color-foreground)]">{value}</dt>
+                <dt className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
+                  {value}
+                </dt>
                 <dd className="mt-1 text-sm text-[var(--color-muted-foreground)]">{label}</dd>
               </div>
             ))}
@@ -97,108 +184,185 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── How It Works ─────────────────────────────────────────────────────── */}
-      <section aria-labelledby="how-heading" className="py-20">
+      {/* ── Problem ──────────────────────────────────────────────────────────── */}
+      <section aria-labelledby="problem-heading" className="py-24">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <h2
-            id="how-heading"
-            className="text-center text-3xl font-bold text-[var(--color-foreground)]"
-          >
-            How SellItRight Works
-          </h2>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
+              The problem
+            </p>
+            <h2
+              id="problem-heading"
+              className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+            >
+              Property portals were built for brokers,
+              <br className="hidden sm:block" /> not for you.
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-[var(--color-muted-foreground)]">
+              You wanted to find a home. Instead you got a call centre.
+            </p>
+          </div>
 
-          <ol className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-5">
-            {HOW_IT_WORKS_STEPS.map(({ step, title, description }, idx) => (
-              <li key={step} className="flex flex-col items-center text-center">
-                <div
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary)] text-lg font-bold text-white"
-                  aria-hidden="true"
-                >
-                  {step}
+          <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {PAIN_POINTS.map(({ icon: Icon, title, description }) => (
+              <div
+                key={title}
+                className="rounded-2xl border border-[var(--color-border)] bg-white p-6"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-muted)]">
+                  <Icon className="h-5 w-5 text-[var(--color-foreground)]" aria-hidden="true" />
                 </div>
-                {/* Connector line between steps — desktop only */}
-                {idx < HOW_IT_WORKS_STEPS.length - 1 && (
-                  <div className="hidden sm:block" aria-hidden="true" />
-                )}
-                <h3 className="mt-4 text-sm font-semibold text-[var(--color-foreground)]">
+                <h3 className="mt-4 text-base font-semibold text-[var(--color-foreground)]">
                   {title}
                 </h3>
-                <p className="mt-2 text-xs leading-relaxed text-[var(--color-muted-foreground)]">
+                <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
                   {description}
                 </p>
-              </li>
+              </div>
             ))}
-          </ol>
+          </div>
+
+          <p className="mt-14 text-center text-xl font-semibold text-[var(--color-foreground)]">
+            There had to be a better way.
+          </p>
         </div>
       </section>
 
-      {/* ── Why SellItRight ──────────────────────────────────────────────────── */}
-      <section aria-labelledby="why-heading" className="bg-[var(--color-muted)] py-20">
+      {/* ── Solution — The Handshake Model ───────────────────────────────────── */}
+      <section aria-labelledby="solution-heading" className="bg-[var(--color-primary)] py-24">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <h2
-            id="why-heading"
-            className="text-center text-3xl font-bold text-[var(--color-foreground)]"
-          >
-            Why SellItRight?
-          </h2>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-widest text-white/50">
+              How it works
+            </p>
+            <h2
+              id="solution-heading"
+              className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl"
+            >
+              The Handshake Model
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-white/70">
+              Every connection on SellItRight requires consent from both sides. No unsolicited
+              contact. Ever.
+            </p>
+          </div>
 
-          <div className="mx-auto mt-12 max-w-3xl overflow-hidden rounded-2xl border border-[var(--color-border)]">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-white">
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-[var(--color-foreground)]"
-                  >
-                    Feature
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-[var(--color-foreground)]"
-                  >
-                    SellItRight
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-[var(--color-foreground)]"
-                  >
-                    Traditional Portals
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON_ROWS.map(({ feature, ours, theirs }, idx) => (
-                  <tr
-                    key={feature}
-                    className={idx % 2 === 0 ? 'bg-[var(--color-muted)]' : 'bg-white'}
-                  >
-                    <td className="px-6 py-3 text-sm font-medium text-[var(--color-foreground)]">
-                      {feature}
-                    </td>
-                    <td className="px-6 py-3 text-sm font-semibold text-green-600">✓ {ours}</td>
-                    <td className="px-6 py-3 text-sm text-[var(--color-muted-foreground)]">
-                      {theirs}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Steps — vertical on mobile, horizontal on desktop */}
+          <ol className="mt-16 flex flex-col gap-0 sm:flex-row">
+            {HANDSHAKE_STEPS.map(({ step, actor, label, sub }, idx) => (
+              <li key={step} className="flex flex-1 flex-col items-center text-center">
+                {/* Connector line — desktop */}
+                <div className="relative flex w-full items-center justify-center">
+                  {idx > 0 && (
+                    <div
+                      className="absolute right-1/2 hidden h-px w-full bg-white/20 sm:block"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {idx < HANDSHAKE_STEPS.length - 1 && (
+                    <div
+                      className="absolute left-1/2 hidden h-px w-full bg-white/20 sm:block"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {/* Mobile vertical line above (except first) */}
+                  {idx > 0 && (
+                    <div
+                      className="absolute bottom-full mb-0 h-6 w-px bg-white/20 sm:hidden"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-base font-bold text-white backdrop-blur-sm">
+                    {step}
+                  </div>
+                </div>
+
+                {/* Actor tag */}
+                <span className="mt-4 rounded-full bg-white/10 px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-white/60">
+                  {actor}
+                </span>
+                <h3 className="mt-2 text-sm font-semibold text-white">{label}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-white/55">{sub}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-14 text-center">
+            <Link
+              href="/properties"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] shadow-sm transition-all hover:bg-gray-100 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-primary)] active:scale-[0.97]"
+            >
+              See how it works
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Trust Center ─────────────────────────────────────────────────────── */}
+      <section aria-labelledby="trust-heading" className="py-24">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
+              Trust &amp; safety
+            </p>
+            <h2
+              id="trust-heading"
+              className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+            >
+              Built on trust, not just listings
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-[var(--color-muted-foreground)]">
+              Every feature on SellItRight exists to answer one question: why should you trust us?
+            </p>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {TRUST_PILLARS.map(({ icon: Icon, title, description }) => (
+              <div
+                key={title}
+                className="rounded-2xl border border-[var(--color-border)] bg-white p-6 transition-shadow hover:shadow-md"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-muted)]">
+                  <Icon className="h-5 w-5 text-[var(--color-foreground)]" aria-hidden="true" />
+                </div>
+                <h3 className="mt-4 text-sm font-semibold text-[var(--color-foreground)]">
+                  {title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+                  {description}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ── Featured Properties ───────────────────────────────────────────────── */}
-      <section aria-labelledby="featured-heading" className="py-20">
+      <section aria-labelledby="featured-heading" className="bg-[var(--color-muted)] py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <h2
-            id="featured-heading"
-            className="text-center text-3xl font-bold text-[var(--color-foreground)]"
-          >
-            Featured Properties
-          </h2>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
+                Listings
+              </p>
+              <h2
+                id="featured-heading"
+                className="mt-1 text-3xl font-bold tracking-tight text-[var(--color-foreground)]"
+              >
+                Recently verified homes
+              </h2>
+            </div>
+            <Link
+              href="/properties"
+              className="shrink-0 text-sm font-semibold text-[var(--color-foreground)] underline-offset-4 hover:underline"
+            >
+              View all properties
+            </Link>
+          </div>
 
           <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((listing) => (
+            {featured.map((listing, idx) => (
               <ListingCard
                 key={listing.id}
                 id={listing.id}
@@ -216,44 +380,76 @@ export default function LandingPage() {
                 createdAt={listing.createdAt}
                 viewCount={listing.viewCount}
                 ageOfProperty={listing.ageOfProperty}
+                priorityImage={idx === 0}
               />
             ))}
-          </div>
-
-          <div className="mt-12 text-center">
-            <Link
-              href="/properties"
-              aria-label="View all property listings"
-              className="rounded-full border border-[var(--color-border)] px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] transition-all hover:bg-[var(--color-muted)] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-            >
-              View All Properties
-            </Link>
           </div>
         </div>
       </section>
 
-      {/* ── CTA Banner ───────────────────────────────────────────────────────── */}
-      <section aria-labelledby="cta-heading" className="bg-[var(--color-primary)] py-20">
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-          <h2 id="cta-heading" className="text-3xl font-bold text-white">
-            Ready to find your next home?
+      {/* ── Testimonials ─────────────────────────────────────────────────────── */}
+      <section aria-labelledby="testimonials-heading" className="py-24">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
+              Stories
+            </p>
+            <h2
+              id="testimonials-heading"
+              className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+            >
+              Real people. Real outcomes.
+            </h2>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {TESTIMONIALS.map(({ quote, name, role }) => (
+              <figure
+                key={name}
+                className="flex flex-col rounded-2xl border border-[var(--color-border)] bg-white p-6"
+              >
+                {/* Quote mark */}
+                <span
+                  className="font-serif text-4xl leading-none text-[var(--color-border)]"
+                  aria-hidden="true"
+                >
+                  &ldquo;
+                </span>
+                <blockquote className="mt-2 flex-1 text-sm leading-relaxed text-[var(--color-foreground)]">
+                  {quote}
+                </blockquote>
+                <figcaption className="mt-6 border-t border-[var(--color-border)] pt-4">
+                  <p className="text-sm font-semibold text-[var(--color-foreground)]">{name}</p>
+                  <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">{role}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Final CTA ────────────────────────────────────────────────────────── */}
+      <section aria-labelledby="cta-heading" className="bg-[var(--color-primary)] py-24">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <h2 id="cta-heading" className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Ready to buy or sell
+            <br className="hidden sm:block" /> without brokers?
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-white/70">
-            Join thousands of verified owners and genuine buyers on SellItRight.
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/70">
+            Join thousands of verified owners and genuine buyers. No commissions. No spam. No
+            middlemen.
           </p>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Link
               href="/properties"
-              aria-label="Browse all properties"
-              className="rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] shadow-sm transition-all hover:bg-gray-100 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-primary)] active:scale-[0.97]"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] shadow-sm transition-all hover:bg-gray-100 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-primary)] active:scale-[0.97]"
             >
-              Browse Properties
+              Browse Homes
             </Link>
             <Link
               href="/sell"
-              aria-label="Post your property for free"
-              className="rounded-full border border-white px-8 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="inline-flex items-center gap-2 rounded-full border border-white/40 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:border-white/70 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               Post Property Free
             </Link>

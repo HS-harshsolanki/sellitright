@@ -1,11 +1,13 @@
-import Link from 'next/link'
 import { Plus } from 'lucide-react'
+import Link from 'next/link'
 
 const FOOTER_LINKS = [
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
+  { href: '/trust', label: 'Trust Center' },
   { href: '/terms', label: 'Terms' },
   { href: '/privacy', label: 'Privacy' },
+  { href: '/report', label: 'Report Abuse' },
 ] as const
 
 export function Footer() {
@@ -18,10 +20,14 @@ export function Footer() {
             <Link
               href="/"
               className="flex items-center gap-1 text-base font-bold leading-none tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-              aria-label="SellItRight home"
             >
-              <span className="text-[var(--color-accent)]">Sell</span>
-              <span className="text-[var(--color-foreground)]">ItRight</span>
+              <span className="sr-only">SellItRight home</span>
+              <span aria-hidden="true" className="text-[var(--color-accent)]">
+                Sell
+              </span>
+              <span aria-hidden="true" className="text-[var(--color-foreground)]">
+                ItRight
+              </span>
             </Link>
             <p className="text-xs text-[var(--color-muted-foreground)]">
               Find your perfect home across India.
