@@ -19,19 +19,27 @@ interface ListingPageProps {
 
 export async function generateMetadata({ params }: ListingPageProps): Promise<Metadata> {
   const { id } = await params
-  const listing = getListingById(id)
+
+  const supabase = await createClient()
+  const { data: listing } = await supabase
+    .from('listings')
+    .select('title, price, property_type, bhk_type, city, locality, description, image_urls')
+    .eq('id', id)
+    .single()
+
   if (!listing) return { title: 'Listing not found' }
 
   const priceStr = formatPrice(listing.price)
-  const bhk = formatBHK(listing.bhkType)
+  const bhk = formatBHK(listing.bhk_type ?? '')
+  const description = (listing.description ?? '').slice(0, 155)
 
   return {
     title: `${bhk} in ${listing.locality}, ${listing.city} — ${priceStr} | SellItRight`,
-    description: listing.description.slice(0, 155),
+    description,
     openGraph: {
       title: listing.title,
-      description: listing.description.slice(0, 155),
-      images: listing.images[0] ? [{ url: listing.images[0].url }] : [],
+      description,
+      images: listing.image_urls?.[0] ? [{ url: listing.image_urls[0] }] : [],
     },
   }
 }
@@ -327,11 +335,6 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 {listing.address}, {listing.locality}, {listing.city} — {listing.pincode}
               </address>
-
-              {/* Map placeholder */}
-              <div className="flex h-56 items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-muted)] text-sm text-[var(--color-muted-foreground)]">
-                Map coming soon
-              </div>
             </section>
 
             {/* Contact card — mobile inline (below location) */}

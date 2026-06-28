@@ -20,7 +20,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('listings')
       .select(
-        'id, title, price, property_type, bhk_type, built_up_area, city, locality, image_urls, status, is_verified, view_count, rejection_reason, created_at, updated_at',
+        'id, title, price, property_type, bhk_type, built_up_area, furnishing, bathrooms, balconies, city, locality, image_urls, status, is_verified, view_count, rejection_reason, created_at, updated_at',
       )
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false })

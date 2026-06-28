@@ -79,6 +79,7 @@ function buildDraftPayload(state: ReturnType<typeof useSellFormStore.getState>) 
     price: pricing.price ? Number(pricing.price.replace(/,/g, '')) : undefined,
     title: pricing.title || undefined,
     description: pricing.description || undefined,
+    negotiable: pricing.negotiable,
   }
 }
 
@@ -165,12 +166,27 @@ export default function SellPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Read ?draftId from URL and pre-load the draft into the store
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const draftId = params.get('draftId')
+    if (draftId && !useSellFormStore.getState().draftId) {
+      useSellFormStore.getState().setDraftId(draftId)
+    }
+  }, [])
+
   function canProceed(): boolean {
     switch (currentStep) {
       case 'property-type':
         return propertyType !== null
       case 'location':
-        return Boolean(location.city && location.locality.trim() && location.pincode.length === 6)
+        return Boolean(
+          location.city &&
+          location.locality.trim() &&
+          location.pincode.length === 6 &&
+          location.address.trim() &&
+          location.state,
+        )
       case 'details':
         return Boolean(details.bhkType && details.builtUpArea)
       case 'photos':

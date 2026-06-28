@@ -19,7 +19,6 @@ import {
 } from 'lucide-react'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import type { MockListing, ListingStatus } from '@/lib/mock-data'
-import { MOCK_LISTINGS } from '@/lib/mock-data'
 
 type TabFilter = 'all' | 'active' | 'draft' | 'pending' | 'rejected' | 'sold' | 'buyers'
 
@@ -97,6 +96,9 @@ interface DashboardListing {
   property_type: string
   bhk_type: string | null
   built_up_area: number | null
+  furnishing: string | null
+  bathrooms: number | null
+  balconies: number | null
   city: string
   locality: string
   image_urls: string[]
@@ -120,10 +122,10 @@ function toDisplayListing(l: DashboardListing): MockListing {
     floor: null,
     totalFloors: null,
     facing: null,
-    furnishing: 'UNFURNISHED',
+    furnishing: (l.furnishing ?? 'UNFURNISHED') as MockListing['furnishing'],
     ageOfProperty: null,
-    bathrooms: 2,
-    balconies: 0,
+    bathrooms: l.bathrooms ?? 2,
+    balconies: l.balconies ?? 0,
     parking: null,
     address: `${l.locality}, ${l.city}`,
     city: l.city,
@@ -259,7 +261,7 @@ function ListingCard({ listing }: ListingCardProps) {
         <div className="mt-3 flex gap-2">
           {listing.status === 'DRAFT' ? (
             <Link
-              href="/sell"
+              href={`/sell?draftId=${listing.id}`}
               className={cn(
                 'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
                 'transition-colors hover:bg-[var(--color-muted)]',
@@ -290,15 +292,20 @@ function ListingCard({ listing }: ListingCardProps) {
           {(listing.status === 'DRAFT' ||
             listing.status === 'INACTIVE' ||
             listing.status === 'REJECTED') && (
-            <Link
-              href={`/dashboard/listings/${listing.id}/delete`}
+            <button
+              onClick={() => {
+                if (!confirm('Delete this listing? This cannot be undone.')) return
+                void fetch(`/api/listings/${listing.id}`, { method: 'DELETE' }).then((r) => {
+                  if (r.ok) window.location.reload()
+                })
+              }}
               className={cn(
                 'flex-1 rounded-lg border border-red-200 py-2 text-center text-xs font-medium text-red-600',
                 'transition-colors hover:bg-red-50',
               )}
             >
               Delete
-            </Link>
+            </button>
           )}
         </div>
       </div>
@@ -646,14 +653,14 @@ export default function DashboardPage() {
           } else {
             console.error('[dashboard] listings fetch failed, status:', res.status)
             setFetchError('Failed to load listings. Please refresh.')
-            setListings(MOCK_LISTINGS)
+            setListings([])
           }
         } else {
-          setListings(MOCK_LISTINGS)
+          setListings([])
         }
       } catch {
         setFetchError('Network error — check your connection and refresh.')
-        setListings(MOCK_LISTINGS)
+        setListings([])
       } finally {
         setLoading(false)
       }
