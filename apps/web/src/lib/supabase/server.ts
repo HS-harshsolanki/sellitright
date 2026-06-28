@@ -1,11 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClient, createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import type { Database } from '@/lib/supabase/database.types'
 
 export async function createClient() {
   const cookieStore = await cookies()
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -32,7 +33,7 @@ export async function createClient() {
  * Never expose this client to the browser.
  * Returns null when SUPABASE_SERVICE_ROLE_KEY is not set (demo / dev mode).
  */
-let _serviceClient: ReturnType<typeof createSupabaseClient> | null = null
+let _serviceClient: SupabaseClient<Database> | null = null
 
 export function createServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -46,7 +47,7 @@ export function createServiceClient() {
   }
 
   if (!_serviceClient) {
-    _serviceClient = createSupabaseClient(url, serviceKey, {
+    _serviceClient = createSupabaseClient<Database>(url, serviceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,

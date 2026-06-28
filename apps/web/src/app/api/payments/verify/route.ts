@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { verifyRazorpaySignature, isRazorpayConfigured } from '@/lib/razorpay'
+
 import { createNotification, createNotifications } from '@/lib/notifications'
+import { verifyRazorpaySignature, isRazorpayConfigured } from '@/lib/razorpay'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 interface VerifyBody {
   razorpayOrderId: string
@@ -100,14 +101,16 @@ export async function POST(request: NextRequest) {
   // ── Update payment to SUCCESS (atomic — only if still PENDING) ───────────
   const { error: updatePaymentErr, count: updateCount } = await admin
     .from('payments')
-    .update({
-      status: 'SUCCESS',
-      razorpay_payment_id: razorpayPaymentId,
-      paid_at: new Date().toISOString(),
-    })
+    .update(
+      {
+        status: 'SUCCESS',
+        razorpay_payment_id: razorpayPaymentId,
+        paid_at: new Date().toISOString(),
+      },
+      { count: 'exact' },
+    )
     .eq('id', payment.id)
     .eq('status', 'PENDING')
-    .select('id')
 
   if (updatePaymentErr) {
     console.error('[payments/verify] update payment error:', updatePaymentErr.message)

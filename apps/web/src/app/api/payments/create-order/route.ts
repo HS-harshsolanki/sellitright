@@ -147,11 +147,19 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Step 3: Update DB row with Razorpay order ID ──────────────────────────
-  await admin
+  const { error: orderIdUpdateError } = await admin
     .from('payments')
     .update({ razorpay_order_id: razorpayOrder.id })
     .eq('id', pendingPayment.id)
-  // Non-fatal if this update fails — the order exists, webhook will reconcile
+
+  if (orderIdUpdateError) {
+    console.error('[create-order] failed to persist razorpay_order_id:', orderIdUpdateError.message)
+    await admin.from('payments').delete().eq('id', pendingPayment.id)
+    return NextResponse.json(
+      { error: 'Failed to create payment order. Please try again.' },
+      { status: 500 },
+    )
+  }
 
   return NextResponse.json({
     orderId: razorpayOrder.id,

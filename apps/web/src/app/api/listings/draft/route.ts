@@ -1,6 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
+
+import { createClient } from '@/lib/supabase/server'
 
 const PROPERTY_TYPES = ['APARTMENT', 'VILLA', 'PLOT', 'INDEPENDENT_HOUSE', 'PENTHOUSE'] as const
 const BHK_TYPES = [
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     const record = {
       seller_id: user.id,
-      property_type: input.propertyType ?? null,
+      property_type: input.propertyType ?? undefined,
       bhk_type: input.bhkType ?? null,
       built_up_area: input.builtUpArea ?? null,
       carpet_area: input.carpetArea ?? null,
@@ -103,10 +104,14 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(data)
     } else {
-      // Create new draft
+      // Create new draft — property_type required by DB; default to APARTMENT for partial drafts
+      const insertRecord = {
+        ...record,
+        property_type: record.property_type ?? 'APARTMENT',
+      }
       const { data, error } = await supabase
         .from('listings')
-        .insert(record)
+        .insert(insertRecord)
         .select('id, status, created_at')
         .single()
 

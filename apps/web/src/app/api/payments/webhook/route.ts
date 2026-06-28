@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
-import { verifyWebhookSignature } from '@/lib/razorpay'
+
 import { createNotification, createNotifications } from '@/lib/notifications'
+import { verifyWebhookSignature } from '@/lib/razorpay'
+import { createServiceClient } from '@/lib/supabase/server'
 
 // Razorpay sends the raw body — Next.js App Router exposes it via request.text()
 // No bodyParser config needed (App Router doesn't use Pages-style config).
@@ -10,6 +11,7 @@ interface RazorpayPaymentEntity {
   id: string
   order_id: string
   status: string
+  amount: number
 }
 
 interface RazorpayWebhookPayload {
@@ -47,6 +49,13 @@ export async function POST(request: NextRequest) {
 
   const paymentEntity = event.payload?.payment?.entity
   if (!paymentEntity?.order_id || !paymentEntity?.id) {
+    return NextResponse.json({ received: true })
+  }
+
+  // Validate amount matches expected contact-unlock fee
+  const paymentAmount = (event.payload?.payment?.entity as { amount?: number } | undefined)?.amount
+  if (typeof paymentAmount === 'number' && paymentAmount !== 4900) {
+    console.warn('[webhook] unexpected payment amount:', paymentAmount)
     return NextResponse.json({ received: true })
   }
 
@@ -88,14 +97,16 @@ export async function POST(request: NextRequest) {
   // ── Update payment to SUCCESS (atomic — only if still PENDING) ───────────
   const { error: updateError, count: updateCount } = await admin
     .from('payments')
-    .update({
-      status: 'SUCCESS',
-      razorpay_payment_id: paymentEntity.id,
-      paid_at: new Date().toISOString(),
-    })
+    .update(
+      {
+        status: 'SUCCESS',
+        razorpay_payment_id: paymentEntity.id,
+        paid_at: new Date().toISOString(),
+      },
+      { count: 'exact' },
+    )
     .eq('id', payment.id)
     .eq('status', 'PENDING')
-    .select('id')
 
   if (updateError) {
     console.error('[webhook] failed to update payment:', updateError.message)

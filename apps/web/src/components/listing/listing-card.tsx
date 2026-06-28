@@ -1,9 +1,10 @@
 'use client'
 
+import { Bed, Camera, ChevronLeft, ChevronRight, Heart, Maximize2, ShieldCheck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Bed, Camera, ChevronLeft, ChevronRight, Heart, Maximize2, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
+
 import { formatPrice, formatBHK, formatArea } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +24,7 @@ interface ListingCardProps {
   createdAt: string
   viewCount: number
   ageOfProperty?: number | null
+  priorityImage?: boolean
 }
 
 function daysAgo(createdAt: string): number {
@@ -47,6 +49,7 @@ export function ListingCard({
   builtUpArea,
   isVerified,
   createdAt,
+  priorityImage = false,
 }: ListingCardProps) {
   const [currentImage, setCurrentImage] = useState(0)
   const [isFavorited, setIsFavorited] = useState(false)
@@ -75,7 +78,8 @@ export function ListingCard({
               src={images[currentImage].url}
               alt={images[currentImage].caption ?? title}
               fill
-              loading="lazy"
+              priority={priorityImage}
+              loading={priorityImage ? undefined : 'lazy'}
               className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
@@ -130,7 +134,7 @@ export function ListingCard({
                     setCurrentImage(idx)
                   }}
                   aria-label={`View photo ${idx + 1}`}
-                  className="flex h-4 items-center px-0.5"
+                  className="flex h-11 min-w-[44px] items-center justify-center px-1"
                 >
                   <span
                     className={cn(

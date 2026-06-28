@@ -1,7 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PROTECTED_PATHS = ['/api/admin', '/dashboard', '/sell', '/admin', '/profile']
+// /api/admin is intentionally excluded — those routes use key-based auth (x-admin-key),
+// not session auth. Middleware redirects would bypass the isAuthorized() check entirely.
+const PROTECTED_PATHS = ['/dashboard', '/sell', '/admin', '/profile']
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
@@ -16,15 +18,24 @@ function isSupabaseConfigured() {
 }
 
 function sanitiseNext(raw: string): string {
-  return raw.startsWith('/') &&
-    !raw.startsWith('//') &&
-    !raw.includes('@') &&
-    !raw.includes('\n') &&
-    !raw.includes('\r') &&
-    raw !== '/login' &&
-    raw !== '/register'
-    ? raw
-    : '/'
+  try {
+    const decoded = decodeURIComponent(raw)
+    if (
+      decoded.startsWith('/') &&
+      !decoded.startsWith('//') &&
+      !decoded.includes('://') &&
+      !decoded.includes('@') &&
+      !decoded.includes('\n') &&
+      !decoded.includes('\r') &&
+      decoded !== '/login' &&
+      decoded !== '/register'
+    ) {
+      return decoded
+    }
+  } catch {
+    // decodeURIComponent threw — malformed encoding, reject
+  }
+  return '/'
 }
 
 export async function middleware(request: NextRequest) {
