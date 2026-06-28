@@ -1,24 +1,11 @@
-import crypto from 'crypto'
-
 import { NextRequest, NextResponse } from 'next/server'
 
+import { isAuthorized } from '@/lib/admin-auth'
 import { auditLog } from '@/lib/audit-log'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { rejectListing } from '@/lib/listing-store'
+import { createNotification } from '@/lib/notifications'
 import { createServiceClient } from '@/lib/supabase/server'
-
-const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
-
-function isAuthorized(request: NextRequest): boolean {
-  if (!ADMIN_KEY) return false
-  const provided = request.headers.get('x-admin-key') ?? ''
-  if (provided.length !== ADMIN_KEY.length) return false
-  try {
-    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
-  } catch {
-    return false
-  }
-}
 
 interface RejectBody {
   reason: string
@@ -63,6 +50,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .from('listings')
       .update({ status: 'REJECTED', rejection_reason: reason })
       .eq('id', id)
+      .in('status', ['PENDING_REVIEW', 'ACTIVE'])
       .select()
       .single()
 
@@ -73,6 +61,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.error('[admin/reject] Supabase error:', error.message, error.code)
       return NextResponse.json({ error: 'Failed to reject listing' }, { status: 500 })
     }
+
+    // Notify seller their listing was rejected
+    void createNotification({
+      admin: supabase,
+      userId: data.seller_id,
+      title: 'Listing rejected',
+      message: `Your listing was not approved. ${body.reason ? `Reason: ${body.reason}` : 'Please review our listing guidelines and resubmit.'}`,
+      type: 'System',
+      entityType: 'listing',
+      entityId: id,
+    })
 
     // Write reject + optional note to audit_log
     await supabase.from('audit_log').insert({

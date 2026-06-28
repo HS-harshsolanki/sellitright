@@ -1,23 +1,10 @@
-import { timingSafeEqual } from 'node:crypto'
-
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 
+import { isAuthorized, logAdminAction } from '@/lib/admin-auth'
 import { createServiceClient } from '@/lib/supabase/server'
 import { computeAndStoreRiskScore } from '@/lib/trust'
 import { adminFlagUserSchema } from '@/lib/validators'
-
-const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
-
-function isAuthorized(request: NextRequest): boolean {
-  if (!ADMIN_KEY) return false
-  const provided = request.headers.get('x-admin-key') ?? ''
-  try {
-    return timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
-  } catch {
-    return false
-  }
-}
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -78,8 +65,15 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Failed to flag user.' }, { status: 500 })
   }
 
-  // Recompute risk score after flagging (fire-and-forget)
+  // Recompute risk score and write audit log (fire-and-forget)
   void computeAndStoreRiskScore(admin, userId)
+  void logAdminAction(admin, {
+    action: 'user_flagged',
+    entityType: 'user',
+    entityId: userId,
+    newValue: { flag: validated.flag, reason: validated.reason ?? null },
+    reason: validated.reason,
+  })
 
   return NextResponse.json(flag, { status: 201 })
 }

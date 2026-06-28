@@ -70,7 +70,19 @@ export const listingCreateSchema = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   amenities: z.array(z.string()).default([]),
-  imageUrls: z.array(z.string().url('Each image must be a valid URL')).max(20).default([]),
+  imageUrls: z
+    .array(
+      z
+        .string()
+        .url('Each image must be a valid URL')
+        .refine(
+          (url) =>
+            url.includes('.supabase.co/storage/') || url.includes('lh3.googleusercontent.com'),
+          'Image URLs must be from Supabase storage or Google',
+        ),
+    )
+    .max(20)
+    .default([]),
 })
 
 export type ListingCreateInput = z.infer<typeof listingCreateSchema>

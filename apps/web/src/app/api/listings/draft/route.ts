@@ -3,6 +3,40 @@ import { z, ZodError } from 'zod'
 
 import { createClient } from '@/lib/supabase/server'
 
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+    }
+
+    const id = request.nextUrl.searchParams.get('id')
+    if (!id) {
+      return NextResponse.json({ error: 'id required' }, { status: 400 })
+    }
+
+    const { data, error } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('id', id)
+      .eq('seller_id', user.id)
+      .eq('status', 'DRAFT')
+      .single()
+
+    if (error || !data) {
+      return NextResponse.json({ error: 'Draft not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(data)
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 const PROPERTY_TYPES = ['APARTMENT', 'VILLA', 'PLOT', 'INDEPENDENT_HOUSE', 'PENTHOUSE'] as const
 const BHK_TYPES = [
   'ONE_BHK',

@@ -1,23 +1,9 @@
-import crypto from 'crypto'
-
 import { NextRequest, NextResponse } from 'next/server'
 
+import { isAuthorized } from '@/lib/admin-auth'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { getListingByIdFromStore } from '@/lib/listing-store'
 import { createServiceClient } from '@/lib/supabase/server'
-
-const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
-
-function isAuthorized(request: NextRequest): boolean {
-  if (!ADMIN_KEY) return false
-  const provided = request.headers.get('x-admin-key') ?? ''
-  if (provided.length !== ADMIN_KEY.length) return false
-  try {
-    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
-  } catch {
-    return false
-  }
-}
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!isAuthorized(request)) {

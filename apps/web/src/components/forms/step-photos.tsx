@@ -132,11 +132,12 @@ export function StepPhotos() {
     const startIndex = uploadStates.length
     setUploadStates((prev) => [...prev, ...newStates])
 
-    for (let i = 0; i < toProcess.length; i++) {
-      if (!newStates[i]?.error) {
-        await uploadFile(toProcess[i]!, startIndex + i)
-      }
-    }
+    await Promise.all(
+      toProcess.map((file, i) => {
+        if (newStates[i]?.error) return Promise.resolve()
+        return uploadFile(file, startIndex + i)
+      }),
+    )
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {

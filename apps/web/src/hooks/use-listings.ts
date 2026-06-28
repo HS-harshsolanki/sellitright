@@ -47,6 +47,7 @@ export function useListings(filters: ListingFilters = {}) {
   return useQuery({
     queryKey: ['listings', filters],
     queryFn: () => fetchListings(filters),
+    staleTime: 60_000,
   })
 }
 
@@ -55,6 +56,7 @@ export function useListing(id: string) {
     queryKey: ['listing', id],
     queryFn: () => fetchListing(id),
     enabled: !!id,
+    staleTime: 60_000,
   })
 }
 

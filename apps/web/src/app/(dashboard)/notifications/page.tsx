@@ -11,11 +11,30 @@ import {
   CheckCheck,
   Loader2,
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 import { useNotifications } from '@/hooks/use-notifications'
 import type { NotificationItem } from '@/hooks/use-notifications'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
+
+function getNotificationActionUrl(item: {
+  type: string
+  entityType?: string | null
+  entityId?: string | null
+}): string | null {
+  if (item.type === 'InterestRequest' || item.type === 'Accepted' || item.type === 'Rejected') {
+    return '/dashboard?tab=buyers'
+  }
+  if (item.type === 'ConnectionUnlocked' || item.type === 'PaymentReceived') {
+    return '/dashboard?tab=interests'
+  }
+  if (item.entityType === 'listing' && item.entityId) {
+    return `/listing/${item.entityId}`
+  }
+  return null
+}
 
 function TypeIcon({ type }: { type: string }) {
   const cls = 'h-5 w-5 shrink-0'
@@ -85,8 +104,15 @@ function NotificationCard({ item, onRead }: NotificationCardProps) {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const { notifications, unreadCount, loading, markRead, markAllRead } = useNotifications(user?.id)
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login?next=/notifications')
+    }
+  }, [authLoading, user, router])
 
   if (authLoading) {
     return (
@@ -142,7 +168,15 @@ export default function NotificationsPage() {
       ) : (
         <div className="space-y-2">
           {notifications.map((item) => (
-            <NotificationCard key={item.id} item={item} onRead={(id) => void markRead(id)} />
+            <NotificationCard
+              key={item.id}
+              item={item}
+              onRead={(id) => {
+                void markRead(id)
+                const actionUrl = getNotificationActionUrl(item)
+                if (actionUrl) router.push(actionUrl)
+              }}
+            />
           ))}
         </div>
       )}

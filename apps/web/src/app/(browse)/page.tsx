@@ -3,7 +3,10 @@ import Link from 'next/link'
 
 import { Reveal, Stagger } from '@/components/landing/reveal'
 import { ListingCard } from '@/components/listing/listing-card'
-import { MOCK_LISTINGS } from '@/lib/mock-data'
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
+import { MOCK_LISTINGS, type MockListing } from '@/lib/mock-data'
+import { isSupabaseConfigured } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -122,11 +125,28 @@ const TRUST_METRICS = [
   { value: '< 24 hrs', label: 'Average Response' },
 ]
 
-const featured = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE').slice(0, 6)
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  let featured: MockListing[] = []
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient()
+      const { data } = await supabase
+        .from('listings')
+        .select(
+          'id, title, price, city, locality, bhk_type, built_up_area, carpet_area, total_floors, floor, furnishing, property_type, age_of_property, bathrooms, balconies, parking, facing, address, state, pincode, amenities, image_urls, status, is_verified, view_count, created_at, seller_id',
+        )
+        .eq('status', 'ACTIVE')
+        .order('created_at', { ascending: false })
+        .limit(6)
+      featured = (data ?? []).map(mapSupabaseListingToMock)
+    } catch {
+      featured = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE').slice(0, 6)
+    }
+  } else {
+    featured = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE').slice(0, 6)
+  }
   return (
     <main className="overflow-x-hidden">
       {/* ══════════════════════════════════════════════════════════════════════

@@ -73,6 +73,7 @@ export function UnlockContactSection({
   const [flowState, setFlowState] = useState<FlowState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [errorType, setErrorType] = useState<ErrorType>('generic')
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null)
   const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Clear popup timeout on unmount
@@ -135,6 +136,7 @@ export function UnlockContactSection({
     } catch (err) {
       setFlowState('error')
       setErrorMessage(err instanceof Error ? err.message : 'Could not start payment. Try again.')
+      setErrorType('order_creation')
       return
     }
 
@@ -165,15 +167,18 @@ export function UnlockContactSection({
       } catch (err) {
         setFlowState('error')
         setErrorMessage(err instanceof Error ? err.message : 'Unlock failed. Please try again.')
+        setErrorType('generic')
         return
       }
     }
 
     // ── Step 3: Load Razorpay SDK and open checkout ──────────────────────────
+    setCurrentOrderId(orderData.orderId)
     setFlowState('paying')
     const loaded = await loadRazorpayScript()
     if (!loaded || !window.Razorpay) {
       setFlowState('error')
+      setErrorType('generic')
       setErrorMessage('Could not load payment module. Check your connection and try again.')
       return
     }
@@ -188,6 +193,9 @@ export function UnlockContactSection({
       theme: { color: '#222222' },
       handler: async (response: RazorpayResponse) => {
         // ── Step 4: Verify payment on server ──────────────────────────────
+        // Clear popup timeout — payment window was opened successfully
+        if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
+
         setFlowState('verifying')
         try {
           const verifyRes = await fetch('/api/payments/verify', {
@@ -213,6 +221,7 @@ export function UnlockContactSection({
           throw new Error(verifyData.error ?? 'Verification failed.')
         } catch (err) {
           setFlowState('error')
+          setErrorType('verification')
           setErrorMessage(
             err instanceof Error
               ? err.message
@@ -223,12 +232,23 @@ export function UnlockContactSection({
       modal: {
         ondismiss: () => {
           // User closed modal — reset to idle so they can retry
+          // Clear popup timeout — user dismissed the modal
+          if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
           setFlowState('idle')
         },
       },
     })
 
     rzp.open()
+
+    // Popup-blocked guard — if the payment window never opens, recover after 30s
+    popupTimeoutRef.current = setTimeout(() => {
+      setFlowState('error')
+      setErrorType('generic')
+      setErrorMessage(
+        'Payment window could not be opened. Please disable your popup blocker and try again.',
+      )
+    }, 30_000)
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -246,24 +266,36 @@ export function UnlockContactSection({
   }
 
   if (flowState === 'error') {
+    const supportHref = `mailto:support@sellitright.in?subject=Payment%20verification%20failed&body=Order%20ID%3A%20${encodeURIComponent(currentOrderId ?? 'unknown')}`
+
     return (
       <div className="space-y-3">
         <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" aria-hidden="true" />
           <p className="text-sm text-red-700">{errorMessage ?? 'Something went wrong.'}</p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 w-full rounded-xl font-semibold"
-          onClick={() => {
-            setFlowState('idle')
-            setErrorMessage(null)
-          }}
-        >
-          <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-          Try again
-        </Button>
+        {errorType === 'verification' ? (
+          <a
+            href={supportHref}
+            className="border-input bg-background hover:bg-accent flex h-11 w-full items-center justify-center rounded-xl border px-4 text-sm font-semibold underline"
+          >
+            Contact support
+          </a>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 w-full rounded-xl font-semibold"
+            onClick={() => {
+              setFlowState('idle')
+              setErrorMessage(null)
+              setErrorType('generic')
+            }}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+            Try again
+          </Button>
+        )}
       </div>
     )
   }

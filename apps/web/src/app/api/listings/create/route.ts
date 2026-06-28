@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { listingCreateSchema } from '@/lib/validators'
 
 // Accept all listingCreateSchema fields + optional draftId for upsert
@@ -18,6 +18,23 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+    }
+
+    // Block suspended users from posting listings
+    const admin = createServiceClient()
+    if (!admin) {
+      return NextResponse.json({ error: 'Service not available.' }, { status: 503 })
+    }
+    const { data: latestFlag } = await admin
+      .from('latest_user_flag')
+      .select('flag')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (latestFlag?.flag === 'SUSPENDED') {
+      return NextResponse.json(
+        { error: 'Your account is suspended. Contact support.' },
+        { status: 403 },
+      )
     }
 
     const raw: unknown = await request.json()

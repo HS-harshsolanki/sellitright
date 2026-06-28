@@ -186,9 +186,11 @@ function StatCard({ label, value, sub, icon, accent = false }: StatCardProps) {
 
 interface ListingCardProps {
   listing: MockListing
+  onDelete: (id: string) => Promise<void>
+  isDeleting: boolean
 }
 
-function ListingCard({ listing }: ListingCardProps) {
+function ListingCard({ listing, onDelete, isDeleting }: ListingCardProps) {
   const statusConfig = STATUS_CONFIG[listing.status]
   const cover = listing.images[0]?.url
 
@@ -294,18 +296,17 @@ function ListingCard({ listing }: ListingCardProps) {
             listing.status === 'INACTIVE' ||
             listing.status === 'REJECTED') && (
             <button
+              disabled={isDeleting}
               onClick={() => {
                 if (!confirm('Delete this listing? This cannot be undone.')) return
-                void fetch(`/api/listings/${listing.id}`, { method: 'DELETE' }).then((r) => {
-                  if (r.ok) window.location.reload()
-                })
+                void onDelete(listing.id)
               }}
               className={cn(
                 'flex-1 rounded-lg border border-red-200 py-2 text-center text-xs font-medium text-red-600',
-                'transition-colors hover:bg-red-50',
+                'transition-colors hover:bg-red-50 disabled:opacity-50',
               )}
             >
-              Delete
+              {isDeleting ? <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" /> : 'Delete'}
             </button>
           )}
         </div>
@@ -637,6 +638,7 @@ export default function DashboardPage() {
   const [interestStatusFilter, setInterestStatusFilter] = useState<InterestStatusFilter>('PENDING')
   const [interestSort, setInterestSort] = useState<'newest' | 'oldest'>('newest')
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -727,6 +729,23 @@ export default function DashboardPage() {
       setInterestError('Network error — try again.')
     } finally {
       setActionLoadingId(null)
+    }
+  }
+
+  async function handleDeleteListing(listingId: string) {
+    setDeletingId(listingId)
+    try {
+      const r = await fetch(`/api/listings/${listingId}`, { method: 'DELETE' })
+      if (r.ok) {
+        setListings((prev) => prev.filter((l) => l.id !== listingId))
+      } else {
+        const d = (await r.json()) as { error?: string }
+        setFetchError(d.error ?? 'Failed to delete listing')
+      }
+    } catch {
+      setFetchError('Failed to delete listing')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -846,7 +865,12 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredListings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
+            <ListingCard
+              key={listing.id}
+              listing={listing}
+              onDelete={handleDeleteListing}
+              isDeleting={deletingId === listing.id}
+            />
           ))}
         </div>
       )}

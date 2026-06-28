@@ -71,15 +71,22 @@ export async function POST(request: NextRequest) {
       throw err
     }
 
-    // Verify listing exists
+    // Verify listing exists and is ACTIVE
     const { data: listing } = await admin
       .from('listings')
-      .select('id, seller_id')
+      .select('id, seller_id, status')
       .eq('id', listingId)
       .maybeSingle()
 
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found.' }, { status: 404 })
+    }
+
+    if (listing.status !== 'ACTIVE') {
+      return NextResponse.json(
+        { error: 'Listing is not available for reporting.' },
+        { status: 422 },
+      )
     }
 
     // Cannot report your own listing
@@ -118,6 +125,11 @@ export async function POST(request: NextRequest) {
       entityId: listingId,
       metadata: { reason: validated.reason },
     })
+
+    // Recompute seller's risk score since they received a new report (fire-and-forget)
+    void import('@/lib/trust').then(({ computeAndStoreRiskScore }) =>
+      computeAndStoreRiskScore(admin, listing.seller_id),
+    )
 
     return NextResponse.json(report, { status: 201 })
   }

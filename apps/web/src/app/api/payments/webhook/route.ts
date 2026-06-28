@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   const paymentAmount = (event.payload?.payment?.entity as { amount?: number } | undefined)?.amount
   if (typeof paymentAmount === 'number' && paymentAmount !== 4900) {
     console.warn('[webhook] unexpected payment amount:', paymentAmount)
-    return NextResponse.json({ received: true })
+    return NextResponse.json({ error: 'Unexpected payment amount.' }, { status: 400 })
   }
 
   const admin = createServiceClient()

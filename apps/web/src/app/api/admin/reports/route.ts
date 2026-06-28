@@ -1,20 +1,7 @@
-import { timingSafeEqual } from 'node:crypto'
-
 import { NextRequest, NextResponse } from 'next/server'
 
+import { isAuthorized, logAdminAction } from '@/lib/admin-auth'
 import { createServiceClient } from '@/lib/supabase/server'
-
-const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
-
-function isAuthorized(request: NextRequest): boolean {
-  if (!ADMIN_KEY) return false
-  const provided = request.headers.get('x-admin-key') ?? ''
-  try {
-    return timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
-  } catch {
-    return false
-  }
-}
 
 // GET /api/admin/reports
 //
@@ -129,6 +116,13 @@ export async function PATCH(request: NextRequest) {
     console.error('[admin/reports] bulk update error:', error.message)
     return NextResponse.json({ error: 'Failed to update reports.' }, { status: 500 })
   }
+
+  void logAdminAction(admin, {
+    action: 'reports_bulk_updated',
+    entityType: 'report',
+    entityId: (ids as string[]).join(','),
+    newValue: { status, count: count ?? ids.length },
+  })
 
   return NextResponse.json({ updated: count ?? ids.length })
 }

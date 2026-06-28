@@ -5,8 +5,30 @@ import type { NextRequest } from 'next/server'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
+// In-memory rate limiter — 20 attempts per IP per 60 seconds (admin key brute-force protection)
+const RATE_LIMIT_WINDOW_MS = 60_000
+const RATE_LIMIT_MAX = 20
+const _rateLimitStore = new Map<string, { count: number; resetAt: number }>()
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = _rateLimitStore.get(ip)
+  if (!entry || now > entry.resetAt) {
+    _rateLimitStore.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+    return false
+  }
+  entry.count += 1
+  if (entry.count > RATE_LIMIT_MAX) return true
+  return false
+}
+
 export function isAuthorized(request: NextRequest): boolean {
   if (!ADMIN_KEY) return false
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown'
+  if (isRateLimited(ip)) return false
   const provided = request.headers.get('x-admin-key') ?? ''
   if (provided.length !== ADMIN_KEY.length) return false
   try {

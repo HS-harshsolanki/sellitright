@@ -1,24 +1,11 @@
-import crypto from 'crypto'
-
 import { NextRequest, NextResponse } from 'next/server'
 
+import { isAuthorized } from '@/lib/admin-auth'
 import { auditLog } from '@/lib/audit-log'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { approveListing } from '@/lib/listing-store'
+import { createNotification } from '@/lib/notifications'
 import { createServiceClient } from '@/lib/supabase/server'
-
-const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
-
-function isAuthorized(request: NextRequest): boolean {
-  if (!ADMIN_KEY) return false
-  const provided = request.headers.get('x-admin-key') ?? ''
-  if (provided.length !== ADMIN_KEY.length) return false
-  try {
-    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
-  } catch {
-    return false
-  }
-}
 
 interface ApproveBody {
   note?: string
@@ -48,6 +35,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .from('listings')
       .update({ status: 'ACTIVE', rejection_reason: null })
       .eq('id', id)
+      .in('status', ['PENDING_REVIEW', 'REJECTED'])
       .select()
       .single()
 
@@ -58,6 +46,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.error('[admin/approve] Supabase error:', error.message, error.code)
       return NextResponse.json({ error: 'Failed to approve listing' }, { status: 500 })
     }
+
+    // Notify seller their listing was approved
+    void createNotification({
+      admin: supabase,
+      userId: data.seller_id,
+      title: 'Listing approved',
+      message: 'Your listing is now live and visible to buyers.',
+      type: 'System',
+      entityType: 'listing',
+      entityId: id,
+    })
 
     // Write audit log to Supabase
     await supabase.from('audit_log').insert({

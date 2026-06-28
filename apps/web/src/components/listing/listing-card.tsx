@@ -5,6 +5,28 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 
+const FAVORITES_KEY = 'sir_favorites'
+
+function getFavorites(): Set<string> {
+  try {
+    const stored = localStorage.getItem(FAVORITES_KEY)
+    return new Set(stored ? (JSON.parse(stored) as string[]) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function toggleFavorite(id: string): boolean {
+  const favs = getFavorites()
+  if (favs.has(id)) {
+    favs.delete(id)
+  } else {
+    favs.add(id)
+  }
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favs]))
+  return favs.has(id)
+}
+
 import { formatPrice, formatBHK, formatArea } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -52,7 +74,10 @@ export function ListingCard({
   priorityImage = false,
 }: ListingCardProps) {
   const [currentImage, setCurrentImage] = useState(0)
-  const [isFavorited, setIsFavorited] = useState(false)
+  const [isFavorited, setIsFavorited] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return getFavorites().has(id)
+  })
   const total = Math.min(images.length, 5)
 
   const prev = (e: React.MouseEvent) => {
@@ -162,7 +187,8 @@ export function ListingCard({
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            setIsFavorited((f) => !f)
+            const newState = toggleFavorite(id)
+            setIsFavorited(newState)
           }}
           aria-label={isFavorited ? 'Remove from favourites' : 'Save to favourites'}
           aria-pressed={isFavorited}

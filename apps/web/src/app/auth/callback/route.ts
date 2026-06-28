@@ -12,9 +12,25 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Guard against open redirects (//evil.com) and auth loops
-      const safePath =
-        next.startsWith('/') && !next.startsWith('//') && next !== '/login' ? next : '/'
+      // Validate redirect — reject open redirects, protocol-relative URLs, auth loops
+      let safePath = '/'
+      try {
+        const decoded = decodeURIComponent(next)
+        if (
+          decoded.startsWith('/') &&
+          !decoded.startsWith('//') &&
+          !decoded.includes('://') &&
+          !decoded.includes('@') &&
+          !decoded.includes('\n') &&
+          !decoded.includes('\r') &&
+          decoded !== '/login' &&
+          decoded !== '/register'
+        ) {
+          safePath = decoded
+        }
+      } catch {
+        // malformed encoding — keep '/'
+      }
       return NextResponse.redirect(`${origin}${safePath}`)
     }
 

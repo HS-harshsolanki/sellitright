@@ -10,6 +10,7 @@ import { StepPhotos } from '@/components/forms/step-photos'
 import { StepPricing } from '@/components/forms/step-pricing'
 import { StepPropertyType } from '@/components/forms/step-property-type'
 import { StepReview } from '@/components/forms/step-review'
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -170,10 +171,18 @@ export default function SellPage() {
   // Read ?draftId from URL and pre-load the draft into the store
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const draftId = params.get('draftId')
-    if (draftId && !useSellFormStore.getState().draftId) {
-      useSellFormStore.getState().setDraftId(draftId)
-    }
+    const urlDraftId = params.get('draftId')
+    if (!urlDraftId || useSellFormStore.getState().draftId) return
+
+    useSellFormStore.getState().setDraftId(urlDraftId)
+
+    void fetch(`/api/listings/draft?id=${urlDraftId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((draft: Record<string, any> | null) => {
+        if (!draft) return
+        useSellFormStore.getState().hydrateFromListing(mapSupabaseListingToMock(draft))
+      })
   }, [])
 
   function canProceed(): boolean {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { isAuthorized, logAdminAction } from '@/lib/admin-auth'
+import { createNotification } from '@/lib/notifications'
 import { createServiceClient } from '@/lib/supabase/server'
 import { computeAndStoreRiskScore } from '@/lib/trust'
 
@@ -46,6 +47,16 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     console.error('[admin/suspend] insert error:', flagErr.message)
     return NextResponse.json({ error: 'Failed to suspend user.' }, { status: 500 })
   }
+
+  // Notify suspended user
+  void createNotification({
+    admin,
+    userId,
+    title: 'Account suspended',
+    message:
+      'Your account has been suspended. Please contact support if you believe this is an error.',
+    type: 'System',
+  })
 
   void computeAndStoreRiskScore(admin, userId)
   void logAdminAction(admin, {

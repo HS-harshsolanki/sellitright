@@ -58,19 +58,47 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  const MIME_TO_EXT: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+  }
+  const ext = MIME_TO_EXT[file.type]
+  if (!ext) {
+    return NextResponse.json({ error: 'Unsupported file type.' }, { status: 400 })
+  }
+
+  // Read buffer once for magic byte validation and upload
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+  const isPng = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+  const isWebp = bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+  const magicOk =
+    (file.type === 'image/jpeg' && isJpeg) ||
+    (file.type === 'image/png' && isPng) ||
+    (file.type === 'image/webp' && isWebp)
+  if (!magicOk) {
+    return NextResponse.json(
+      { error: 'File content does not match declared type.' },
+      { status: 400 },
+    )
+  }
+
   const uuid = crypto.randomUUID()
   const path = `listings/${user.id}/${uuid}.${ext}`
 
-  const { error: uploadError } = await admin.storage.from('photos').upload(path, file, {
-    contentType: file.type,
-    cacheControl: '3600',
-    upsert: false,
-  })
+  const { error: uploadError } = await admin.storage
+    .from('photos')
+    .upload(path, new Blob([buffer], { type: file.type }), {
+      contentType: file.type,
+      cacheControl: '31536000',
+      upsert: false,
+    })
 
   if (uploadError) {
     console.error('[upload/photo] storage error:', uploadError.message)
-    return NextResponse.json({ error: `Upload failed: ${uploadError.message}` }, { status: 500 })
+    return NextResponse.json({ error: 'Upload failed.' }, { status: 500 })
   }
 
   const { data: publicUrlData } = admin.storage.from('photos').getPublicUrl(path)
