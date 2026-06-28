@@ -23,6 +23,10 @@ export function verifyRazorpaySignature(
 ): boolean {
   const secret = process.env.RAZORPAY_KEY_SECRET
   if (!secret) return false // reject all verifications when secret not configured
+  if (!/^[0-9a-f]{64}$/.test(signature)) {
+    console.warn('[razorpay] invalid signature format — expected 64-char hex')
+    return false
+  }
   const body = `${orderId}|${paymentId}`
   const expected = crypto.createHmac('sha256', secret).update(body).digest('hex')
   try {

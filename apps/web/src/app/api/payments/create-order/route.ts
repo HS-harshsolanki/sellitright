@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getRazorpayInstance, isRazorpayConfigured } from '@/lib/razorpay'
@@ -63,8 +64,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // ── Razorpay: create order ────────────────────────────────────────────────
+  // ── Razorpay: demo-mode guard ─────────────────────────────────────────────
   if (!isRazorpayConfigured()) {
+    if (process.env.NODE_ENV !== 'development') {
+      return NextResponse.json(
+        { error: 'Payment service is not configured. Contact support.' },
+        { status: 503 },
+      )
+    }
     // Dev/demo mode — return a mock order so UI can be tested without real keys
     return NextResponse.json({
       orderId: `demo_order_${Date.now()}`,
@@ -75,40 +82,59 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  // ── Step 1: Insert PENDING payment row first ──────────────────────────────
+  const admin = createServiceClient()
+  if (!admin) {
+    return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
+  }
+
+  const localReceiptId = crypto.randomUUID()
+
+  const { data: pendingPayment, error: insertError } = await admin
+    .from('payments')
+    .insert({
+      buyer_id: user.id,
+      seller_id: interest.seller_id,
+      listing_id: interest.listing_id,
+      interest_id: interestId,
+      razorpay_order_id: null,
+      status: 'PENDING',
+      amount: 4900,
+      currency: 'INR',
+    })
+    .select('id')
+    .single()
+
+  if (insertError || !pendingPayment) {
+    console.error('[create-order] failed to insert payment row:', insertError?.message)
+    return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
+  }
+
+  // ── Step 2: Create Razorpay order ─────────────────────────────────────────
   let razorpayOrder: { id: string; amount: number; currency: string }
   try {
     const razorpay = getRazorpayInstance()
     razorpayOrder = (await razorpay.orders.create({
       amount: 4900,
       currency: 'INR',
-      receipt: interestId.slice(0, 40),
+      receipt: localReceiptId.slice(0, 40),
     })) as { id: string; amount: number; currency: string }
   } catch (err) {
     console.error('[payments/create-order] Razorpay error:', err)
+    // Clean up the pending row since there's no order to pay against
+    await admin.from('payments').delete().eq('id', pendingPayment.id)
     return NextResponse.json(
       { error: 'Failed to create payment order. Please try again.' },
       { status: 500 },
     )
   }
 
-  // ── Insert PENDING payment row ────────────────────────────────────────────
-  const admin = createServiceClient()
-  if (admin) {
-    const { error: insertError } = await admin.from('payments').insert({
-      buyer_id: user.id,
-      seller_id: interest.seller_id,
-      listing_id: interest.listing_id,
-      interest_id: interestId,
-      razorpay_order_id: razorpayOrder.id,
-      status: 'PENDING',
-      amount: 4900,
-      currency: 'INR',
-    })
-    if (insertError) {
-      console.error('[create-order] failed to insert payment row:', insertError.message)
-      return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
-    }
-  }
+  // ── Step 3: Update DB row with Razorpay order ID ──────────────────────────
+  await admin
+    .from('payments')
+    .update({ razorpay_order_id: razorpayOrder.id })
+    .eq('id', pendingPayment.id)
+  // Non-fatal if this update fails — the order exists, webhook will reconcile
 
   return NextResponse.json({
     orderId: razorpayOrder.id,

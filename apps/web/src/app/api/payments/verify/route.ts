@@ -37,6 +37,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required payment fields.' }, { status: 400 })
   }
 
+  // Validate order ID format to prevent probing attacks
+  const isDev = process.env.NODE_ENV === 'development'
+  const isRealOrder = /^order_[A-Za-z0-9]{14,}$/.test(razorpayOrderId)
+  const isDemoOrderId = isDev && razorpayOrderId.startsWith('demo_order_')
+
+  if (!isRealOrder && !isDemoOrderId) {
+    return NextResponse.json({ error: 'Invalid order ID format.' }, { status: 400 })
+  }
+
   // ── Verify HMAC signature ─────────────────────────────────────────────────
   const isDemoOrder =
     process.env.NODE_ENV === 'development' &&
@@ -88,8 +97,8 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // ── Update payment to SUCCESS ─────────────────────────────────────────────
-  const { error: updatePaymentErr } = await admin
+  // ── Update payment to SUCCESS (atomic — only if still PENDING) ───────────
+  const { error: updatePaymentErr, count: updateCount } = await admin
     .from('payments')
     .update({
       status: 'SUCCESS',
@@ -97,10 +106,17 @@ export async function POST(request: NextRequest) {
       paid_at: new Date().toISOString(),
     })
     .eq('id', payment.id)
+    .eq('status', 'PENDING')
+    .select('id')
 
   if (updatePaymentErr) {
     console.error('[payments/verify] update payment error:', updatePaymentErr.message)
     return NextResponse.json({ error: 'Failed to record payment.' }, { status: 500 })
+  }
+
+  if (!updateCount || updateCount === 0) {
+    // Another concurrent request already processed this payment
+    return NextResponse.json({ error: 'Payment already processed.' }, { status: 409 })
   }
 
   // ── Fetch buyer_interest to get seller_id ────────────────────────────────

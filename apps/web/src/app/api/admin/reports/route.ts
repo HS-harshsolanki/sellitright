@@ -102,6 +102,10 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'ids must be a non-empty array.' }, { status: 400 })
   }
 
+  if (ids.length > 100) {
+    return NextResponse.json({ error: 'Maximum 100 report IDs per request.' }, { status: 400 })
+  }
+
   const validStatuses = ['REVIEWED', 'ACTIONED', 'DISMISSED']
   if (!validStatuses.includes(status as string)) {
     return NextResponse.json(

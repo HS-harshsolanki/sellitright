@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true, skipped: true })
   }
 
-  // ── Update payment to SUCCESS ─────────────────────────────────────────────
-  const { error: updateError } = await admin
+  // ── Update payment to SUCCESS (atomic — only if still PENDING) ───────────
+  const { error: updateError, count: updateCount } = await admin
     .from('payments')
     .update({
       status: 'SUCCESS',
@@ -94,10 +94,17 @@ export async function POST(request: NextRequest) {
       paid_at: new Date().toISOString(),
     })
     .eq('id', payment.id)
+    .eq('status', 'PENDING')
+    .select('id')
 
   if (updateError) {
     console.error('[webhook] failed to update payment:', updateError.message)
     return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+  }
+
+  if (!updateCount || updateCount === 0) {
+    // Already processed by a concurrent verify or webhook call — idempotent success
+    return NextResponse.json({ received: true })
   }
 
   // ── Unlock contact ────────────────────────────────────────────────────────
