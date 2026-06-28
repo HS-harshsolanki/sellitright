@@ -1,7 +1,8 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { createContext, useContext, useEffect, useState } from 'react'
+
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 interface AuthContextValue {

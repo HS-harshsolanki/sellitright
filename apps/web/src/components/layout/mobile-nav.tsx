@@ -1,10 +1,11 @@
 'use client'
 
+import { Home, Search, PlusSquare, User, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Search, PlusSquare, User, LayoutDashboard } from 'lucide-react'
-import { cn } from '@/lib/utils'
+
 import { useAuth } from '@/lib/supabase/auth-context'
+import { cn } from '@/lib/utils'
 
 export function MobileNav() {
   const pathname = usePathname()

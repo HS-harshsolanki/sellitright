@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
+
+import { NextRequest, NextResponse } from 'next/server'
+
 import { createServiceClient } from '@/lib/supabase/server'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -29,13 +30,14 @@ export default async function SellLayout({ children }: SellLayoutProps) {
       {/* Minimal top bar */}
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-4 backdrop-blur-sm sm:px-6">
         {/* Logo — "Sell" in accent, "ItRight" in foreground dark, matching main header */}
-        <Link
-          href="/"
-          className="flex items-center text-lg font-bold"
-          aria-label="SellItRight home"
-        >
-          <span className="text-[var(--color-accent)]">Sell</span>
-          <span className="text-[var(--color-foreground)]">ItRight</span>
+        <Link href="/" className="flex items-center text-lg font-bold">
+          <span className="sr-only">SellItRight home</span>
+          <span aria-hidden="true" className="text-[var(--color-accent)]">
+            Sell
+          </span>
+          <span aria-hidden="true" className="text-[var(--color-foreground)]">
+            ItRight
+          </span>
         </Link>
 
         {/* Right side: exit link */}

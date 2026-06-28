@@ -1,8 +1,9 @@
 'use client'
 
+import { motion } from 'framer-motion'
+
 import { cn } from '@/lib/utils'
 import { type PropertyType, useSellFormStore } from '@/stores/sell-form.store'
-import { motion } from 'framer-motion'
 
 interface PropertyOption {
   type: PropertyType

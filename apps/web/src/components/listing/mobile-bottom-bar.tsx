@@ -1,8 +1,9 @@
 'use client'
 
+import { MessageSquare, CheckCircle2, Phone, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
-import { MessageSquare, CheckCircle2, Phone, Lock } from 'lucide-react'
+
 import { RequestContactModal } from '@/components/listing/request-contact-modal'
 import { UnlockContactSection } from '@/components/listing/unlock-contact-section'
 

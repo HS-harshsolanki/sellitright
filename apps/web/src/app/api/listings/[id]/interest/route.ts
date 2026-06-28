@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { buyerInterestSchema } from '@/lib/validators'
+
 import { createNotification } from '@/lib/notifications'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { interestPreflight, logActivity } from '@/lib/trust'
+import { buyerInterestSchema } from '@/lib/validators'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -67,6 +69,23 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     )
   }
 
+  // ── Trust & Safety pre-flight ─────────────────────────────────────────────
+  // Checks: block (either direction), spam detection, rate limits.
+  const adminForTrust = createServiceClient()
+  if (adminForTrust) {
+    const preflight = await interestPreflight(
+      supabase,
+      adminForTrust,
+      user.id,
+      listing.seller_id,
+      listingId,
+      validated.message,
+    )
+    if (!preflight.allowed) {
+      return NextResponse.json({ error: preflight.reason }, { status: preflight.statusCode })
+    }
+  }
+
   // ── Check for existing PENDING request ───────────────────────────────────
   // The unique partial index handles this at the DB level too, but we return a
   // clean error before hitting it so the client can show the right UI state.
@@ -117,7 +136,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     )
   }
 
-  // Notify seller — fire-and-forget
+  // Notify seller + log activity — fire-and-forget
   const admin = createServiceClient()
   if (admin) {
     await createNotification({
@@ -128,6 +147,16 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       type: 'InterestRequest',
       entityType: 'interest',
       entityId: interest.id,
+    })
+
+    // Log the activity so rate-limit counters and risk scoring work
+    await logActivity(admin, {
+      userId: user.id,
+      action: 'interest_request',
+      entityType: 'listing',
+      entityId: listingId,
+      ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined,
+      metadata: { message: validated.message ?? '' },
     })
   }
 

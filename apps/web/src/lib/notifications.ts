@@ -20,6 +20,12 @@ interface CreateNotificationParams {
 
 export async function createNotification(params: CreateNotificationParams): Promise<void> {
   const { admin, userId, title, message, type, entityType, entityId } = params
+
+  if (!userId) {
+    console.warn('[notifications] createNotification called with empty userId — skipped')
+    return
+  }
+
   const { error } = await admin.from('notifications').insert({
     user_id: userId,
     title,
@@ -29,8 +35,24 @@ export async function createNotification(params: CreateNotificationParams): Prom
     entity_id: entityId ?? null,
     read: false,
   })
+
   if (error) {
-    console.error('[notifications] insert error:', error.message)
+    // Surface clearly: if the table is missing (42P01) or the service role key
+    // is wrong (403), the insert silently failed — log actionably, not just the
+    // raw message.
+    if (error.code === '42P01') {
+      console.error(
+        '[notifications] INSERT failed — table "notifications" does not exist.' +
+          ' Run migration 003_notifications.sql in the Supabase SQL editor.',
+      )
+    } else if (error.message?.includes('service_role')) {
+      console.error(
+        '[notifications] INSERT failed — SUPABASE_SERVICE_ROLE_KEY may be wrong or missing.',
+        error.message,
+      )
+    } else {
+      console.error('[notifications] INSERT failed:', error.message, '(code:', error.code, ')')
+    }
     // Non-fatal — notification failure must never break the primary action
   }
 }

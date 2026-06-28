@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { CheckSquare } from 'lucide-react'
+import { useState } from 'react'
 
 const MAX_AMENITIES = 10
 

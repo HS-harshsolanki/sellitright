@@ -1,10 +1,11 @@
 'use client'
 
+import { BarChart3, Home, LayoutGrid, Plus, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, Home, LayoutGrid, Plus, User } from 'lucide-react'
-import { cn } from '@/lib/utils'
+
 import { SignOutButton } from '@/components/auth/sign-out-button'
+import { cn } from '@/lib/utils'
 
 interface NavItem {
   href: string

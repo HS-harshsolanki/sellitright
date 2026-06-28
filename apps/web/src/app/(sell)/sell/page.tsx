@@ -1,18 +1,19 @@
 'use client'
 
+import { AnimatePresence, motion } from 'framer-motion'
+import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+
 import { StepDetails } from '@/components/forms/step-details'
 import { StepLocation } from '@/components/forms/step-location'
 import { StepPhotos } from '@/components/forms/step-photos'
 import { StepPricing } from '@/components/forms/step-pricing'
 import { StepPropertyType } from '@/components/forms/step-property-type'
 import { StepReview } from '@/components/forms/step-review'
+import { useAuth } from '@/lib/supabase/auth-context'
+import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { SELL_STEPS, STEP_LABELS, type SellStep, useSellFormStore } from '@/stores/sell-form.store'
-import { isSupabaseConfigured } from '@/lib/supabase/client'
-import { useAuth } from '@/lib/supabase/auth-context'
-import { AnimatePresence, motion } from 'framer-motion'
-import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
 
 const pageVariants = {
   enter: (direction: number) => ({

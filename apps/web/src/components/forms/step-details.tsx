@@ -1,5 +1,7 @@
 'use client'
 
+import { Minus, Plus } from 'lucide-react'
+
 import { cn } from '@/lib/utils'
 import {
   type BHKType,
@@ -8,7 +10,6 @@ import {
   type Parking,
   useSellFormStore,
 } from '@/stores/sell-form.store'
-import { Minus, Plus } from 'lucide-react'
 
 const AMENITY_LIST = [
   'Gym',

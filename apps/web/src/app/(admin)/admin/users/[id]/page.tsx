@@ -1,12 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { ArrowLeft, Phone, Mail, Shield, AlertTriangle } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
+
 import { useAdminAuth } from '@/components/admin/admin-auth-context'
+import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 interface UserDetail {
   id: string

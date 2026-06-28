@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
+
+import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
+
 import { createServiceClient } from '@/lib/supabase/server'
-import { adminFlagUserSchema } from '@/lib/validators'
 import { computeAndStoreRiskScore } from '@/lib/trust'
+import { adminFlagUserSchema } from '@/lib/validators'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 

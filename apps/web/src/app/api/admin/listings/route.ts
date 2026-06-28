@@ -1,9 +1,11 @@
 import crypto from 'crypto'
+
 import { NextRequest, NextResponse } from 'next/server'
-import { getAllListings } from '@/lib/listing-store'
-import { createServiceClient } from '@/lib/supabase/server'
+
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
+import { getAllListings } from '@/lib/listing-store'
 import type { MockListing } from '@/lib/mock-data'
+import { createServiceClient } from '@/lib/supabase/server'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
@@ -27,8 +29,14 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
   const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') ?? '25', 10)))
   const status = searchParams.get('status') ?? ''
-  const query = (searchParams.get('q') ?? '').toLowerCase().trim()
-  const city = (searchParams.get('city') ?? '').toLowerCase().trim()
+  const query = (searchParams.get('q') ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[%_,()\\.]/g, '')
+  const city = (searchParams.get('city') ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[%_,()\\.]/g, '')
   const propertyType = searchParams.get('propertyType') ?? ''
   const sortBy = searchParams.get('sortBy') ?? 'oldest'
 

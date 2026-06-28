@@ -165,3 +165,49 @@ export const loginSchema = z.union([
 ])
 
 export type LoginInput = z.infer<typeof loginSchema>
+
+// ---------------------------------------------------------------------------
+// Trust & Safety
+// ---------------------------------------------------------------------------
+
+// Buyer reporting a listing
+export const buyerListingReportReasonEnum = z.enum([
+  'ALREADY_SOLD',
+  'WRONG_INFORMATION',
+  'SPAM_LISTING',
+  'OTHER',
+])
+
+// Seller reporting a buyer
+export const sellerBuyerReportReasonEnum = z.enum([
+  'SPAM_REQUESTS',
+  'ABUSIVE_BEHAVIOR',
+  'BROKER_SUSPECTED',
+  'FAKE_DETAILS',
+  'OTHER',
+])
+
+export const buyerReportListingSchema = z.object({
+  reason: buyerListingReportReasonEnum,
+  details: z.string().max(500).trim().optional(),
+})
+
+export const sellerReportBuyerSchema = z.object({
+  targetUserId: z.string().uuid('Invalid user ID'),
+  reason: sellerBuyerReportReasonEnum,
+  details: z.string().max(500).trim().optional(),
+})
+
+export const blockUserSchema = z.object({
+  reason: z.string().max(200).trim().optional(),
+})
+
+export const adminFlagUserSchema = z.object({
+  flag: z.enum(['SPAM', 'BROKER_SUSPECTED', 'NEEDS_REVIEW', 'SUSPENDED', 'CLEARED']),
+  reason: z.string().max(500).trim().optional(),
+})
+
+export type BuyerReportListingInput = z.infer<typeof buyerReportListingSchema>
+export type SellerReportBuyerInput = z.infer<typeof sellerReportBuyerSchema>
+export type BlockUserInput = z.infer<typeof blockUserSchema>
+export type AdminFlagUserInput = z.infer<typeof adminFlagUserSchema>

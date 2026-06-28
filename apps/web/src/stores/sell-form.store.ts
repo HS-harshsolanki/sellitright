@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+
 import type { MockListing } from '@/lib/mock-data'
 
 export type PropertyType = 'APARTMENT' | 'VILLA' | 'INDEPENDENT_HOUSE' | 'PLOT' | 'PENTHOUSE'
 export type BHKType = 'ONE_BHK' | 'TWO_BHK' | 'THREE_BHK' | 'FOUR_BHK' | 'FIVE_PLUS_BHK'
-export type Furnishing = 'FULLY_FURNISHED' | 'SEMI_FURNISHED' | 'UNFURNISHED'
+export type Furnishing = 'FURNISHED' | 'SEMI_FURNISHED' | 'UNFURNISHED'
 export type Parking = 'COVERED' | 'OPEN' | 'BOTH' | 'NONE'
 export type Facing =
   | 'NORTH'

@@ -1,8 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
-import { EditListingForm } from './edit-listing-form'
-import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
+import { createClient } from '@/lib/supabase/server'
+
+import { EditListingForm } from './edit-listing-form'
 
 export const metadata: Metadata = {
   title: 'Edit Listing — SellItRight',

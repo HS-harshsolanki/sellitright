@@ -1,12 +1,14 @@
 'use client'
 
+import NextImage from 'next/image'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+
+import { useAdminAuth } from '@/components/admin/admin-auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 import { formatPrice, formatBHK } from '@/lib/format'
 import type { MockListing, ListingStatus } from '@/lib/mock-data'
-import { useAdminAuth } from '@/components/admin/admin-auth-context'
+import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -262,10 +264,12 @@ function DetailModal({ listing, onClose, onApproved, onRejected, onDeleted }: De
             <div className="overflow-x-auto">
               <div className="flex gap-2 pb-1">
                 {listing.images.map((img) => (
-                  <img
+                  <NextImage
                     key={img.id}
                     src={img.url}
                     alt={img.caption ?? 'Property photo'}
+                    width={240}
+                    height={160}
                     className="h-40 w-60 shrink-0 rounded-lg object-cover"
                   />
                 ))}

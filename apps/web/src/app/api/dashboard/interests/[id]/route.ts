@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+
 import { createNotification } from '@/lib/notifications'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 interface RouteContext {
   params: Promise<{ id: string }>

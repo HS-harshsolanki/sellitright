@@ -3,6 +3,7 @@
 import { Search, X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+
 import { cn } from '@/lib/utils'
 
 interface HeaderSearchProps {

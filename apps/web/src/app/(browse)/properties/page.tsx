@@ -1,14 +1,14 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { ChevronDown, Plus } from 'lucide-react'
-import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { MOCK_LISTINGS, type MockListing } from '@/lib/mock-data'
-import { isSupabaseConfigured } from '@/lib/supabase/client'
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import { ListingCard } from '@/components/listing/listing-card'
 import { FilterBar, type ActiveFilters } from '@/components/search/filter-bar'
+import { MOCK_LISTINGS, type MockListing } from '@/lib/mock-data'
+import { isSupabaseConfigured } from '@/lib/supabase/client'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -411,12 +411,7 @@ function BrowsePageInner() {
         Positioned above the mobile bottom nav (bottom-24 = h-16 nav + 8px gap).
         Pill-shaped, not circular — carries both icon and short label.
       */}
-      <motion.div
-        className="pointer-events-none fixed bottom-24 right-4 z-30 md:hidden"
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.15 }}
-      >
+      <div className="animate-in fade-in zoom-in-95 fill-mode-both pointer-events-none fixed bottom-24 right-4 z-30 duration-200 [animation-delay:150ms] md:hidden">
         <Link
           href="/sell"
           className="pointer-events-auto flex h-12 items-center gap-2 rounded-full bg-[var(--color-primary)] px-4 text-sm font-semibold text-white shadow-lg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 active:scale-95"
@@ -425,7 +420,7 @@ function BrowsePageInner() {
           <Plus className="h-4 w-4" aria-hidden="true" />
           Post
         </Link>
-      </motion.div>
+      </div>
     </div>
   )
 }

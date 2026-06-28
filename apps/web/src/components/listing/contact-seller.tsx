@@ -1,14 +1,15 @@
 'use client'
 
+import { MessageSquare, ShieldCheck, User, Clock, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
-import { MessageSquare, ShieldCheck, User, Clock, CheckCircle2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+
 import { RequestContactModal } from '@/components/listing/request-contact-modal'
 import {
   UnlockContactSection,
   ContactRevealedCard,
 } from '@/components/listing/unlock-contact-section'
+import { Button } from '@/components/ui/button'
 import type { MockSeller } from '@/lib/mock-data'
 
 interface ContactSellerProps {

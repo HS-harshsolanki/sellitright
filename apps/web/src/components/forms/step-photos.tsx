@@ -1,10 +1,11 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { isSupabaseConfigured } from '@/lib/supabase/client'
-import { useSellFormStore } from '@/stores/sell-form.store'
 import { ImagePlus, Link, Star, Trash2, Upload, X } from 'lucide-react'
 import { useRef, useState } from 'react'
+
+import { isSupabaseConfigured } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import { useSellFormStore } from '@/stores/sell-form.store'
 
 const MAX_PHOTOS = 10
 const MAX_FILE_SIZE_MB = 10
@@ -252,7 +253,7 @@ export function StepPhotos() {
                       </button>
                     </div>
                   ) : state.progress === 100 ? (
-                    <span className="shrink-0 text-xs font-medium text-green-600">Done</span>
+                    <span className="shrink-0 text-xs font-medium text-green-700">Done</span>
                   ) : (
                     <span className="text-muted-foreground shrink-0 text-xs">
                       {state.progress !== null ? `${state.progress}%` : 'Uploading...'}

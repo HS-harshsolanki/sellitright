@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+
 import { Button } from '@/components/ui/button'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
@@ -75,8 +76,9 @@ function LoginPageInner() {
   return (
     <>
       <div className="mb-8 text-center">
-        <Link href="/" className="inline-block" aria-label="SellItRight home">
-          <span className="text-2xl font-bold tracking-tight">
+        <Link href="/" className="inline-block">
+          <span className="sr-only">SellItRight home</span>
+          <span aria-hidden="true" className="text-2xl font-bold tracking-tight">
             <span className="text-[var(--color-accent)]">Sell</span>
             <span className="text-[var(--color-foreground)]">ItRight</span>
           </span>

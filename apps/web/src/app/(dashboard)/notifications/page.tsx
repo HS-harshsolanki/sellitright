@@ -1,8 +1,5 @@
 'use client'
 
-import { useAuth } from '@/lib/supabase/auth-context'
-import { useNotifications } from '@/hooks/use-notifications'
-import type { NotificationItem } from '@/hooks/use-notifications'
 import {
   Bell,
   CheckCircle2,
@@ -14,6 +11,10 @@ import {
   CheckCheck,
   Loader2,
 } from 'lucide-react'
+
+import { useNotifications } from '@/hooks/use-notifications'
+import type { NotificationItem } from '@/hooks/use-notifications'
+import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
 
 function TypeIcon({ type }: { type: string }) {

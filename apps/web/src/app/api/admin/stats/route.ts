@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
+
 import { isAuthorized } from '@/lib/admin-auth'
+import { createServiceClient } from '@/lib/supabase/server'
 
 // GET /api/admin/stats
 // Returns aggregate counts for the admin dashboard.

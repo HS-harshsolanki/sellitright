@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
+
 import { isAuthorized, logAdminAction } from '@/lib/admin-auth'
+import { createServiceClient } from '@/lib/supabase/server'
 import { computeAndStoreRiskScore } from '@/lib/trust'
 
 interface RouteContext {

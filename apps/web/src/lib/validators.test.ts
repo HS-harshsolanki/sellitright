@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { listingCreateSchema, loginSchema, listingFilterSchema } from './validators'
 
 const VALID_LISTING = {

@@ -1,9 +1,10 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { useSellFormStore } from '@/stores/sell-form.store'
 import { CheckCircle2, Edit2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+
+import { cn } from '@/lib/utils'
+import { useSellFormStore } from '@/stores/sell-form.store'
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   APARTMENT: 'Apartment',

@@ -1,6 +1,6 @@
+import { Home, Search } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Home, Search } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Page Not Found | SellItRight',

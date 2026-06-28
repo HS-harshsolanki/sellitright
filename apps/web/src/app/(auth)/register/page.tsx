@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { Suspense, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
@@ -67,8 +68,12 @@ function RegisterPageInner() {
   return (
     <>
       <div className="mb-8 text-center">
-        <Link href="/" className="inline-block" aria-label="SellItRight home">
-          <span className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
+        <Link href="/" className="inline-block">
+          <span className="sr-only">SellItRight home</span>
+          <span
+            aria-hidden="true"
+            className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]"
+          >
             Sell<span className="text-[var(--color-primary)]">It</span>Right
           </span>
         </Link>

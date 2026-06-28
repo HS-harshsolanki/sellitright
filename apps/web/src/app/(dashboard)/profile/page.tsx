@@ -1,11 +1,12 @@
 'use client'
 
-import { useAuth } from '@/lib/supabase/auth-context'
-import { createClient } from '@/lib/supabase/client'
+import { User, Mail, Phone, LogOut, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { User, Mail, Phone, LogOut, Save } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/supabase/auth-context'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 function Spinner({ className }: { className?: string }) {

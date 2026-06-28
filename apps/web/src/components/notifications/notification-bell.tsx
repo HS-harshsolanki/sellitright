@@ -1,7 +1,5 @@
 'use client'
 
-import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
 import {
   Bell,
   CheckCircle2,
@@ -12,11 +10,15 @@ import {
   IndianRupee,
   CheckCheck,
 } from 'lucide-react'
-import { useNotifications } from '@/hooks/use-notifications'
-import type { NotificationItem } from '@/hooks/use-notifications'
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 
+import type { NotificationItem, UseNotificationsResult } from '@/hooks/use-notifications'
+
+// Props receive the hook result from the parent (Header) so there is a single
+// shared state across the bell and the mobile badge — no double-fetch.
 interface NotificationBellProps {
-  userId: string
+  hook: UseNotificationsResult
 }
 
 // ── Type icon mapping ─────────────────────────────────────────────────────────
@@ -97,11 +99,16 @@ function NotificationRow({ item, onRead }: NotificationRowProps) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function NotificationBell({ userId }: NotificationBellProps) {
+export function NotificationBell({ hook }: NotificationBellProps) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const { notifications, unreadCount, markRead, markAllRead } = useNotifications(userId)
+  const { notifications, unreadCount, markRead, markAllRead } = hook
+
+  // Refetch when the panel opens so the list is always fresh
+  useEffect(() => {
+    if (open) hook.refetch()
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close on outside click
   useEffect(() => {

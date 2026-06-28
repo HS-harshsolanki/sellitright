@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useId } from 'react'
 import { CheckCircle2, Loader2, MessageSquare } from 'lucide-react'
-import { useAuth } from '@/lib/supabase/auth-context'
-import { cn } from '@/lib/utils'
+import { useState, useId } from 'react'
+
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/supabase/auth-context'
+import { cn } from '@/lib/utils'
 import type { InterestPurpose, InterestTimeline, InterestFunding } from '@/lib/validators'
 
 // ─── Option sets ─────────────────────────────────────────────────────────────

@@ -1,8 +1,9 @@
 'use client'
 
+import { MapPin } from 'lucide-react'
+
 import { cn } from '@/lib/utils'
 import { useSellFormStore } from '@/stores/sell-form.store'
-import { MapPin } from 'lucide-react'
 
 interface CityOption {
   label: string

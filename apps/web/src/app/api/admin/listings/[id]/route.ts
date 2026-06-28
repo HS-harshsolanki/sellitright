@@ -1,8 +1,10 @@
 import crypto from 'crypto'
+
 import { NextRequest, NextResponse } from 'next/server'
+
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { getListingByIdFromStore } from '@/lib/listing-store'
 import { createServiceClient } from '@/lib/supabase/server'
-import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 

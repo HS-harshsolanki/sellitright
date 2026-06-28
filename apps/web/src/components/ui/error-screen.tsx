@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import Link from 'next/link'
 
 interface ErrorScreenProps {
   title?: string

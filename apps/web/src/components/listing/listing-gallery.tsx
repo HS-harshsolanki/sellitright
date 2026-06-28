@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, X, LayoutGrid } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import Image from 'next/image'
+import { useState, useCallback } from 'react'
+
 import type { MockListingImage } from '@/lib/mock-data'
+import { cn } from '@/lib/utils'
 
 interface ListingGalleryProps {
   images: MockListingImage[]
