@@ -20,10 +20,14 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@v3
 
       - name: Deploy
-        run: flyctl deploy --remote-only
+        run: |
+          flyctl deploy --remote-only \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+            --build-arg NEXT_PUBLIC_APP_URL="https://sellitright.fly.dev"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 

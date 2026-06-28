@@ -1,3 +1,7 @@
+-- CANONICAL: This is the authoritative notifications table migration.
+-- infrastructure/supabase/008_notifications.sql redirects here.
+-- Run order: after 002_payments.sql
+
 create table if not exists public.notifications (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users(id) on delete cascade,
