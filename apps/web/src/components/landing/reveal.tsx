@@ -1,7 +1,16 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+
+// SSR renders children fully visible. After hydration, JS runs the animation.
+// This prevents the "invisible page" bug where opacity:0 is baked into SSR HTML.
+
+function useMounted() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  return mounted
+}
 
 interface RevealProps {
   children: ReactNode
@@ -11,9 +20,11 @@ interface RevealProps {
 }
 
 export function Reveal({ children, className, delay = 0, y = 24 }: RevealProps) {
+  const mounted = useMounted()
+
   return (
     <motion.div
-      initial={{ opacity: 0, y }}
+      initial={mounted ? { opacity: 0, y } : false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay }}
@@ -24,7 +35,6 @@ export function Reveal({ children, className, delay = 0, y = 24 }: RevealProps) 
   )
 }
 
-// Staggered children — each child fades up with a delay offset
 interface StaggerProps {
   children: ReactNode[]
   className?: string
@@ -33,12 +43,14 @@ interface StaggerProps {
 }
 
 export function Stagger({ children, className, stagger = 0.08, y = 20 }: StaggerProps) {
+  const mounted = useMounted()
+
   return (
     <div className={className}>
       {children.map((child, i) => (
         <motion.div
           key={i}
-          initial={{ opacity: 0, y }}
+          initial={mounted ? { opacity: 0, y } : false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-60px' }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: i * stagger }}
