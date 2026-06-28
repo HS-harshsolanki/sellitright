@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PROTECTED_PATHS = ['/api/admin', '/dashboard', '/sell', '/admin', '/profile']
+const PROTECTED_PATHS = ['/dashboard', '/sell', '/admin', '/profile']
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
@@ -16,7 +16,12 @@ function isSupabaseConfigured() {
 }
 
 function sanitiseNext(raw: string): string {
-  return raw.startsWith('/') && !raw.startsWith('//') && raw !== '/login' && raw !== '/register'
+  return raw.startsWith('/') &&
+    !raw.startsWith('//') &&
+    !raw.includes('@') &&
+    !raw.includes('\n') &&
+    raw !== '/login' &&
+    raw !== '/register'
     ? raw
     : '/'
 }

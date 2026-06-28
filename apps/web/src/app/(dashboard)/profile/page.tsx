@@ -60,7 +60,6 @@ export default function ProfilePage() {
   }
 
   const email = user.email ?? null
-  const phone = user.phone ?? null
   const provider = user.app_metadata?.provider ?? 'email'
   const avatarUrl: string | null = user.user_metadata?.avatar_url ?? null
   const initials = displayName?.[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? '?'
@@ -78,7 +77,8 @@ export default function ProfilePage() {
     setSaving(false)
 
     if (error) {
-      console.error('[profile] updateUser error:', error.message)
+      if (process.env.NODE_ENV === 'development')
+        console.error('[profile] updateUser error:', error.message)
       setError('Failed to save changes. Please try again.')
     } else {
       setSaved(true)

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { MapPin, Share2, Heart, BadgeCheck, User, ArrowLeft, Pencil } from 'lucide-react'
+import { MapPin, BadgeCheck, User, ArrowLeft, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { getListingById } from '@/lib/mock-data'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
@@ -12,6 +12,7 @@ import { ContactSeller } from '@/components/listing/contact-seller'
 import { MobileBottomBar } from '@/components/listing/mobile-bottom-bar'
 import { ExpandableDescription } from '@/components/listing/expandable-description'
 import { ShowAllAmenities } from '@/components/listing/show-all-amenities'
+import { ShareSaveButtons } from '@/components/listing/share-save-buttons'
 
 interface ListingPageProps {
   params: Promise<{ id: string }>
@@ -204,22 +205,12 @@ export default async function ListingPage({ params }: ListingPageProps) {
               {listing.title}
             </h1>
 
-            {/* Share + Save — text links with icons, right-aligned */}
+            {/* Share + Save — client component (Web Share API + clipboard fallback) */}
             <div className="flex shrink-0 items-center gap-1">
-              <button
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-foreground)] underline underline-offset-2 transition hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-                aria-label="Share this listing"
-              >
-                <Share2 className="h-4 w-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Share</span>
-              </button>
-              <button
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-foreground)] underline underline-offset-2 transition hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-                aria-label="Save to favourites"
-              >
-                <Heart className="h-4 w-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Save</span>
-              </button>
+              <ShareSaveButtons
+                title={listing.title}
+                url={`${process.env.NEXT_PUBLIC_APP_URL}/listing/${listing.id}`}
+              />
             </div>
           </div>
         </div>

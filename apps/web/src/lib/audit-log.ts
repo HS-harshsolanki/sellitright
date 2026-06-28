@@ -1,3 +1,12 @@
+// Warn loudly at startup if the audit log will be silently non-persistent in production
+if (process.env.NODE_ENV === 'production' && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error(
+    '[audit-log] CRITICAL: SUPABASE_SERVICE_ROLE_KEY is not set. ' +
+      'Audit log entries will be lost on every server restart. ' +
+      'Set this secret via: fly secrets set SUPABASE_SERVICE_ROLE_KEY=<value>',
+  )
+}
+
 export type AuditAction = 'approved' | 'rejected' | 'note_added' | 'status_changed' | 'deleted'
 
 export interface AuditEntry {

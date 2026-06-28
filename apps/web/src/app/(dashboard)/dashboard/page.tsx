@@ -651,7 +651,8 @@ export default function DashboardPage() {
             setFetchError('You need to be signed in to view your listings.')
             setListings([])
           } else {
-            console.error('[dashboard] listings fetch failed, status:', res.status)
+            if (process.env.NODE_ENV === 'development')
+              console.error('[dashboard] listings fetch failed, status:', res.status)
             setFetchError('Failed to load listings. Please refresh.')
             setListings([])
           }
