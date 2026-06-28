@@ -9,22 +9,22 @@ import { MOCK_LISTINGS } from '@/lib/mock-data'
 const PAIN_POINTS = [
   {
     icon: PhoneOff,
-    title: 'Broker spam',
-    description: 'You enquire once. Your number gets sold to 12 brokers before evening.',
+    title: 'You enquire once.',
+    description: 'Your number gets sold to 12 brokers before evening.',
   },
   {
     icon: Eye,
-    title: 'Fake listings',
+    title: 'The listing looks perfect.',
     description: 'Photos from two years ago. Owner moved. Property already sold. You still called.',
   },
   {
     icon: IndianRupee,
-    title: 'Hidden commissions',
-    description: '1–2% of the sale price. Lakhs of rupees. For what, exactly?',
+    title: '1–2% of the sale price.',
+    description: 'Lakhs of rupees. For connecting a call you could have made yourself.',
   },
   {
     icon: Lock,
-    title: 'No privacy',
+    title: 'Nobody asked you.',
     description: "Your contact details are shared without consent. You didn't agree to this.",
   },
 ]
@@ -33,37 +33,59 @@ const HANDSHAKE_STEPS = [
   {
     step: 1,
     actor: 'Owner',
-    label: 'Lists property',
-    sub: 'Verified, with real photos and details',
+    label: 'Lists their property',
+    sub: 'Real photos. Verified identity. Nothing hidden.',
   },
-  { step: 2, actor: 'Buyer', label: 'Sends a request', sub: 'Expresses genuine interest' },
-  { step: 3, actor: 'Owner', label: 'Reviews & approves', sub: 'Full control — no cold contacts' },
-  { step: 4, actor: 'Buyer', label: 'Unlocks contact', sub: 'Pays ₹49 flat to connect' },
-  { step: 5, actor: 'Both', label: 'Conversation begins', sub: 'Direct. No middlemen.' },
+  {
+    step: 2,
+    actor: 'Buyer',
+    label: 'Sends a request',
+    sub: 'Owners see who is asking before agreeing to anything.',
+  },
+  {
+    step: 3,
+    actor: 'Owner',
+    label: 'Approves or declines',
+    sub: 'You choose who gets access to your contact.',
+  },
+  {
+    step: 4,
+    actor: 'Buyer',
+    label: 'Pays a small fee',
+    sub: 'Only after both sides agree. No surprises.',
+  },
+  {
+    step: 5,
+    actor: 'Both',
+    label: 'Talk directly',
+    sub: 'No broker in the middle. No commission. No noise.',
+  },
 ]
 
 const TRUST_PILLARS = [
   {
     icon: BadgeCheck,
-    title: 'Manual listing review',
-    description: 'Every listing is reviewed by our team before it goes live. No auto-approvals.',
+    title: 'Every listing is reviewed before it goes live.',
+    description:
+      'We check every submission manually. If something looks wrong, it does not appear. No exceptions.',
   },
   {
     icon: ShieldCheck,
-    title: 'Verified owners',
-    description: 'Owners verify their identity before listing. You know who you are talking to.',
+    title: 'You know exactly who you are talking to.',
+    description:
+      "Owners verify their phone number before listing. You're not messaging an anonymous post.",
   },
   {
     icon: Lock,
-    title: 'Mutual consent',
+    title: 'Your details stay private until you choose to share them.',
     description:
-      'Owners approve every buyer request. Your contact is never shared without your explicit knowledge.',
+      'Contact information is hidden on both sides until an owner approves a request. Nobody gets your number without your knowledge.',
   },
   {
     icon: IndianRupee,
-    title: 'Flat ₹49 connection fee',
+    title: 'You only pay after both sides agree to connect.',
     description:
-      'No percentage commissions. A flat fee keeps buyers genuine and removes broker incentives entirely.',
+      'No upfront fees. No commissions. A small connection fee is charged only when a conversation is mutually unlocked.',
   },
 ]
 
@@ -103,35 +125,33 @@ export default function LandingPage() {
   return (
     <main>
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <section aria-labelledby="hero-heading" className="relative overflow-hidden py-24 md:py-36">
-        {/* Subtle radial glow — purely decorative */}
+      <section aria-labelledby="hero-heading" className="relative overflow-hidden py-28 md:py-44">
         <div
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
             background:
-              'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(198,46,73,0.06) 0%, transparent 70%)',
+              'radial-gradient(ellipse 80% 55% at 50% -5%, rgba(198,46,73,0.05) 0%, transparent 68%)',
           }}
           aria-hidden="true"
         />
 
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          {/* Trust signal above headline */}
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] shadow-sm">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
-            Every listing is manually verified
+            Every listing is reviewed before it goes live
           </div>
 
           <h1
             id="hero-heading"
-            className="mt-6 text-4xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-5xl md:text-6xl"
+            className="mt-7 text-4xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-5xl md:text-[3.75rem] md:leading-[1.1]"
           >
             Buy or sell property.{' '}
-            <span style={{ color: 'var(--color-accent)' }}>Without brokers.</span>
+            <span style={{ color: 'var(--color-accent)' }}>You stay in control.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-            SellItRight connects verified owners directly with genuine buyers — no spam, no
-            commissions, no middlemen.
+            You choose who contacts you. You decide when conversations begin. You know exactly who
+            you&apos;re talking to.
           </p>
 
           <div className="mt-10 flex flex-wrap justify-center gap-3">
@@ -151,34 +171,15 @@ export default function LandingPage() {
           </div>
 
           <p className="mt-5 text-xs text-[var(--color-muted-foreground)]">
-            Free to list &nbsp;·&nbsp; No broker fees &nbsp;·&nbsp; ₹49 to connect
+            Free to list &nbsp;·&nbsp; No broker fees &nbsp;·&nbsp; No unsolicited contact
           </p>
         </div>
       </section>
 
-      {/* ── Trust Metrics ────────────────────────────────────────────────────── */}
-      <section
-        aria-label="Platform statistics"
-        className="border-y border-[var(--color-border)] bg-[var(--color-muted)] py-12"
-      >
-        <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <dl className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            {TRUST_METRICS.map(({ value, label }) => (
-              <div key={label} className="text-center">
-                <dt className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
-                  {value}
-                </dt>
-                <dd className="mt-1 text-sm text-[var(--color-muted-foreground)]">{label}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
-
       {/* ── Problem ──────────────────────────────────────────────────────────── */}
-      <section aria-labelledby="problem-heading" className="py-24 md:py-32">
+      <section aria-labelledby="problem-heading" className="py-20 md:py-28">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
-          <div className="max-w-2xl">
+          <div className="max-w-xl">
             <h2
               id="problem-heading"
               className="text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
@@ -190,10 +191,9 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Editorial list — visual contrast to the card-grid Trust section below */}
-          <div className="mt-14 divide-y divide-[var(--color-border)]">
+          <div className="mt-12 divide-y divide-[var(--color-border)]">
             {PAIN_POINTS.map(({ icon: Icon, title, description }) => (
-              <div key={title} className="flex gap-5 py-6 sm:gap-8">
+              <div key={title} className="flex gap-5 py-5 sm:gap-8">
                 <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-muted)]">
                   <Icon className="h-4 w-4 text-[var(--color-foreground)]" aria-hidden="true" />
                 </div>
@@ -207,8 +207,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Pivot — accent border gives it weight without shouting */}
-          <div className="mt-16 border-l-2 border-[var(--color-accent)] pl-6">
+          <div className="mt-14 border-l-2 border-[var(--color-accent)] pl-6">
             <p className="text-2xl font-semibold leading-snug text-[var(--color-foreground)] sm:text-3xl">
               There had to be a better way.
             </p>
@@ -216,30 +215,46 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Solution — The Handshake Model ───────────────────────────────────── */}
-      <section aria-labelledby="solution-heading" className="bg-[var(--color-primary)] py-24">
+      {/* ── Trust Metrics ────────────────────────────────────────────────────── */}
+      <section
+        aria-label="Platform statistics"
+        className="border-y border-[var(--color-border)] bg-[var(--color-muted)] py-10"
+      >
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+          <dl className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            {TRUST_METRICS.map(({ value, label }) => (
+              <div key={label} className="text-center">
+                <dt className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
+                  {value}
+                </dt>
+                <dd className="mt-1 text-sm text-[var(--color-muted-foreground)]">{label}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* ── Handshake Model ──────────────────────────────────────────────────── */}
+      <section
+        aria-labelledby="solution-heading"
+        className="bg-[var(--color-primary)] py-28 md:py-36"
+      >
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-white/50">
-              How it works
-            </p>
             <h2
               id="solution-heading"
-              className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl"
+              className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
             >
               The Handshake Model
             </h2>
             <p className="mt-4 text-base leading-relaxed text-white/70">
-              Every connection on SellItRight requires consent from both sides. No unsolicited
-              contact. Ever.
+              Every connection requires consent from both sides. No unsolicited contact. Ever.
             </p>
           </div>
 
-          {/* Steps — vertical on mobile, horizontal on desktop */}
-          <ol className="mt-16 flex flex-col gap-0 sm:flex-row">
+          <ol className="mt-20 flex flex-col gap-0 sm:flex-row">
             {HANDSHAKE_STEPS.map(({ step, actor, label, sub }, idx) => (
               <li key={step} className="flex flex-1 flex-col items-center text-center">
-                {/* Connector line — desktop */}
                 <div className="relative flex w-full items-center justify-center">
                   {idx > 0 && (
                     <div
@@ -253,10 +268,9 @@ export default function LandingPage() {
                       aria-hidden="true"
                     />
                   )}
-                  {/* Mobile vertical line above (except first) */}
                   {idx > 0 && (
                     <div
-                      className="absolute bottom-full mb-0 h-6 w-px bg-white/20 sm:hidden"
+                      className="absolute bottom-full h-6 w-px bg-white/20 sm:hidden"
                       aria-hidden="true"
                     />
                   )}
@@ -264,54 +278,42 @@ export default function LandingPage() {
                     {step}
                   </div>
                 </div>
-
-                {/* Actor tag */}
                 <span className="mt-4 rounded-full bg-white/10 px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-white/60">
                   {actor}
                 </span>
                 <h3 className="mt-2 text-sm font-semibold text-white">{label}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-white/55">{sub}</p>
+                <p className="mt-1 px-2 text-xs leading-relaxed text-white/55">{sub}</p>
               </li>
             ))}
           </ol>
-
-          <div className="mt-14 text-center">
-            <Link
-              href="/properties"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] shadow-sm transition-all hover:bg-gray-100 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-primary)] active:scale-[0.97]"
-            >
-              See how it works
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* ── Trust Center ─────────────────────────────────────────────────────── */}
+      {/* ── Trust — demonstrated, not declared ───────────────────────────────── */}
       <section aria-labelledby="trust-heading" className="py-20 md:py-28">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
+          <div className="max-w-xl">
             <h2
               id="trust-heading"
               className="text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
             >
-              Built on trust, not just listings
+              Why you can trust what you see here.
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[var(--color-muted-foreground)]">
-              Every structural decision we made was driven by one question: why should you trust us?
+              Not because we say so. Because of how the product is built.
             </p>
           </div>
 
-          <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2">
             {TRUST_PILLARS.map(({ icon: Icon, title, description }) => (
               <div
                 key={title}
                 className="rounded-2xl border border-[var(--color-border)] bg-white p-6 transition-shadow hover:shadow-md"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-muted)]">
-                  <Icon className="h-5 w-5 text-[var(--color-foreground)]" aria-hidden="true" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-muted)]">
+                  <Icon className="h-4 w-4 text-[var(--color-foreground)]" aria-hidden="true" />
                 </div>
-                <h3 className="mt-4 text-sm font-semibold text-[var(--color-foreground)]">
+                <h3 className="mt-4 text-sm font-semibold leading-snug text-[var(--color-foreground)]">
                   {title}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
@@ -329,23 +331,23 @@ export default function LandingPage() {
         className="bg-[var(--color-muted)] py-20 md:py-24"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2
                 id="featured-heading"
                 className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]"
               >
-                Recently verified homes
+                Homes you can trust
               </h2>
-              <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-                Every property below passed manual review before listing.
+              <p className="mt-1.5 text-sm text-[var(--color-muted-foreground)]">
+                Every listing below was reviewed before it became visible.
               </p>
             </div>
             <Link
               href="/properties"
               className="shrink-0 text-sm font-semibold text-[var(--color-foreground)] underline-offset-4 hover:underline"
             >
-              View all properties
+              Browse all properties
             </Link>
           </div>
 
@@ -376,9 +378,8 @@ export default function LandingPage() {
       </section>
 
       {/* ── Testimonials ─────────────────────────────────────────────────────── */}
-      <section aria-labelledby="testimonials-heading" className="py-20">
+      <section aria-label="Customer testimonials" className="py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          {/* Dominant pull-quote — not a symmetric grid */}
           <figure className="rounded-2xl bg-[var(--color-muted)] p-8 sm:p-12">
             <span
               className="block font-serif text-5xl leading-none text-[var(--color-border)]"
@@ -386,10 +387,7 @@ export default function LandingPage() {
             >
               &ldquo;
             </span>
-            <blockquote
-              id="testimonials-heading"
-              className="mt-2 text-xl font-medium leading-relaxed text-[var(--color-foreground)] sm:text-2xl"
-            >
+            <blockquote className="mt-2 text-xl font-medium leading-relaxed text-[var(--color-foreground)] sm:text-2xl">
               {TESTIMONIALS[0].quote}
             </blockquote>
             <figcaption className="mt-6 flex items-center gap-3">
@@ -404,7 +402,6 @@ export default function LandingPage() {
             </figcaption>
           </figure>
 
-          {/* Supporting quotes — smaller, clearly secondary */}
           <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
             {TESTIMONIALS.slice(1).map(({ quote, name, role }) => (
               <figure
@@ -426,27 +423,34 @@ export default function LandingPage() {
       </section>
 
       {/* ── Final CTA ────────────────────────────────────────────────────────── */}
-      <section aria-labelledby="cta-heading" className="bg-[var(--color-primary)] py-24">
+      <section
+        aria-labelledby="cta-heading"
+        className="border-t border-[var(--color-border)] py-24 md:py-32"
+      >
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <h2 id="cta-heading" className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Ready to buy or sell
-            <br className="hidden sm:block" /> without brokers?
+          <h2
+            id="cta-heading"
+            className="text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+          >
+            Property the way it should work.
+            <br />
+            <span style={{ color: 'var(--color-accent)' }}>You in control.</span>
           </h2>
-          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/70">
-            Join thousands of verified owners and genuine buyers. No commissions. No spam. No
-            middlemen.
+          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-[var(--color-muted-foreground)]">
+            Verified owners. Genuine buyers. Direct conversations. No middlemen.
           </p>
 
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Link
               href="/properties"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] shadow-sm transition-all hover:bg-gray-100 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-primary)] active:scale-[0.97]"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-gray-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 active:scale-[0.97]"
             >
               Browse Homes
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <Link
               href="/sell"
-              className="inline-flex items-center gap-2 rounded-full border border-white/40 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:border-white/70 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] transition-all hover:bg-[var(--color-muted)] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
             >
               Post Property Free
             </Link>
