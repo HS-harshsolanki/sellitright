@@ -23,6 +23,7 @@ function useHasListings(userId: string | undefined): boolean {
   useEffect(() => {
     if (!userId) {
       setHasListings(false)
+      localStorage.removeItem(LS_KEY)
       return
     }
     // Read from localStorage first (instant, no network)
