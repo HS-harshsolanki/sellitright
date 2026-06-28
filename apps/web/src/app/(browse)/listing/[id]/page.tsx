@@ -1,18 +1,19 @@
-import { notFound } from 'next/navigation'
-import type { Metadata } from 'next'
 import { MapPin, BadgeCheck, User, ArrowLeft, Pencil } from 'lucide-react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import { getListingById } from '@/lib/mock-data'
-import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
-import { formatPrice, formatBHK, formatArea, formatFloor } from '@/lib/format'
-import { createClient } from '@/lib/supabase/server'
-import { ListingGallery } from '@/components/listing/listing-gallery'
-import { PropertyHighlights } from '@/components/listing/property-highlights'
+import { notFound } from 'next/navigation'
+
 import { ContactSeller } from '@/components/listing/contact-seller'
-import { MobileBottomBar } from '@/components/listing/mobile-bottom-bar'
 import { ExpandableDescription } from '@/components/listing/expandable-description'
-import { ShowAllAmenities } from '@/components/listing/show-all-amenities'
+import { ListingGallery } from '@/components/listing/listing-gallery'
+import { MobileBottomBar } from '@/components/listing/mobile-bottom-bar'
+import { PropertyHighlights } from '@/components/listing/property-highlights'
 import { ShareSaveButtons } from '@/components/listing/share-save-buttons'
+import { ShowAllAmenities } from '@/components/listing/show-all-amenities'
+import { formatPrice, formatBHK, formatArea, formatFloor } from '@/lib/format'
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
+import type { MockListing } from '@/lib/mock-data'
+import { createClient } from '@/lib/supabase/server'
 
 interface ListingPageProps {
   params: Promise<{ id: string }>
@@ -56,7 +57,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
   // ── 1. Try Supabase first (anon client — respects RLS) ──────────────────
   const supabase = await createClient()
-  let listingRaw: ReturnType<typeof getListingById> = undefined
+  let listingRaw: MockListing | undefined = undefined
   let isOwner = false
 
   try {
@@ -79,12 +80,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
     // Supabase not configured or network error — fall through to mock
   }
 
-  // ── 2. Fall back to mock data if Supabase returned nothing ──────────────
-  if (!listingRaw) {
-    listingRaw = getListingById(id)
-  }
-
-  // ── 3. 404 if neither source has the listing ────────────────────────────
+  // ── 2. 404 if Supabase returned nothing ──────────────────────────────────
   if (!listingRaw) notFound()
 
   // notFound() throws (`never`), so listingRaw is defined beyond this point.

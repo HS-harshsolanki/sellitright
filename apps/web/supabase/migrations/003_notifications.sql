@@ -27,3 +27,9 @@ create policy "Users read own notifications"
 
 create policy "Users update own notifications"
   on public.notifications for update using (auth.uid() = user_id);
+
+create policy "No direct notification inserts"
+  on public.notifications for insert with check (false);
+
+create policy "No direct notification deletes"
+  on public.notifications for delete using (false);
