@@ -1,4 +1,4 @@
-import { ArrowRight, ShieldCheck, Eye, Lock, BadgeCheck, Flag, PhoneOff } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Eye, Lock, BadgeCheck, PhoneOff, IndianRupee } from 'lucide-react'
 import Link from 'next/link'
 
 import { ListingCard } from '@/components/listing/listing-card'
@@ -18,7 +18,7 @@ const PAIN_POINTS = [
     description: 'Photos from two years ago. Owner moved. Property already sold. You still called.',
   },
   {
-    icon: Flag,
+    icon: IndianRupee,
     title: 'Hidden commissions',
     description: '1–2% of the sale price. Lakhs of rupees. For what, exactly?',
   },
@@ -57,32 +57,17 @@ const TRUST_PILLARS = [
     icon: Lock,
     title: 'Mutual consent',
     description:
-      'Owners approve every buyer request. Your number is never shared without your knowledge.',
+      'Owners approve every buyer request. Your contact is never shared without your explicit knowledge.',
   },
   {
-    icon: Eye,
-    title: 'Privacy by default',
-    description: 'Contact details are hidden until both parties consent to connect.',
-  },
-  {
-    icon: Flag,
-    title: 'Broker reporting',
-    description: 'Spot a broker posing as an owner? One tap to report. We investigate every claim.',
-  },
-  {
-    icon: ArrowRight,
+    icon: IndianRupee,
     title: 'Flat ₹49 connection fee',
-    description: 'No percentage commissions. No hidden charges. A flat fee keeps buyers genuine.',
+    description:
+      'No percentage commissions. A flat fee keeps buyers genuine and removes broker incentives entirely.',
   },
 ]
 
 const TESTIMONIALS = [
-  {
-    quote:
-      'I listed my 2BHK and had three genuine buyer requests within a week. No broker calls. No spam. Just real people.',
-    name: 'Priya M.',
-    role: 'Owner, Bengaluru',
-  },
   {
     quote:
       'Every other portal sold my number to agents. Here I chose who gets to contact me. That alone is worth it.',
@@ -91,7 +76,13 @@ const TESTIMONIALS = [
   },
   {
     quote:
-      "The listing review gave me confidence that the properties I was browsing were real. That's rare in this market.",
+      'I listed my 2BHK and had three genuine buyer requests within a week. No broker calls. No spam. Just real people.',
+    name: 'Priya M.',
+    role: 'Owner, Bengaluru',
+  },
+  {
+    quote:
+      "The listing review gave me confidence that what I was browsing was real. That's rare in this market.",
     name: 'Ananya K.',
     role: 'Buyer, Mumbai',
   },
@@ -185,46 +176,43 @@ export default function LandingPage() {
       </section>
 
       {/* ── Problem ──────────────────────────────────────────────────────────── */}
-      <section aria-labelledby="problem-heading" className="py-24">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
-              The problem
-            </p>
+      <section aria-labelledby="problem-heading" className="py-24 md:py-32">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
+          <div className="max-w-2xl">
             <h2
               id="problem-heading"
-              className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+              className="text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
             >
-              Property portals were built for brokers,
-              <br className="hidden sm:block" /> not for you.
+              Property portals were built for brokers, not for you.
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[var(--color-muted-foreground)]">
               You wanted to find a home. Instead you got a call centre.
             </p>
           </div>
 
-          <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* Editorial list — visual contrast to the card-grid Trust section below */}
+          <div className="mt-14 divide-y divide-[var(--color-border)]">
             {PAIN_POINTS.map(({ icon: Icon, title, description }) => (
-              <div
-                key={title}
-                className="rounded-2xl border border-[var(--color-border)] bg-white p-6"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-muted)]">
-                  <Icon className="h-5 w-5 text-[var(--color-foreground)]" aria-hidden="true" />
+              <div key={title} className="flex gap-5 py-6 sm:gap-8">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-muted)]">
+                  <Icon className="h-4 w-4 text-[var(--color-foreground)]" aria-hidden="true" />
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-[var(--color-foreground)]">
-                  {title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
-                  {description}
-                </p>
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--color-foreground)]">{title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+                    {description}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
 
-          <p className="mt-14 text-center text-xl font-semibold text-[var(--color-foreground)]">
-            There had to be a better way.
-          </p>
+          {/* Pivot — accent border gives it weight without shouting */}
+          <div className="mt-16 border-l-2 border-[var(--color-accent)] pl-6">
+            <p className="text-2xl font-semibold leading-snug text-[var(--color-foreground)] sm:text-3xl">
+              There had to be a better way.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -300,24 +288,21 @@ export default function LandingPage() {
       </section>
 
       {/* ── Trust Center ─────────────────────────────────────────────────────── */}
-      <section aria-labelledby="trust-heading" className="py-24">
+      <section aria-labelledby="trust-heading" className="py-20 md:py-28">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
-              Trust &amp; safety
-            </p>
             <h2
               id="trust-heading"
-              className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+              className="text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
             >
               Built on trust, not just listings
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[var(--color-muted-foreground)]">
-              Every feature on SellItRight exists to answer one question: why should you trust us?
+              Every structural decision we made was driven by one question: why should you trust us?
             </p>
           </div>
 
-          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2">
             {TRUST_PILLARS.map(({ icon: Icon, title, description }) => (
               <div
                 key={title}
@@ -339,19 +324,22 @@ export default function LandingPage() {
       </section>
 
       {/* ── Featured Properties ───────────────────────────────────────────────── */}
-      <section aria-labelledby="featured-heading" className="bg-[var(--color-muted)] py-24">
+      <section
+        aria-labelledby="featured-heading"
+        className="bg-[var(--color-muted)] py-20 md:py-24"
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
-                Listings
-              </p>
               <h2
                 id="featured-heading"
-                className="mt-1 text-3xl font-bold tracking-tight text-[var(--color-foreground)]"
+                className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]"
               >
                 Recently verified homes
               </h2>
+              <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+                Every property below passed manual review before listing.
+              </p>
             </div>
             <Link
               href="/properties"
@@ -388,39 +376,48 @@ export default function LandingPage() {
       </section>
 
       {/* ── Testimonials ─────────────────────────────────────────────────────── */}
-      <section aria-labelledby="testimonials-heading" className="py-24">
+      <section aria-labelledby="testimonials-heading" className="py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-muted-foreground)]">
-              Stories
-            </p>
-            <h2
-              id="testimonials-heading"
-              className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+          {/* Dominant pull-quote — not a symmetric grid */}
+          <figure className="rounded-2xl bg-[var(--color-muted)] p-8 sm:p-12">
+            <span
+              className="block font-serif text-5xl leading-none text-[var(--color-border)]"
+              aria-hidden="true"
             >
-              Real people. Real outcomes.
-            </h2>
-          </div>
+              &ldquo;
+            </span>
+            <blockquote
+              id="testimonials-heading"
+              className="mt-2 text-xl font-medium leading-relaxed text-[var(--color-foreground)] sm:text-2xl"
+            >
+              {TESTIMONIALS[0].quote}
+            </blockquote>
+            <figcaption className="mt-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-[var(--color-border)]" aria-hidden="true" />
+              <p className="text-sm font-semibold text-[var(--color-foreground)]">
+                {TESTIMONIALS[0].name}
+              </p>
+              <span className="text-[var(--color-border)]" aria-hidden="true">
+                ·
+              </span>
+              <p className="text-sm text-[var(--color-muted-foreground)]">{TESTIMONIALS[0].role}</p>
+            </figcaption>
+          </figure>
 
-          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {TESTIMONIALS.map(({ quote, name, role }) => (
+          {/* Supporting quotes — smaller, clearly secondary */}
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            {TESTIMONIALS.slice(1).map(({ quote, name, role }) => (
               <figure
                 key={name}
                 className="flex flex-col rounded-2xl border border-[var(--color-border)] bg-white p-6"
               >
-                {/* Quote mark */}
-                <span
-                  className="font-serif text-4xl leading-none text-[var(--color-border)]"
-                  aria-hidden="true"
-                >
-                  &ldquo;
-                </span>
-                <blockquote className="mt-2 flex-1 text-sm leading-relaxed text-[var(--color-foreground)]">
-                  {quote}
+                <blockquote className="flex-1 text-sm leading-relaxed text-[var(--color-foreground)]">
+                  &ldquo;{quote}&rdquo;
                 </blockquote>
-                <figcaption className="mt-6 border-t border-[var(--color-border)] pt-4">
-                  <p className="text-sm font-semibold text-[var(--color-foreground)]">{name}</p>
-                  <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">{role}</p>
+                <figcaption className="mt-4 border-t border-[var(--color-border)] pt-4 text-xs text-[var(--color-muted-foreground)]">
+                  <span className="font-semibold text-[var(--color-foreground)]">{name}</span>
+                  {' · '}
+                  {role}
                 </figcaption>
               </figure>
             ))}
