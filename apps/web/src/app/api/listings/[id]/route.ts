@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { getListingById } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { createServiceClient } from '@/lib/supabase/server'
-import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -13,7 +14,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (supabase) {
       const { data, error } = await supabase
         .from('listings')
-        .select('*')
+        .select(
+          'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description',
+        )
         .eq('id', id)
         .eq('status', 'ACTIVE')
         .single()

@@ -6,18 +6,19 @@ The **authoritative** migration set is in `infrastructure/supabase/`.
 
 Run migrations in this exact order for a fresh database:
 
-| Order | File                                                   | Description                                                |
-| ----- | ------------------------------------------------------ | ---------------------------------------------------------- |
-| 1     | infrastructure/supabase/001_listings.sql               | Core listings, profiles, buyer_interest tables             |
-| 2     | infrastructure/supabase/002_admin.sql                  | Admin roles and audit log                                  |
-| 3     | infrastructure/supabase/003_trust_safety.sql           | Reports and blocks                                         |
-| 4     | infrastructure/supabase/004_buyer_interest.sql         | Buyer interest ENUMs and policies                          |
-| 5     | infrastructure/supabase/005_payments.sql               | Payments table                                             |
-| 6     | apps/web/supabase/migrations/003_notifications.sql     | Notifications table (CANONICAL)                            |
-| 7     | infrastructure/supabase/006_indexes.sql                | Performance indexes                                        |
-| 8     | infrastructure/supabase/007_rls_contact_protection.sql | Contact unlock RLS                                         |
-| 9     | infrastructure/supabase/009_payments_listing_fk.sql    | payments.listing_id FK + cascade fix                       |
-| 10    | infrastructure/supabase/010_schema_fixes.sql           | S1/S2/S4: reports FK, payments cascade, activity_logs deny |
+| Order | File                                                    | Description                                                 |
+| ----- | ------------------------------------------------------- | ----------------------------------------------------------- |
+| 1     | infrastructure/supabase/001_listings.sql                | Core listings, profiles, buyer_interest tables              |
+| 2     | infrastructure/supabase/002_admin.sql                   | Admin roles and audit log                                   |
+| 3     | infrastructure/supabase/003_trust_safety.sql            | Reports and blocks                                          |
+| 4     | infrastructure/supabase/004_buyer_interest.sql          | Buyer interest ENUMs and policies                           |
+| 5     | infrastructure/supabase/005_payments.sql                | Payments table                                              |
+| 6     | apps/web/supabase/migrations/003_notifications.sql      | Notifications table (CANONICAL)                             |
+| 7     | infrastructure/supabase/006_indexes.sql                 | Performance indexes                                         |
+| 8     | infrastructure/supabase/007_rls_contact_protection.sql  | Contact unlock RLS                                          |
+| 9     | infrastructure/supabase/009_payments_listing_fk.sql     | payments.listing_id FK + cascade fix                        |
+| 10    | infrastructure/supabase/010_schema_fixes.sql            | S1/S2/S4: reports FK, payments cascade, activity_logs deny  |
+| 11    | infrastructure/supabase/011_search_and_perf_indexes.sql | Full-text search vector, ACTIVE partial index, perf indexes |
 
 ## Files in this directory
 

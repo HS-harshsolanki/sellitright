@@ -32,6 +32,8 @@ export async function createClient() {
  * Never expose this client to the browser.
  * Returns null when SUPABASE_SERVICE_ROLE_KEY is not set (demo / dev mode).
  */
+let _serviceClient: ReturnType<typeof createSupabaseClient> | null = null
+
 export function createServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -43,10 +45,13 @@ export function createServiceClient() {
     return null
   }
 
-  return createSupabaseClient(url, serviceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
+  if (!_serviceClient) {
+    _serviceClient = createSupabaseClient(url, serviceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  }
+  return _serviceClient
 }

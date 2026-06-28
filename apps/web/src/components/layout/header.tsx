@@ -1,26 +1,44 @@
 'use client'
 
+import { Menu, Plus, LogOut, LayoutDashboard, User, UserPlus, Bell, Search } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@/lib/supabase/auth-context'
 import { Suspense, useEffect, useRef, useState } from 'react'
-import { Menu, Plus, LogOut, LayoutDashboard, User, UserPlus, Bell, Search } from 'lucide-react'
+
+import { HeaderSearch } from '@/components/layout/header-search'
 import { NotificationBell } from '@/components/notifications/notification-bell'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { useNotifications } from '@/hooks/use-notifications'
+import { useAuth } from '@/lib/supabase/auth-context'
+import { cn } from '@/lib/utils'
+
+const LS_KEY = 'sir_has_listings'
 
 function useHasListings(userId: string | undefined): boolean {
-  const [hasListings, setHasListings] = useState(false)
+  const [hasListings, setHasListings] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(LS_KEY) === '1'
+  })
 
   useEffect(() => {
     if (!userId) {
       setHasListings(false)
       return
     }
+    // Read from localStorage first (instant, no network)
+    if (localStorage.getItem(LS_KEY) === '1') {
+      setHasListings(true)
+      return
+    }
+    // Only hit the API when no cached value exists
     fetch('/api/dashboard/listings?limit=1')
       .then((r) => r.json())
       .then((data: unknown) => {
         if (data && typeof data === 'object' && 'listings' in data) {
           const d = data as { listings: unknown[] }
-          setHasListings(d.listings.length > 0)
+          const has = d.listings.length > 0
+          if (has) localStorage.setItem(LS_KEY, '1')
+          setHasListings(has)
         }
       })
       .catch(() => {})
@@ -29,11 +47,6 @@ function useHasListings(userId: string | undefined): boolean {
   return hasListings
 }
 
-import { useNotifications } from '@/hooks/use-notifications'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { HeaderSearch } from '@/components/layout/header-search'
-import { cn } from '@/lib/utils'
-
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 
 function Logo() {
@@ -41,8 +54,8 @@ function Logo() {
     <Link
       href="/"
       className="shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-      aria-label="SellItRight home"
     >
+      <span className="sr-only">SellItRight home</span>
       <span
         aria-hidden="true"
         className="block text-lg font-bold tracking-tight text-[var(--color-primary)] md:hidden"

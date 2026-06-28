@@ -2,6 +2,7 @@ import { MapPin, BadgeCheck, User, ArrowLeft, Pencil } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 
 import { ContactSeller } from '@/components/listing/contact-seller'
 import { ExpandableDescription } from '@/components/listing/expandable-description'
@@ -15,6 +16,20 @@ import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import type { MockListing } from '@/lib/mock-data'
 import { createClient } from '@/lib/supabase/server'
 
+export const revalidate = 300
+
+const getListingData = cache(async (id: string) => {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('listings')
+    .select(
+      'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description',
+    )
+    .eq('id', id)
+    .single()
+  return data
+})
+
 interface ListingPageProps {
   params: Promise<{ id: string }>
 }
@@ -22,12 +37,7 @@ interface ListingPageProps {
 export async function generateMetadata({ params }: ListingPageProps): Promise<Metadata> {
   const { id } = await params
 
-  const supabase = await createClient()
-  const { data: listing } = await supabase
-    .from('listings')
-    .select('title, price, property_type, bhk_type, city, locality, description, image_urls')
-    .eq('id', id)
-    .single()
+  const listing = await getListingData(id)
 
   if (!listing) return { title: 'Listing not found' }
 
@@ -59,17 +69,17 @@ export default async function ListingPage({ params }: ListingPageProps) {
   const supabase = await createClient()
   let listingRaw: MockListing | undefined = undefined
   let isOwner = false
+  let viewer: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | undefined =
+    undefined
 
   try {
     const {
-      data: { user: viewer },
+      data: { user: _viewer },
     } = await supabase.auth.getUser()
+    viewer = _viewer ?? undefined
 
-    // Fetch by id — RLS allows public read of ACTIVE listings.
-    // If the viewer is the seller, also allow PENDING_REVIEW/DRAFT/INACTIVE preview.
-    const { data, error } = await supabase.from('listings').select('*').eq('id', id).single()
-
-    if (!error && data) {
+    const data = await getListingData(id)
+    if (data) {
       isOwner = viewer?.id === data.seller_id
       const isVisible = data.status === 'ACTIVE' || isOwner
       if (isVisible) {
@@ -87,11 +97,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const listing = listingRaw!
 
-  // user was already fetched above in the Supabase try block; re-use the session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const isAuthenticated = !!user
+  const isAuthenticated = !!viewer
 
   // Check buyer's interest state for this listing (server-side, avoids flash)
   let hasExistingRequest = false
@@ -101,7 +107,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
   let sellerEmail: string | null = null
   let interestId: string | null = null
 
-  if (user) {
+  if (viewer) {
     try {
       type InterestRow = {
         id: string
@@ -114,7 +120,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
         .from('buyer_interest')
         .select('id, status, contact_unlocked, seller_phone, seller_email')
         .eq('listing_id', id)
-        .eq('buyer_id', user.id)
+        .eq('buyer_id', viewer.id)
         .in('status', ['PENDING', 'ACCEPTED'])
         .maybeSingle()) as { data: InterestRow | null; error: unknown }
 

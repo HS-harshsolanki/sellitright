@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
@@ -61,10 +62,7 @@ export async function POST(request: NextRequest) {
   const uuid = crypto.randomUUID()
   const path = `listings/${user.id}/${uuid}.${ext}`
 
-  const arrayBuffer = await file.arrayBuffer()
-  const buffer = new Uint8Array(arrayBuffer)
-
-  const { error: uploadError } = await admin.storage.from('photos').upload(path, buffer, {
+  const { error: uploadError } = await admin.storage.from('photos').upload(path, file, {
     contentType: file.type,
     cacheControl: '3600',
     upsert: false,

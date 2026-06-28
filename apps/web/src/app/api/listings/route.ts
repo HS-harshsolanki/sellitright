@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
+
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { MOCK_LISTINGS } from '@/lib/mock-data'
-import { listingFilterSchema } from '@/lib/validators'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { createServiceClient } from '@/lib/supabase/server'
-import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
+import { listingFilterSchema } from '@/lib/validators'
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,15 +29,24 @@ export async function GET(request: NextRequest) {
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient()
       if (supabase) {
-        let query = supabase.from('listings').select('*', { count: 'exact' }).eq('status', 'ACTIVE')
+        let query = supabase
+          .from('listings')
+          .select(
+            'id, title, price, property_type, bhk_type, built_up_area, carpet_area, furnishing, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id',
+            { count: 'exact' },
+          )
+          .eq('status', 'ACTIVE')
 
         if (city) {
-          // city param is also used as a general search query from the header search bar.
-          // Match against city, locality, and title so searches like "Koramangala" or
-          // "3 BHK Pune" surface relevant results.
-          query = query.or(`city.ilike.%${city}%,locality.ilike.%${city}%,title.ilike.%${city}%`)
+          // Use full-text search via the search_vector generated column (GIN index).
+          // This replaces the ILIKE sequential scan and handles multi-word queries.
+          const safeCity = city.replace(/['"\\;]/g, '').trim()
+          if (safeCity) query = query.textSearch('search_vector', safeCity, { type: 'plain' })
         }
-        if (locality) query = query.ilike('locality', `%${locality}%`)
+        if (locality) {
+          const safeLocality = locality.replace(/[%_,()\\.]/g, '')
+          if (safeLocality) query = query.ilike('locality', `%${safeLocality}%`)
+        }
         if (bhkType) query = query.eq('bhk_type', bhkType)
         if (furnishing) query = query.eq('furnishing', furnishing)
         if (propertyType) query = query.eq('property_type', propertyType)
@@ -59,7 +69,10 @@ export async function GET(request: NextRequest) {
           const listings = data.map(mapSupabaseListingToMock)
           const total = count ?? listings.length
           const totalPages = Math.max(1, Math.ceil(total / limit))
-          return NextResponse.json({ listings, total, page, totalPages })
+          return NextResponse.json(
+            { listings, total, page, totalPages },
+            { headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' } },
+          )
         }
 
         // Log error and fall through to mock fallback
@@ -97,7 +110,10 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.max(1, Math.ceil(total / limit))
     const listings = filtered.slice((page - 1) * limit, page * limit)
 
-    return NextResponse.json({ listings, total, page, totalPages, _mockFallback: true })
+    return NextResponse.json(
+      { listings, total, page, totalPages, _mockFallback: true },
+      { headers: { 'Cache-Control': 'public, max-age=3600' } },
+    )
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(

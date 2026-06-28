@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+
 import { createClient } from '@/lib/supabase/server'
 
 export interface NotificationItem {
@@ -31,16 +32,16 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return NextResponse.json({ notifications: [], total: 0, unreadCount: 0 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)))
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
+  const page = Math.min(500, Math.max(1, parseInt(searchParams.get('page') ?? '1', 10)))
   const unreadOnly = searchParams.get('unread_only') === 'true'
   const offset = (page - 1) * limit
 
-  let query = supabase
+  let mainQuery = supabase
     .from('notifications')
     .select('id, title, message, type, entity_type, entity_id, read, created_at', {
       count: 'exact',
@@ -49,24 +50,26 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false })
 
   if (unreadOnly) {
-    query = query.eq('read', false)
+    mainQuery = mainQuery.eq('read', false)
   }
 
-  query = query.range(offset, offset + limit - 1)
+  mainQuery = mainQuery.range(offset, offset + limit - 1)
 
-  const { data, error, count } = await query
+  const unreadQuery = supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('read', false)
+
+  const [{ data, error, count }, { count: unreadCount }] = await Promise.all([
+    mainQuery,
+    unreadQuery,
+  ])
 
   if (error) {
     console.error('[notifications] fetch error:', error.message)
     return NextResponse.json({ notifications: [], total: 0, unreadCount: 0 })
   }
-
-  // Separate unread count query (always total unread, not filtered by page)
-  const { count: unreadCount } = await supabase
-    .from('notifications')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('read', false)
 
   const notifications: NotificationItem[] = (data ?? []).map((row) => ({
     id: row.id as string,

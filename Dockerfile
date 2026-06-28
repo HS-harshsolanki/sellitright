@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:20-alpine AS base
 
 # Install pnpm
@@ -8,6 +9,8 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/package.json
+COPY tooling/eslint/package.json ./tooling/eslint/package.json
+COPY tooling/tsconfig/package.json ./tooling/tsconfig/package.json
 RUN pnpm install --frozen-lockfile
 
 # ── builder stage ────────────────────────────────────────────────────────────
@@ -24,7 +27,8 @@ ARG NEXT_PUBLIC_APP_URL="https://sellitright.fly.dev"
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
-RUN pnpm --filter web build
+RUN --mount=type=cache,id=nextjs-cache,target=/app/apps/web/.next/cache \
+    pnpm --filter web build
 
 # ── runner stage ─────────────────────────────────────────────────────────────
 FROM base AS runner
@@ -32,8 +36,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
