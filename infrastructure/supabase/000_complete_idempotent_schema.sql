@@ -571,8 +571,11 @@ create or replace view public.pending_per_listing as
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Enables Realtime for the notifications bell icon.
--- Safe to re-run: alter publication ... add table is idempotent in Postgres 14+.
-alter publication supabase_realtime add table public.notifications;
+-- ALTER PUBLICATION ... ADD TABLE has no IF NOT EXISTS syntax in Postgres.
+-- Wrap in a DO block to swallow error 42710 (duplicate_object) on re-run.
+do $$ begin
+  alter publication supabase_realtime add table public.notifications;
+exception when duplicate_object then null; end $$;
 
 -- =============================================================================
 -- DONE. All tables, policies, indexes, triggers, and views are now in place.
