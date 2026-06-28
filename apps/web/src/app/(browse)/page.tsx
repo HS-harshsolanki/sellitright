@@ -473,18 +473,18 @@ export default function LandingPage() {
                 &ldquo;
               </span>
               <blockquote className="mt-1 text-xl font-medium leading-relaxed text-[var(--color-foreground)] sm:text-2xl">
-                {TESTIMONIALS[0].quote}
+                {TESTIMONIALS[0]!.quote}
               </blockquote>
               <figcaption className="mt-8 flex items-center gap-3">
                 <div className="h-px flex-1 bg-[var(--color-border)]" aria-hidden="true" />
                 <span className="text-sm font-semibold text-[var(--color-foreground)]">
-                  {TESTIMONIALS[0].name}
+                  {TESTIMONIALS[0]!.name}
                 </span>
                 <span className="text-[var(--color-border)]" aria-hidden="true">
                   ·
                 </span>
                 <span className="text-sm text-[var(--color-muted-foreground)]">
-                  {TESTIMONIALS[0].role}
+                  {TESTIMONIALS[0]!.role}
                 </span>
               </figcaption>
             </figure>
