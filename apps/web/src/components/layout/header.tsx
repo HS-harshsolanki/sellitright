@@ -59,15 +59,9 @@ function Logo() {
       <span className="sr-only">SellItRight home</span>
       <span
         aria-hidden="true"
-        className="block text-lg font-bold tracking-tight text-[var(--color-primary)] md:hidden"
+        className="text-base font-semibold leading-none tracking-tight sm:text-xl"
       >
-        SIR
-      </span>
-      <span
-        aria-hidden="true"
-        className="hidden text-xl font-bold leading-none tracking-tight md:block"
-      >
-        <span className="text-[var(--color-primary)]">Sell</span>
+        <span className="text-[var(--color-accent)]">Sell</span>
         <span className="text-[var(--color-foreground)]">ItRight</span>
       </span>
     </Link>

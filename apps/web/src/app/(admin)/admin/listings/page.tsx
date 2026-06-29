@@ -86,16 +86,26 @@ interface DetailModalProps {
   onApproved: (updated: MockListing) => void
   onRejected: (updated: MockListing) => void
   onDeleted: (updated: MockListing) => void
+  onVerifyToggled: (updated: MockListing) => void
 }
 
-function DetailModal({ listing, onClose, onApproved, onRejected, onDeleted }: DetailModalProps) {
+function DetailModal({
+  listing,
+  onClose,
+  onApproved,
+  onRejected,
+  onDeleted,
+  onVerifyToggled,
+}: DetailModalProps) {
   const { apiFetch } = useAdminAuth()
   const [note, setNote] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteReason, setDeleteReason] = useState('')
-  const [loading, setLoading] = useState<'approve' | 'reject' | 'note' | 'delete' | null>(null)
+  const [loading, setLoading] = useState<
+    'approve' | 'reject' | 'note' | 'delete' | 'verify' | null
+  >(null)
   const [noteSaved, setNoteSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const noteRef = useRef<HTMLTextAreaElement>(null)
@@ -169,6 +179,27 @@ function DetailModal({ listing, onClose, onApproved, onRejected, onDeleted }: De
       }
       setNoteSaved(true)
       setTimeout(() => setNoteSaved(false), 3000)
+    } catch {
+      setError('Network error.')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  async function handleVerify() {
+    setLoading('verify')
+    setError(null)
+    try {
+      const res = await apiFetch(`/api/admin/listings/${listing.id}/verify`, {
+        method: 'PATCH',
+        body: JSON.stringify({ verified: !listing.isVerified }),
+      })
+      if (!res.ok) {
+        setError('Failed to update verification status.')
+        return
+      }
+      const updated = (await res.json()) as MockListing
+      onVerifyToggled(updated)
     } catch {
       setError('Network error.')
     } finally {
@@ -469,6 +500,46 @@ function DetailModal({ listing, onClose, onApproved, onRejected, onDeleted }: De
           </div>
         )}
 
+        {/* Verify toggle */}
+        <div className="border-t border-[var(--color-border)] px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-[var(--color-foreground)]">Verification</p>
+              <p className="text-xs text-[var(--color-muted-foreground)]">
+                {listing.isVerified
+                  ? 'This listing is verified by your team.'
+                  : 'Mark as verified once you have confirmed its legitimacy.'}
+              </p>
+            </div>
+            {listing.isVerified ? (
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                  ✓ Verified
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={() => void handleVerify()}
+                  disabled={loading !== null}
+                >
+                  {loading === 'verify' ? '...' : 'Remove'}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                onClick={() => void handleVerify()}
+                disabled={loading !== null}
+              >
+                {loading === 'verify' ? 'Saving...' : 'Mark Verified'}
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Delete */}
         {listing.status !== 'DELETED' && (
           <div
@@ -662,6 +733,21 @@ export default function AdminListingsPage() {
     }
   }
 
+  async function handleVerifyToggle(id: string, currentlyVerified: boolean) {
+    setActionLoading(id)
+    try {
+      const res = await apiFetch(`/api/admin/listings/${id}/verify`, {
+        method: 'PATCH',
+        body: JSON.stringify({ verified: !currentlyVerified }),
+      })
+      if (!res.ok) return
+      const updated = (await res.json()) as MockListing
+      setListings((prev) => prev.map((l) => (l.id === updated.id ? updated : l)))
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   if (error)
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
@@ -710,6 +796,10 @@ export default function AdminListingsPage() {
               DELETED: p.DELETED + 1,
             }))
             setSelectedListing(null)
+          }}
+          onVerifyToggled={(updated) => {
+            setListings((p) => p.map((l) => (l.id === updated.id ? updated : l)))
+            setSelectedListing(updated)
           }}
         />
       )}
@@ -915,33 +1005,52 @@ export default function AdminListingsPage() {
                           })}
                         </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          {listing.status === 'PENDING_REVIEW' && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => void handleApprove(listing.id)}
-                                disabled={actionLoading === listing.id}
-                              >
-                                {actionLoading === listing.id ? '...' : 'Approve'}
-                              </Button>
+                          <div className="flex items-center gap-2">
+                            {listing.status === 'PENDING_REVIEW' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => void handleApprove(listing.id)}
+                                  disabled={actionLoading === listing.id}
+                                >
+                                  {actionLoading === listing.id ? '...' : 'Approve'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-red-200 text-red-700 hover:bg-red-50"
+                                  onClick={() =>
+                                    setRejectForms((p) => ({
+                                      ...p,
+                                      [listing.id]:
+                                        p[listing.id] === undefined
+                                          ? ''
+                                          : (undefined as unknown as string),
+                                    }))
+                                  }
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            {listing.status !== 'DELETED' && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-red-200 text-red-700 hover:bg-red-50"
-                                onClick={() =>
-                                  setRejectForms((p) => ({
-                                    ...p,
-                                    [listing.id]:
-                                      p[listing.id] === undefined
-                                        ? ''
-                                        : (undefined as unknown as string),
-                                  }))
+                                className={
+                                  listing.isVerified
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                    : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
                                 }
+                                onClick={() =>
+                                  void handleVerifyToggle(listing.id, listing.isVerified)
+                                }
+                                disabled={actionLoading === listing.id}
                               >
-                                Reject
+                                {listing.isVerified ? '✓ Verified' : 'Verify'}
                               </Button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </td>
                       </tr>
                       {listing.id in rejectForms && (

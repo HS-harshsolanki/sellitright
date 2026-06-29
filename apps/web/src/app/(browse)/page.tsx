@@ -1,35 +1,41 @@
-import { ArrowRight, ShieldCheck, Lock, BadgeCheck, CheckCircle2, Star } from 'lucide-react'
+import { ArrowRight, BadgeCheck, CheckCircle2, Lock, Search, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 
-import { Reveal, Stagger, FadeIn } from '@/components/landing/reveal'
-import { ListingCard } from '@/components/listing/listing-card'
-import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
-import { MOCK_LISTINGS, type MockListing } from '@/lib/mock-data'
-import { isSupabaseConfigured } from '@/lib/supabase/client'
-import { createClient } from '@/lib/supabase/server'
+import {
+  FAQItem,
+  FadeIn,
+  Reveal,
+  RevealScale,
+  ScrollChevron,
+  Stagger,
+} from '@/components/landing/reveal'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const PAIN_POINTS = [
   {
     num: '01',
-    title: 'You enquire once.',
-    description: 'Your number gets sold to twelve brokers before evening.',
+    title: 'Listings stay live after properties are sold.',
+    description:
+      'Ghost listings drive engagement on portals. You call. No one answers. The property was sold months ago.',
   },
   {
     num: '02',
-    title: 'The listing looks perfect.',
-    description: 'Photos from two years ago. Owner moved. Property already sold. You still called.',
+    title: 'You cannot verify the owner is real.',
+    description:
+      'Anonymous posts. No ID check. The person on the other end could be a broker, a sublet, or no one.',
   },
   {
     num: '03',
-    title: '1–2% of the sale price.',
-    description: 'Lakhs of rupees. For connecting a call you could have made yourself.',
+    title: '1–2% of the sale price goes to someone who made one call.',
+    description:
+      'Lakhs in commission. For a connection you could have made yourself, to an owner you could have found directly.',
   },
   {
     num: '04',
-    title: 'Nobody asked you.',
-    description: "Your contact details were shared without consent. You didn't agree to this.",
+    title: 'Your number is sold before you see a single listing.',
+    description:
+      'You searched. Your number was harvested. Twelve brokers have it by evening. You never agreed to this.',
   },
 ]
 
@@ -59,205 +65,187 @@ const HANDSHAKE_STEPS = [
     actor: 'Buyer',
     label: 'Pays a small platform fee',
     description:
-      'Only after both sides have agreed. No upfront cost. No commission. No subscriptions.',
+      'Pays a one-time connection fee — only after both sides agree. No commission. No subscription.',
   },
   {
     step: '05',
     actor: 'Both',
     label: 'Talk directly',
     description:
-      'A real conversation between a verified owner and a genuine buyer. No broker in the middle.',
+      'A real conversation via WhatsApp — between a verified owner and a serious buyer. No broker in the middle.',
   },
 ]
 
 const TRUST_PILLARS = [
   {
     icon: BadgeCheck,
-    title: 'Every listing is reviewed before it goes live.',
+    title: 'Owner identity confirmed before listing.',
     description:
-      'We check every submission manually. If something looks wrong, it does not appear. No exceptions.',
+      'Government ID matched to the property documents. Anonymous posts are not accepted.',
   },
   {
     icon: ShieldCheck,
-    title: 'You know exactly who you are talking to.',
+    title: 'You know exactly who sent the listing.',
     description:
-      "Owners verify their phone number before listing. You're not messaging an anonymous post.",
+      'Owners verify their phone number and identity before their first listing goes live.',
   },
   {
     icon: Lock,
-    title: 'Your details stay private until you choose to share them.',
+    title: 'Your contact details are never shared without your approval.',
     description:
-      'Contact information is hidden on both sides until an owner explicitly approves a request.',
+      'Contact information is hidden on both sides until an owner explicitly accepts a request.',
   },
   {
     icon: CheckCircle2,
-    title: 'You only pay after both sides agree to connect.',
+    title: 'If a listing is wrong, we take it down.',
     description:
-      'No upfront fees. No commissions. A small platform fee applies only when a conversation is mutually unlocked.',
+      'Report a listing that does not match reality. We investigate within 48 hours and take action before any fee is charged.',
   },
 ]
 
-const TESTIMONIALS = [
+const FAQ_ITEMS = [
   {
-    quote:
-      'Every other portal sold my number to agents. Here I chose who gets to contact me. That alone is worth it.',
-    name: 'Rahul S.',
-    role: 'Buyer, Pune',
+    question: 'Is SellItRight a broker?',
+    answer:
+      'No. We are a platform. We connect owners and buyers directly — no SellItRight employee is involved in your negotiation, price discussion, or site visit. We charge a one-time platform fee only when both sides agree to connect.',
   },
   {
-    quote:
-      'I listed my 2BHK and had three genuine buyer requests within a week. No broker calls. No spam. Just real people.',
-    name: 'Priya M.',
-    role: 'Owner, Bengaluru',
+    question: 'What does the platform fee cover?',
+    answer:
+      'The fee covers identity verification of the owner, listing review, and the secure contact exchange between both parties. You pay nothing until a connection is mutually agreed upon.',
   },
   {
-    quote:
-      "The listing review gave me confidence that what I was browsing was real. That's rare in this market.",
-    name: 'Ananya K.',
-    role: 'Buyer, Mumbai',
+    question: 'What if the owner does not respond after I express interest?',
+    answer:
+      'Owners are notified immediately when you send a request. If there is no response within 72 hours, the listing is flagged for review. You can also report unresponsive listings directly — we investigate and follow up.',
   },
 ]
 
-const TRUST_METRICS = [
-  { value: '2,400+', label: 'Verified Owners' },
-  { value: '8,500+', label: 'Properties Listed' },
-  { value: '1,200+', label: 'Successful Connections' },
-  { value: '< 24 hrs', label: 'Average Response' },
-]
-
-const CITIES = [
-  'Mumbai',
-  'Bengaluru',
-  'Pune',
-  'Hyderabad',
-  'Delhi NCR',
-  'Chennai',
-  'Ahmedabad',
-  'Kolkata',
-  'Jaipur',
-  'Surat',
+const CITIES_GRID = [
+  { name: 'Mumbai', state: 'MH', href: '/properties?city=mumbai' },
+  { name: 'Delhi NCR', state: 'DL', href: '/properties?city=delhi' },
+  { name: 'Pune', state: 'MH', href: '/properties?city=pune' },
+  { name: 'Bangalore', state: 'KA', href: '/properties?city=bangalore' },
+  { name: 'Hyderabad', state: 'TS', href: '/properties?city=hyderabad' },
+  { name: 'Chennai', state: 'TN', href: '/properties?city=chennai' },
 ]
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function LandingPage() {
-  let featured: MockListing[] = []
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createClient()
-      const { data } = await supabase
-        .from('listings')
-        .select(
-          'id, title, price, city, locality, bhk_type, built_up_area, carpet_area, total_floors, floor, furnishing, property_type, age_of_property, bathrooms, balconies, parking, facing, address, state, pincode, amenities, image_urls, status, is_verified, view_count, created_at, seller_id',
-        )
-        .eq('status', 'ACTIVE')
-        .order('created_at', { ascending: false })
-        .limit(6)
-      featured = (data ?? []).map(mapSupabaseListingToMock)
-    } catch {
-      featured = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE').slice(0, 6)
-    }
-  } else {
-    featured = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE').slice(0, 6)
-  }
-
   return (
     <main className="overflow-x-hidden">
       {/* ══════════════════════════════════════════════════════════════════════
-          Chapter 1 — First Impression
-          Clean white. No blobs. Typography does all the work.
-          Left-anchored. Large. Breathing.
+          Section 1 — Hero
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-labelledby="hero-heading"
-        className="px-4 pb-24 pt-20 sm:px-6 md:pb-36 md:pt-32"
+        className="px-4 pb-20 pt-24 sm:px-6 md:pb-28 md:pt-32"
       >
         <div className="mx-auto max-w-4xl">
-          {/* Trust signal — above the fold, earns its place before the headline */}
-          <Reveal>
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] shadow-sm">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
-              Every listing reviewed before it goes live
-            </div>
-          </Reveal>
-
-          {/* Headline */}
-          <Reveal delay={0.05}>
+          <Reveal y={40}>
             <h1
               id="hero-heading"
-              className="max-w-3xl text-[2.75rem] font-bold leading-[1.08] tracking-tight text-[var(--color-foreground)] sm:text-6xl md:text-7xl"
+              className="text-5xl font-semibold leading-tight tracking-tight text-[var(--color-foreground)] sm:text-6xl md:text-7xl"
             >
-              Buy or sell property.{' '}
-              <em className="not-italic" style={{ color: 'var(--color-accent)' }}>
-                You stay in control.
-              </em>
+              Your home. Your terms. No broker.
             </h1>
           </Reveal>
 
-          {/* Subline — one continuous thought, not a bullet list */}
-          <Reveal delay={0.12}>
-            <p className="mt-8 max-w-lg text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-              Most property portals hand your number to whoever pays them. We don&apos;t. You choose
-              who contacts you, and when — before any conversation begins.
+          <Reveal delay={0.1} y={20}>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-[var(--color-muted-foreground)]">
+              SellItRight connects verified owners directly with serious buyers — no middlemen, no
+              number leaks, no surprises.
             </p>
           </Reveal>
 
-          <Reveal delay={0.18}>
-            <div className="mt-10 flex flex-wrap gap-3">
+          <Reveal delay={0.18} y={24}>
+            <form action="/properties" method="get" className="mt-8 flex max-w-md gap-2">
+              <div className="relative flex-1">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted-foreground)]"
+                  aria-hidden="true"
+                />
+                <input
+                  type="text"
+                  name="city"
+                  placeholder="Search by city — Mumbai, Pune, Delhi..."
+                  aria-label="Search by city"
+                  className="focus:ring-[var(--color-primary)]/10 h-11 w-full rounded-lg border border-[var(--color-border)] bg-white pl-9 pr-4 text-sm text-[var(--color-foreground)] transition-[border-color,box-shadow] placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2"
+                />
+              </div>
+              <button
+                type="submit"
+                className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-5 text-sm font-medium text-white transition-colors hover:bg-[#b02840] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+              >
+                Search
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            </form>
+
+            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
               <Link
                 href="/properties"
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-gray-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 active:scale-[0.97]"
+                className="text-sm font-medium text-[var(--color-foreground)] underline-offset-4 hover:underline"
               >
-                Browse Homes
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                Find a Home
               </Link>
+              <span className="text-[var(--color-border)]" aria-hidden="true">
+                ·
+              </span>
               <Link
                 href="/sell"
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] transition-all hover:bg-[var(--color-muted)] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+                className="text-sm font-medium text-[var(--color-foreground)] underline-offset-4 hover:underline"
               >
-                Post Property Free
+                List Your Property
               </Link>
             </div>
-            <p className="mt-4 text-xs text-[var(--color-muted-foreground)]">
-              Free to list &nbsp;·&nbsp; No broker fees &nbsp;·&nbsp; No unsolicited contact
+
+            <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">
+              No broker fees &nbsp;·&nbsp; No unsolicited contact &nbsp;·&nbsp; Free to list
             </p>
           </Reveal>
+
+          <div className="mt-16 flex justify-start">
+            <ScrollChevron />
+          </div>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          Chapter 2 — The Problem
-          Numbered list, not icon list. Numbers feel editorial and earned.
-          Continues the white background — no break yet.
+          Section 2 — Problem
       ══════════════════════════════════════════════════════════════════════ */}
-      <section aria-labelledby="problem-heading" className="px-4 py-20 sm:px-6 md:py-28">
+      <section
+        aria-labelledby="problem-heading"
+        className="bg-[var(--color-muted)] px-4 py-20 sm:px-6 md:py-28"
+      >
         <div className="mx-auto max-w-4xl">
-          <Reveal>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted-foreground)]">
-              The problem
-            </p>
+          <Reveal x={-24} y={0}>
             <h2
               id="problem-heading"
-              className="max-w-xl text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+              className="max-w-xl text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
             >
-              Property portals were built for brokers, not for you.
+              Most portals work against you.
             </h2>
             <p className="mt-4 max-w-md text-base leading-relaxed text-[var(--color-muted-foreground)]">
-              You wanted to find a home. Instead you got a call centre.
+              They profit from your number, your time, and your inability to verify what you&apos;re
+              looking at.
             </p>
           </Reveal>
 
-          <Stagger className="mt-12 divide-y divide-[var(--color-border)]" stagger={0.07} y={16}>
+          <Stagger className="mt-12 divide-y divide-[var(--color-border)]" stagger={0.1} y={24}>
             {PAIN_POINTS.map(({ num, title, description }) => (
               <div key={num} className="flex gap-6 py-6 sm:gap-10">
                 <span
-                  className="mt-0.5 shrink-0 text-sm font-bold tabular-nums text-[var(--color-border)]"
+                  className="mt-0.5 shrink-0 text-sm font-normal tabular-nums text-[var(--color-muted-foreground)]"
                   aria-hidden="true"
                 >
                   {num}
                 </span>
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--color-foreground)]">{title}</h3>
+                  <h3 className="text-base font-semibold text-[var(--color-foreground)]">
+                    {title}
+                  </h3>
                   <p className="mt-1 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
                     {description}
                   </p>
@@ -269,97 +257,30 @@ export default async function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          Chapter 3 — The Shift
-          A single sentence. Maximum whitespace.
-          The horizontal rule above anchors it — not floating in space.
-      ══════════════════════════════════════════════════════════════════════ */}
-      <section aria-label="Transition" className="px-4 py-20 sm:px-6 md:py-28">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-10 h-px bg-[var(--color-border)]" aria-hidden="true" />
-          <Reveal y={12}>
-            <p
-              className="max-w-2xl text-4xl font-semibold leading-tight tracking-tight text-[var(--color-foreground)] sm:text-5xl"
-              style={{ borderLeft: '3px solid var(--color-accent)', paddingLeft: '1.5rem' }}
-            >
-              There had to be
-              <br />a better way.
-            </p>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          Trust Metrics — left-anchored, asymmetric.
-          Numbers earn credibility because we've shown the problem.
-          City strip below adds geographic proof.
-      ══════════════════════════════════════════════════════════════════════ */}
-      <section
-        aria-label="Platform statistics"
-        className="border-y border-[var(--color-border)] bg-[var(--color-muted)] py-12"
-      >
-        <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <FadeIn>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-4">
-              {TRUST_METRICS.map(({ value, label }) => (
-                <div key={label}>
-                  <p className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
-                    {value}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{label}</p>
-                </div>
-              ))}
-            </div>
-          </FadeIn>
-
-          {/* City coverage strip — proof of geographic spread */}
-          <FadeIn delay={0.15}>
-            <div className="mt-8 border-t border-[var(--color-border)] pt-6">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--color-muted-foreground)]">
-                Active in
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {CITIES.map((city) => (
-                  <span
-                    key={city}
-                    className="rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-foreground)]"
-                  >
-                    {city}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          Chapter 4 — The Handshake Model
-          The product. The most important section.
-          Dark background signals a new chapter.
+          Section 3 — Handshake Model (absorbs the Shift)
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-labelledby="handshake-heading"
         className="bg-[var(--color-primary)] px-4 py-24 sm:px-6 md:py-36"
       >
         <div className="mx-auto max-w-4xl">
-          <Reveal>
+          <FadeIn>
             <h2
               id="handshake-heading"
-              className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+              className="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
             >
-              The Handshake Model
+              A process that respects both sides.
             </h2>
             <p className="mt-3 max-w-lg text-base leading-relaxed text-white/60">
-              Every connection requires consent from both sides.
-              <br className="hidden sm:block" />
-              No unsolicited contact. Ever.
+              Every step is designed so neither party needs to trust a stranger — the system does
+              the work.
             </p>
-          </Reveal>
+          </FadeIn>
 
           <ol className="mt-16 space-y-0" aria-label="How SellItRight works">
             {HANDSHAKE_STEPS.map(({ step, actor, label, description }, idx) => (
-              <Reveal key={step} delay={idx * 0.06} y={20}>
-                <li className="group grid grid-cols-[3rem_1fr] gap-x-6 border-t border-white/10 py-8 sm:grid-cols-[4rem_1fr] sm:gap-x-10 md:grid-cols-[5rem_auto_1fr] md:gap-x-12">
+              <Reveal key={step} delay={idx * 0.09} y={28}>
+                <li className="group grid grid-cols-[3rem_1fr] gap-x-6 border-t border-white/10 py-6 sm:grid-cols-[4rem_1fr] sm:gap-x-10 md:grid-cols-[5rem_auto_1fr] md:gap-x-12">
                   <span
                     className="text-4xl font-bold tabular-nums leading-none text-white/20 sm:text-5xl"
                     aria-hidden="true"
@@ -367,12 +288,12 @@ export default async function LandingPage() {
                     {step}
                   </span>
                   <span className="hidden self-center md:block">
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/50">
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/70">
                       {actor}
                     </span>
                   </span>
                   <div className="self-center">
-                    <span className="mb-1.5 inline-block rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 md:hidden">
+                    <span className="mb-1.5 inline-block rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/70 md:hidden">
                       {actor}
                     </span>
                     <h3 className="text-base font-semibold text-white sm:text-lg">{label}</h3>
@@ -385,24 +306,36 @@ export default async function LandingPage() {
             ))}
             <li aria-hidden="true" className="border-t border-white/10" />
           </ol>
+
+          <Reveal delay={0.45} x={20} y={0}>
+            <div className="mt-12 border-t border-white/10 pt-10">
+              <p className="text-sm text-white/60">Ready to list your property?</p>
+              <Link
+                href="/sell"
+                className="mt-2 inline-flex items-center gap-1.5 text-base font-medium text-white transition-colors hover:text-white/80"
+              >
+                List it in 5 minutes
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          Chapter 5 — Trust (demonstrated)
-          Magazine two-column layout. White, breathing.
+          Section 4 — Trust
       ══════════════════════════════════════════════════════════════════════ */}
       <section aria-labelledby="trust-heading" className="px-4 py-20 sm:px-6 md:py-28">
         <div className="mx-auto max-w-4xl">
           <Reveal>
             <h2
               id="trust-heading"
-              className="max-w-xl text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+              className="max-w-xl text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
             >
-              Why you can trust what you see here.
+              What we verify before anything goes live.
             </h2>
             <p className="mt-3 max-w-md text-base leading-relaxed text-[var(--color-muted-foreground)]">
-              Not because we say so. Because of how the product is built.
+              Every listing passes the same checks. No exceptions for premium listings.
             </p>
           </Reveal>
 
@@ -430,174 +363,120 @@ export default async function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          Chapter 6 — Homes
-          Muted background. Trust subline at the moment the visitor sees listings.
+          Section 5 — FAQ
       ══════════════════════════════════════════════════════════════════════ */}
       <section
-        aria-labelledby="featured-heading"
+        aria-labelledby="faq-heading"
         className="bg-[var(--color-muted)] px-4 py-20 sm:px-6 md:py-24"
-      >
-        <div className="mx-auto max-w-7xl">
-          <Reveal>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2
-                  id="featured-heading"
-                  className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]"
-                >
-                  Homes you can trust
-                </h2>
-                <p className="mt-1.5 text-sm text-[var(--color-muted-foreground)]">
-                  Every listing below was reviewed before it became visible.
-                </p>
-              </div>
-              <Link
-                href="/properties"
-                className="shrink-0 text-sm font-semibold text-[var(--color-foreground)] underline-offset-4 hover:underline"
-              >
-                Browse all properties
-              </Link>
-            </div>
-          </Reveal>
-
-          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((listing, idx) => (
-              <Reveal key={listing.id} delay={idx * 0.04} y={20}>
-                <ListingCard
-                  id={listing.id}
-                  title={listing.title}
-                  price={listing.price}
-                  images={listing.images}
-                  locality={listing.locality}
-                  city={listing.city}
-                  bhkType={listing.bhkType}
-                  builtUpArea={listing.builtUpArea}
-                  furnishing={listing.furnishing}
-                  floor={listing.floor}
-                  totalFloors={listing.totalFloors}
-                  isVerified={listing.isVerified}
-                  createdAt={listing.createdAt}
-                  viewCount={listing.viewCount}
-                  ageOfProperty={listing.ageOfProperty}
-                  priorityImage={idx === 0}
-                />
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          Chapter 7 — Human Stories
-          Pull-quote dominant. Stars on pull quote (social proof shorthand).
-          White background after muted listings.
-      ══════════════════════════════════════════════════════════════════════ */}
-      <section aria-label="Customer testimonials" className="px-4 py-20 sm:px-6">
-        <div className="mx-auto max-w-4xl">
-          {/* Primary pull-quote */}
-          <Reveal>
-            <figure className="rounded-2xl bg-[var(--color-muted)] px-8 py-10 sm:px-12 sm:py-14">
-              {/* Star cluster — social proof shorthand */}
-              <div className="mb-6 flex gap-0.5" aria-label="5 out of 5 stars">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-4 w-4 fill-amber-400 text-amber-400"
-                    aria-hidden="true"
-                  />
-                ))}
-              </div>
-              <blockquote className="text-xl font-medium leading-relaxed text-[var(--color-foreground)] sm:text-2xl">
-                &ldquo;{TESTIMONIALS[0]!.quote}&rdquo;
-              </blockquote>
-              <figcaption className="mt-8 flex items-center gap-3">
-                <div className="h-px flex-1 bg-[var(--color-border)]" aria-hidden="true" />
-                <span className="text-sm font-semibold text-[var(--color-foreground)]">
-                  {TESTIMONIALS[0]!.name}
-                </span>
-                <span className="text-[var(--color-border)]" aria-hidden="true">
-                  ·
-                </span>
-                <span className="text-sm text-[var(--color-muted-foreground)]">
-                  {TESTIMONIALS[0]!.role}
-                </span>
-              </figcaption>
-            </figure>
-          </Reveal>
-
-          {/* Secondary quotes */}
-          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-            {TESTIMONIALS.slice(1).map(({ quote, name, role }, idx) => (
-              <Reveal key={name} delay={idx * 0.07} y={16}>
-                <figure className="flex h-full flex-col rounded-2xl border border-[var(--color-border)] bg-white p-6">
-                  <div className="mb-4 flex gap-0.5" aria-label="5 out of 5 stars">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
-                        aria-hidden="true"
-                      />
-                    ))}
-                  </div>
-                  <blockquote className="flex-1 text-sm leading-relaxed text-[var(--color-foreground)]">
-                    &ldquo;{quote}&rdquo;
-                  </blockquote>
-                  <figcaption className="mt-4 border-t border-[var(--color-border)] pt-4 text-xs text-[var(--color-muted-foreground)]">
-                    <span className="font-semibold text-[var(--color-foreground)]">{name}</span>
-                    {' · '}
-                    {role}
-                  </figcaption>
-                </figure>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          Chapter 8 — Final Decision
-          White. Border-top. Left-anchored. No hard sell.
-          Both CTAs carry equal visual weight — buyer and seller are peers.
-      ══════════════════════════════════════════════════════════════════════ */}
-      <section
-        aria-labelledby="cta-heading"
-        className="border-t border-[var(--color-border)] px-4 py-24 sm:px-6 md:py-32"
       >
         <div className="mx-auto max-w-4xl">
           <Reveal>
             <h2
-              id="cta-heading"
-              className="max-w-2xl text-3xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-4xl md:text-5xl"
+              id="faq-heading"
+              className="text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
             >
-              Property the way it should work.
-              <br />
-              <span style={{ color: 'var(--color-accent)' }}>You in control.</span>
+              Common questions.
             </h2>
           </Reveal>
+          <div className="mt-10 divide-y divide-[var(--color-border)]">
+            {FAQ_ITEMS.map(({ question, answer }, idx) => (
+              <FAQItem key={idx} question={question} answer={answer} />
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <Reveal delay={0.08}>
-            <p className="mt-5 max-w-md text-base leading-relaxed text-[var(--color-muted-foreground)]">
-              Verified owners. Genuine buyers. Direct conversations. No one in the middle profiting
-              from your search.
+      {/* ══════════════════════════════════════════════════════════════════════
+          Section 6 — Cities (replaces Featured Homes)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section aria-labelledby="cities-heading" className="px-4 py-20 sm:px-6 md:py-28">
+        <div className="mx-auto max-w-4xl">
+          <Reveal>
+            <h2
+              id="cities-heading"
+              className="text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+            >
+              Browse by city.
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-[var(--color-muted-foreground)]">
+              Owner-listed properties across India&apos;s major residential markets.
             </p>
           </Reveal>
 
-          <Reveal delay={0.14}>
-            <div className="mt-10 flex flex-wrap gap-3">
+          <Stagger className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3" stagger={0.05} y={16}>
+            {CITIES_GRID.map((city) => (
               <Link
-                href="/properties"
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-gray-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 active:scale-[0.97]"
+                key={city.name}
+                href={city.href}
+                className="group flex items-center justify-between rounded-xl border border-[var(--color-border)] p-6 transition-colors duration-150 hover:border-[var(--color-primary)]"
               >
-                Browse Homes
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                <div>
+                  <p className="text-lg font-medium text-[var(--color-foreground)]">{city.name}</p>
+                  <p className="text-sm text-[var(--color-muted-foreground)]">{city.state}</p>
+                </div>
+                <ArrowRight
+                  className="h-4 w-4 text-[var(--color-muted-foreground)] transition-colors duration-150 group-hover:text-[var(--color-foreground)]"
+                  aria-hidden="true"
+                />
               </Link>
-              <Link
-                href="/sell"
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-8 py-3.5 text-sm font-semibold text-[var(--color-foreground)] transition-all hover:bg-[var(--color-muted)] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+            ))}
+          </Stagger>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          Section 7 — Final CTA (persona-split)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section
+        aria-label="Get started"
+        className="bg-[var(--color-primary)] px-4 py-24 sm:px-6 md:py-32"
+      >
+        <div className="mx-auto max-w-4xl">
+          <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-8 sm:divide-x sm:divide-white/10">
+            <Reveal>
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  Looking for a home?
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-white/60">
+                  Search verified owner listings in your city. No broker calls.
+                </p>
+                <Link
+                  href="/properties"
+                  className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-white/10"
+                >
+                  Find a Home <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <div className="sm:pl-8">
+                <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  Selling your property?
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-white/60">
+                  List in 5 minutes. We verify it. Buyers come to you.
+                </p>
+                <Link
+                  href="/sell"
+                  className="mt-8 inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-medium text-white transition-all hover:bg-[#b02840]"
+                >
+                  List Your Property <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </Reveal>
+          </div>
+
+          <Reveal delay={0.16}>
+            <p className="mt-16 text-center text-sm text-white/40">
+              Questions? Email us at{' '}
+              <a
+                href="mailto:support@sellitright.in"
+                className="text-white/60 underline underline-offset-4 hover:text-white"
               >
-                Post Property Free
-              </Link>
-            </div>
+                support@sellitright.in
+              </a>
+            </p>
           </Reveal>
         </div>
       </section>

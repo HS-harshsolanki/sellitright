@@ -329,49 +329,63 @@ export async function computeAndStoreRiskScore(
 
   const dupSince = new Date(Date.now() - DUPLICATE_MSG_WINDOW_HOURS * 60 * 60 * 1000).toISOString()
 
-  const [reportRes, activeListingsRes, todayCountRes, burstCountRes, flagRes, dupCountRes] =
-    await Promise.all([
-      // Report count against this user (excluding dismissed)
-      admin
-        .from('reports')
-        .select('id', { count: 'exact', head: true })
-        .eq('target_user_id', userId)
-        .neq('status', 'DISMISSED'),
+  const [
+    reportRes,
+    activeListingsRes,
+    todayCountRes,
+    burstCountRes,
+    flagRes,
+    dupCountRes,
+    verifiedListingsRes,
+  ] = await Promise.all([
+    // Report count against this user (excluding dismissed)
+    admin
+      .from('reports')
+      .select('id', { count: 'exact', head: true })
+      .eq('target_user_id', userId)
+      .neq('status', 'DISMISSED'),
 
-      // Active listing count (broker signal)
-      admin
-        .from('listings')
-        .select('id', { count: 'exact', head: true })
-        .eq('seller_id', userId)
-        .eq('status', 'ACTIVE'),
+    // Active listing count (broker signal)
+    admin
+      .from('listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('seller_id', userId)
+      .eq('status', 'ACTIVE'),
 
-      // Requests sent today
-      admin
-        .from('activity_logs')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('action', 'interest_request')
-        .gte('created_at', startOfDay.toISOString()),
+    // Requests sent today
+    admin
+      .from('activity_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('action', 'interest_request')
+      .gte('created_at', startOfDay.toISOString()),
 
-      // Rapid burst count
-      admin
-        .from('activity_logs')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('action', 'interest_request')
-        .gte('created_at', burstSince),
+    // Rapid burst count
+    admin
+      .from('activity_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('action', 'interest_request')
+      .gte('created_at', burstSince),
 
-      // Suspended flag
-      admin.from('latest_user_flag').select('flag').eq('user_id', userId).maybeSingle(),
+    // Suspended flag
+    admin.from('latest_user_flag').select('flag').eq('user_id', userId).maybeSingle(),
 
-      // Duplicate message count (any repeated message)
-      admin
-        .from('activity_logs')
-        .select('metadata')
-        .eq('user_id', userId)
-        .eq('action', 'interest_request')
-        .gte('created_at', dupSince),
-    ])
+    // Duplicate message count (any repeated message)
+    admin
+      .from('activity_logs')
+      .select('metadata')
+      .eq('user_id', userId)
+      .eq('action', 'interest_request')
+      .gte('created_at', dupSince),
+
+    // Verified listing signal: admin-vouched listings reduce risk
+    admin
+      .from('listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('seller_id', userId)
+      .eq('is_verified', true),
+  ])
 
   // Count distinct IPs this user has submitted from in last 7 days
   // High count = VPN/proxy or shared device = mild broker signal
@@ -390,6 +404,8 @@ export async function computeAndStoreRiskScore(
   const requestsToday = todayCountRes.count ?? 0
   const burstCount = burstCountRes.count ?? 0
   const isSuspended = flagRes.data?.flag === 'SUSPENDED'
+  // Verified listing signal: having a verified listing reduces risk score
+  const verifiedBonus = (verifiedListingsRes.count ?? 0) > 0 ? -10 : 0
 
   // Duplicate message detection: find messages that appear more than once
   const messages = (dupCountRes.data ?? [])
@@ -415,7 +431,8 @@ export async function computeAndStoreRiskScore(
   if (hasDuplicateMessages) score += 15
   if (requestsToday > 8) score += 10
   score += sharedIpScore
-  score = Math.min(100, score)
+  score += verifiedBonus
+  score = Math.max(0, Math.min(100, score))
 
   const level: RiskLevel = score >= SCORE_HIGH ? 'HIGH' : score >= SCORE_MEDIUM ? 'MEDIUM' : 'LOW'
 

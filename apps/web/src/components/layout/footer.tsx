@@ -60,6 +60,15 @@ export function Footer() {
         <p className="mt-6 text-xs text-[var(--color-muted-foreground)]">
           &copy; {new Date().getFullYear()} SellItRight. All rights reserved.
         </p>
+        <p className="mt-2 text-xs text-[var(--color-muted-foreground)]">
+          Questions?{' '}
+          <a
+            href="mailto:support@sellitright.in"
+            className="underline underline-offset-2 hover:text-[var(--color-foreground)]"
+          >
+            support@sellitright.in
+          </a>
+        </p>
       </div>
     </footer>
   )
