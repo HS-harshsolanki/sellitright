@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 
-import './globals.css'
+import { CookieConsent } from '@/components/cookie-consent'
+
 import { Providers } from './providers'
+
+import './globals.css'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -88,6 +91,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en" className={inter.variable}>
       <body className="bg-background min-h-screen font-sans antialiased">
         <Providers>{children}</Providers>
+        <CookieConsent />
       </body>
     </html>
   )

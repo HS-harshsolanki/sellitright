@@ -38,6 +38,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -91,6 +93,28 @@ export default function ProfilePage() {
   async function handleSignOut() {
     await signOut()
     router.push('/')
+  }
+
+  async function handleDeleteAccount() {
+    setIsDeleting(true)
+    try {
+      const res = await fetch('/api/user/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE MY ACCOUNT' }),
+      })
+      if (res.ok) {
+        await createClient().auth.signOut()
+        window.location.href = '/?deleted=1'
+      } else {
+        const d = (await res.json()) as { error?: string }
+        setError(d.error ?? 'Failed to delete account')
+      }
+    } catch {
+      setError('Failed to delete account')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -244,6 +268,48 @@ export default function ProfilePage() {
           Sign out of all devices
         </Button>
       </div>
+
+      {/* Data rights section */}
+      <section className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
+        <h2 className="mb-4 text-sm font-semibold text-[var(--color-foreground)]">Your data</h2>
+        <div className="flex flex-col gap-3">
+          <a
+            href="/api/user/export"
+            download
+            className="text-sm text-[var(--color-accent)] underline"
+          >
+            Download all my data (JSON)
+          </a>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-left text-sm text-red-600 underline"
+          >
+            Delete my account
+          </button>
+        </div>
+        {showDeleteConfirm && (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="mb-3 text-sm text-red-800">
+              This permanently deletes your account and all personal data. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="rounded border px-3 py-1 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="rounded bg-red-600 px-3 py-1 text-sm text-white disabled:opacity-60"
+              >
+                {isDeleting ? 'Deleting...' : 'Yes, delete my account'}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

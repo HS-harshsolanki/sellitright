@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'About — SellItRight',
+  title: 'About',
   description:
     'Learn about SellItRight — our mission, how the platform works, and why owners choose us to sell their properties.',
 }

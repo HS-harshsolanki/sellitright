@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { logActivity } from '@/lib/trust'
+import { checkReportRateLimit, logActivity } from '@/lib/trust'
 import { buyerReportListingSchema, sellerReportBuyerSchema } from '@/lib/validators'
 
 // POST /api/reports
@@ -48,6 +48,11 @@ export async function POST(request: NextRequest) {
   const admin = createServiceClient()
   if (!admin) {
     return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
+  }
+
+  const { allowed, reason } = await checkReportRateLimit(admin, user.id)
+  if (!allowed) {
+    return NextResponse.json({ error: reason ?? 'Report limit reached.' }, { status: 429 })
   }
 
   // ── Buyer reports a listing ───────────────────────────────────────────────

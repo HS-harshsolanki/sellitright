@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Contact — SellItRight',
+  title: 'Contact',
   description:
     'Get in touch with the SellItRight team for support, feedback, or to report a listing.',
 }
@@ -62,6 +62,37 @@ export default function ContactPage() {
             </a>
           </div>
         ))}
+      </section>
+
+      {/* Grievance Officer — DPDP Section 13 */}
+      <section className="mb-12 rounded-xl border border-[var(--color-border)] p-5">
+        <p className="font-semibold text-[var(--color-foreground)]">Grievance Officer</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+          In accordance with the Digital Personal Data Protection Act 2023, a Grievance Officer has
+          been appointed to address data privacy complaints:
+        </p>
+        <address className="mt-3 text-sm not-italic leading-relaxed text-[var(--color-muted-foreground)]">
+          <span className="font-medium text-[var(--color-foreground)]">
+            Grievance Officer: [Name to be designated]
+          </span>
+          <br />
+          SellItRight
+          <br />
+          Email:{' '}
+          <a
+            href="mailto:privacy@sellitright.in?subject=Data%20Grievance"
+            className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
+          >
+            privacy@sellitright.in
+          </a>
+          <br />
+          Response time: Within 30 days of receipt
+        </address>
+        <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+          To raise a grievance related to your personal data, please email with the subject line
+          &ldquo;Data Grievance&rdquo; and include your registered email address and a description
+          of the concern.
+        </p>
       </section>
 
       {/* Response time note */}

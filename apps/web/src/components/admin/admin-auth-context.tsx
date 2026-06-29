@@ -2,8 +2,6 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 
-const STORAGE_KEY = 'sir-admin-key'
-
 interface AdminAuthCtx {
   isAuthenticated: boolean
   isValidating: boolean
@@ -25,26 +23,17 @@ interface ProviderProps {
 }
 
 export function AdminAuthProvider({ children, onAuthenticated }: ProviderProps) {
-  const [adminKey, setAdminKey] = useState<string>('')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isValidating, setIsValidating] = useState(true)
 
-  // Hydrate from sessionStorage and validate
+  // On mount, probe the stats endpoint — the httpOnly cookie is sent automatically.
+  // If it returns 200 the session cookie is valid; otherwise the user needs to log in.
   useEffect(() => {
-    const stored = sessionStorage.getItem(STORAGE_KEY)
-    if (!stored) {
-      setIsValidating(false)
-      onAuthenticated(false)
-      return
-    }
-    fetch('/api/admin/stats', { headers: { 'x-admin-key': stored } })
+    fetch('/api/admin/stats')
       .then((res) => {
-        if (res.ok) {
-          setAdminKey(stored)
-          onAuthenticated(true)
-        } else {
-          sessionStorage.removeItem(STORAGE_KEY)
-          onAuthenticated(false)
-        }
+        const ok = res.ok
+        setIsAuthenticated(ok)
+        onAuthenticated(ok)
       })
       .catch(() => {
         onAuthenticated(false)
@@ -52,34 +41,33 @@ export function AdminAuthProvider({ children, onAuthenticated }: ProviderProps) 
       .finally(() => setIsValidating(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const apiFetch = useCallback(
-    (path: string, opts: RequestInit = {}): Promise<Response> => {
-      const headers = new Headers(opts.headers)
-      headers.set('x-admin-key', adminKey)
-      if (!headers.has('Content-Type') && opts.body) {
-        headers.set('Content-Type', 'application/json')
-      }
-      return fetch(path, { ...opts, headers })
-    },
-    [adminKey],
-  )
+  // Cookie is sent automatically — no need to attach any auth header.
+  const apiFetch = useCallback((path: string, opts: RequestInit = {}): Promise<Response> => {
+    const headers = new Headers(opts.headers)
+    if (!headers.has('Content-Type') && opts.body) {
+      headers.set('Content-Type', 'application/json')
+    }
+    return fetch(path, { ...opts, headers })
+  }, [])
 
-  const logout = useCallback(() => {
-    sessionStorage.removeItem(STORAGE_KEY)
-    setAdminKey('')
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' })
+    } catch {
+      // best-effort; clear local state regardless
+    }
+    setIsAuthenticated(false)
     onAuthenticated(false)
   }, [onAuthenticated])
 
   return (
-    <AdminAuthContext.Provider
-      value={{ isAuthenticated: !!adminKey, isValidating, apiFetch, logout }}
-    >
+    <AdminAuthContext.Provider value={{ isAuthenticated, isValidating, apiFetch, logout }}>
       {children}
     </AdminAuthContext.Provider>
   )
 }
 
-// Standalone hook for pages that need to set the key after login
+// Standalone hook for pages that need to trigger login
 export function useAdminLogin() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -90,11 +78,13 @@ export function useAdminLogin() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/stats', {
-        headers: { 'x-admin-key': trimmed },
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: trimmed }),
       })
       if (res.ok) {
-        sessionStorage.setItem(STORAGE_KEY, trimmed)
+        // The server set an httpOnly cookie — no key is stored client-side.
         onSuccess()
       } else {
         setError(res.status === 401 ? 'Invalid admin key.' : 'Unable to verify key. Try again.')

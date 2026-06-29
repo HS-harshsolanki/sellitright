@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — SellItRight',
+  title: 'Privacy Policy',
   description: 'Learn how SellItRight collects, uses, and protects your personal information.',
 }
 
@@ -67,6 +67,22 @@ export default function PrivacyPage() {
               </a>
             </li>
           ))}
+          <li>
+            <a
+              href="#section-6"
+              className="text-sm text-[var(--color-foreground)] underline-offset-2 transition-opacity hover:underline hover:opacity-70"
+            >
+              6. Data processors
+            </a>
+          </li>
+          <li>
+            <a
+              href="#section-7"
+              className="text-sm text-[var(--color-foreground)] underline-offset-2 transition-opacity hover:underline hover:opacity-70"
+            >
+              7. How long we retain data
+            </a>
+          </li>
         </ol>
       </nav>
 
@@ -82,6 +98,77 @@ export default function PrivacyPage() {
             </p>
           </section>
         ))}
+        {/* Section 6 — Data processors */}
+        <section id="section-6" className="scroll-mt-20">
+          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
+            6. Data processors
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+            We share data with the following service providers who process data on our behalf:
+          </p>
+          <ul className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+            <li>
+              <span className="font-medium text-[var(--color-foreground)]">
+                Supabase (Singapore/EU)
+              </span>{' '}
+              — database hosting, authentication, and file storage. Data may be replicated to AWS
+              infrastructure.{' '}
+              <a
+                href="https://supabase.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 transition-opacity hover:opacity-70"
+              >
+                Supabase Privacy Policy
+              </a>
+            </li>
+            <li>
+              <span className="font-medium text-[var(--color-foreground)]">Razorpay (India)</span> —
+              payment processing. Only payment identifiers (order IDs) are stored on our servers;
+              full card details are never stored.{' '}
+              <a
+                href="https://razorpay.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 transition-opacity hover:opacity-70"
+              >
+                Razorpay Privacy Policy
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        {/* Section 7 — Retention */}
+        <section id="section-7" className="scroll-mt-20">
+          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
+            7. How long we retain data
+          </h2>
+          <ul className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+            <li>
+              <span className="font-medium text-[var(--color-foreground)]">
+                Account information:
+              </span>{' '}
+              retained until account deletion or 3 years of inactivity
+            </li>
+            <li>
+              <span className="font-medium text-[var(--color-foreground)]">Listing data:</span>{' '}
+              retained for 7 years for legal/tax purposes even after deletion (content anonymised on
+              request)
+            </li>
+            <li>
+              <span className="font-medium text-[var(--color-foreground)]">Payment records:</span>{' '}
+              retained for 8 years as required by Indian financial regulations
+            </li>
+            <li>
+              <span className="font-medium text-[var(--color-foreground)]">Activity logs:</span>{' '}
+              retained for 90 days then automatically deleted
+            </li>
+            <li>
+              <span className="font-medium text-[var(--color-foreground)]">Notifications:</span>{' '}
+              retained for 6 months
+            </li>
+          </ul>
+        </section>
       </div>
 
       {/* Contact */}

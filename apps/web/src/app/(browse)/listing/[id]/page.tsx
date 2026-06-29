@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: ListingPageProps): Promise<Me
   const description = (listing.description ?? '').slice(0, 155)
 
   return {
-    title: `${bhk} in ${listing.locality}, ${listing.city} — ${priceStr} | SellItRight`,
+    title: `${bhk} in ${listing.locality}, ${listing.city} — ${priceStr}`,
     description,
     openGraph: {
       title: listing.title,

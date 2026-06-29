@@ -163,6 +163,38 @@ export async function checkInterestRateLimit(
   return { allowed: true, requestsToday, pendingOnListing }
 }
 
+// ── Report rate limiting ──────────────────────────────────────────────────────
+
+/**
+ * Checks whether a reporter is allowed to submit a new report.
+ *
+ * Rule: max 2 reports per 24-hour rolling window.
+ *
+ * Must be called with the service-role client.
+ */
+export async function checkReportRateLimit(
+  admin: SupabaseClient,
+  reporterId: string,
+): Promise<{ allowed: boolean; reason?: string }> {
+  try {
+    const { count } = await admin
+      .from('reports')
+      .select('id', { count: 'exact', head: true })
+      .eq('reporter_id', reporterId)
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+
+    if ((count ?? 0) >= 2) {
+      return {
+        allowed: false,
+        reason: 'You can submit at most 2 reports per 24 hours.',
+      }
+    }
+    return { allowed: true }
+  } catch {
+    return { allowed: true } // fail open
+  }
+}
+
 // ── Spam detection ─────────────────────────────────────────────────────────────
 
 export interface SpamCheckResult {
@@ -341,6 +373,18 @@ export async function computeAndStoreRiskScore(
         .gte('created_at', dupSince),
     ])
 
+  // Count distinct IPs this user has submitted from in last 7 days
+  // High count = VPN/proxy or shared device = mild broker signal
+  const { data: userIpData } = await admin
+    .from('activity_logs')
+    .select('ip_address')
+    .eq('user_id', userId)
+    .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+    .not('ip_address', 'is', null)
+
+  const distinctIps = new Set((userIpData ?? []).map((r) => r.ip_address)).size
+  const sharedIpScore = distinctIps > 5 ? 10 : 0 // mild signal: >5 distinct IPs in 7 days
+
   const reportCount = reportRes.count ?? 0
   const activeListings = activeListingsRes.count ?? 0
   const requestsToday = todayCountRes.count ?? 0
@@ -370,6 +414,7 @@ export async function computeAndStoreRiskScore(
   if (rapidBurst) score += 20
   if (hasDuplicateMessages) score += 15
   if (requestsToday > 8) score += 10
+  score += sharedIpScore
   score = Math.min(100, score)
 
   const level: RiskLevel = score >= SCORE_HIGH ? 'HIGH' : score >= SCORE_MEDIUM ? 'MEDIUM' : 'LOW'

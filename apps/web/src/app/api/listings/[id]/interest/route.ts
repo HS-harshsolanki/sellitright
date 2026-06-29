@@ -72,18 +72,22 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   // ── Trust & Safety pre-flight ─────────────────────────────────────────────
   // Checks: block (either direction), spam detection, rate limits.
   const adminForTrust = createServiceClient()
-  if (adminForTrust) {
-    const preflight = await interestPreflight(
-      supabase,
-      adminForTrust,
-      user.id,
-      listing.seller_id,
-      listingId,
-      validated.message,
+  if (!adminForTrust) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable. Please try again later.' },
+      { status: 503 },
     )
-    if (!preflight.allowed) {
-      return NextResponse.json({ error: preflight.reason }, { status: preflight.statusCode })
-    }
+  }
+  const preflight = await interestPreflight(
+    supabase,
+    adminForTrust,
+    user.id,
+    listing.seller_id,
+    listingId,
+    validated.message,
+  )
+  if (!preflight.allowed) {
+    return NextResponse.json({ error: preflight.reason }, { status: preflight.statusCode })
   }
 
   // ── Check for existing PENDING request ───────────────────────────────────
