@@ -1,14 +1,7 @@
 import { ArrowRight, BadgeCheck, CheckCircle2, Lock, Search, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 
-import {
-  FAQItem,
-  FadeIn,
-  Reveal,
-  RevealScale,
-  ScrollChevron,
-  Stagger,
-} from '@/components/landing/reveal'
+import { FAQItem, FadeIn, Reveal, ScrollChevron, Stagger } from '@/components/landing/reveal'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 

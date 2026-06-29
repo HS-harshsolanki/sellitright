@@ -38,14 +38,7 @@ export async function GET(request: NextRequest) {
 }
 
 const PROPERTY_TYPES = ['APARTMENT', 'VILLA', 'PLOT', 'INDEPENDENT_HOUSE', 'PENTHOUSE'] as const
-const BHK_TYPES = [
-  'ONE_BHK',
-  'TWO_BHK',
-  'THREE_BHK',
-  'FOUR_BHK',
-  'FIVE_PLUS_BHK',
-  'STUDIO',
-] as const
+const BHK_TYPES = ['ONE_BHK', 'TWO_BHK', 'THREE_BHK', 'FOUR_BHK', 'FIVE_PLUS_BHK'] as const
 const FURNISHING_TYPES = ['UNFURNISHED', 'SEMI_FURNISHED', 'FURNISHED'] as const
 
 // Partial schema — all fields optional for draft autosave
