@@ -186,6 +186,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
             value={details.builtUpArea}
             onChange={(e) => setDetails({ builtUpArea: e.target.value })}
             aria-invalid={areaMissing ? 'true' : undefined}
+            aria-describedby={areaMissing ? 'builtup-error' : undefined}
             className={cn(
               inputBase,
               areaMissing
@@ -194,7 +195,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
             )}
           />
           {areaMissing && (
-            <p role="alert" className="text-destructive text-xs">
+            <p id="builtup-error" role="alert" className="text-destructive text-xs">
               Please enter the built-up area.
             </p>
           )}

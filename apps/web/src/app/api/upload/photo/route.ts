@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import sharp from 'sharp'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
@@ -85,16 +86,45 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Process image with sharp: strips EXIF/GPS metadata and resizes to max 1920×1920
+  let processedBuffer: Buffer
+
+  try {
+    const sharpInstance = sharp(Buffer.from(buffer))
+
+    if (file.type === 'image/jpeg') {
+      processedBuffer = await sharpInstance
+        .jpeg({ quality: 85 }) // strips EXIF by default
+        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+        .toBuffer()
+    } else if (file.type === 'image/png') {
+      processedBuffer = await sharpInstance
+        .png({ compressionLevel: 8 })
+        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+        .toBuffer()
+    } else {
+      // webp
+      processedBuffer = await sharpInstance
+        .webp({ quality: 85 })
+        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+        .toBuffer()
+    }
+  } catch (sharpErr) {
+    console.error('[upload] sharp processing error:', sharpErr)
+    return NextResponse.json({ error: 'Failed to process image.' }, { status: 422 })
+  }
+
+  const uploadMimeType = file.type // keep same type (jpeg/png/webp)
+  const uploadBlob = new Blob([processedBuffer.buffer as ArrayBuffer], { type: uploadMimeType })
+
   const uuid = crypto.randomUUID()
   const path = `listings/${user.id}/${uuid}.${ext}`
 
-  const { error: uploadError } = await admin.storage
-    .from('photos')
-    .upload(path, new Blob([buffer], { type: file.type }), {
-      contentType: file.type,
-      cacheControl: '31536000',
-      upsert: false,
-    })
+  const { error: uploadError } = await admin.storage.from('photos').upload(path, uploadBlob, {
+    contentType: uploadMimeType,
+    cacheControl: '31536000',
+    upsert: false,
+  })
 
   if (uploadError) {
     console.error('[upload/photo] storage error:', uploadError.message)

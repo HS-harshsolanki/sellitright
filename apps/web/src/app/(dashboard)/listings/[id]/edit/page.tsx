@@ -45,7 +45,7 @@ export default async function EditListingPage({ params }: EditPageProps) {
 
   const status: string = row.status as string
   if (status === 'ACTIVE' || status === 'SOLD') {
-    redirect('/dashboard')
+    redirect('/dashboard?msg=cannot-edit-active')
   }
 
   const listing = mapSupabaseListingToMock(row)

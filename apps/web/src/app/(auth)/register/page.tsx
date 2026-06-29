@@ -40,6 +40,7 @@ function Spinner() {
 function RegisterPageInner() {
   const searchParams = useSearchParams()
   const next = searchParams.get('next') ?? '/'
+  const callbackError = searchParams.get('error')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -56,6 +57,7 @@ function RegisterPageInner() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        queryParams: { prompt: 'select_account' },
       },
     })
     if (oauthError) {
@@ -70,11 +72,9 @@ function RegisterPageInner() {
       <div className="mb-8 text-center">
         <Link href="/" className="inline-block">
           <span className="sr-only">SellItRight home</span>
-          <span
-            aria-hidden="true"
-            className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]"
-          >
-            Sell<span className="text-[var(--color-primary)]">It</span>Right
+          <span aria-hidden="true" className="text-2xl font-bold tracking-tight">
+            <span className="text-[var(--color-accent)]">Sell</span>
+            <span className="text-[var(--color-foreground)]">ItRight</span>
           </span>
         </Link>
         <h1 className="mt-4 text-xl font-semibold text-[var(--color-foreground)]">
@@ -85,7 +85,7 @@ function RegisterPageInner() {
         </p>
       </div>
 
-      {error && (
+      {(error || callbackError) && (
         <div
           className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
           role="alert"
@@ -103,7 +103,7 @@ function RegisterPageInner() {
               clipRule="evenodd"
             />
           </svg>
-          <span>{error}</span>
+          <span>{error || callbackError || 'Sign-up failed. Please try again.'}</span>
         </div>
       )}
 

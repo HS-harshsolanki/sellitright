@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
   }
 
+  const VALID_STATUSES = ['PENDING', 'SUCCESS', 'FAILED', 'CANCELLED'] as const
+
   const { searchParams } = new URL(request.url)
   // Strip characters that would break the PostgREST filter string syntax
   const q = (searchParams.get('q') ?? '').trim().replace(/[%_,()\\.]/g, '')
@@ -41,6 +43,12 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
   const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') ?? '25', 10)))
   const offset = (page - 1) * limit
+
+  // Validate status against allowed enum values before passing to Supabase
+  const statusParam =
+    status && VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])
+      ? status
+      : undefined
 
   let query = admin
     .from('payments')
@@ -51,7 +59,7 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: sort === 'oldest' })
     .range(offset, offset + limit - 1)
 
-  if (status) query = query.eq('status', status)
+  if (statusParam) query = query.eq('status', statusParam)
 
   // Text search on IDs
   if (q) {
@@ -69,7 +77,10 @@ export async function GET(request: NextRequest) {
 
   const rows = data ?? []
 
-  // Fetch buyer/seller emails and contact unlock status
+  // Fetch buyer/seller emails and contact unlock status.
+  // NOTE: N+1 getUserById calls below could be replaced with a single batch query against a
+  // `profiles` table (e.g. .from('profiles').select('id, email').in('id', userIds)), but no
+  // such table exists in the current schema (database.types.ts). Revisit when profiles is added.
   const uniqueBuyerIds = [...new Set(rows.map((r) => (r as { buyer_id: string }).buyer_id))]
   const uniqueSellerIds = [...new Set(rows.map((r) => (r as { seller_id: string }).seller_id))]
   const interestIds = rows.map((r) => (r as { interest_id: string }).interest_id).filter(Boolean)

@@ -1,7 +1,7 @@
 'use client'
 
 import { Search, X } from 'lucide-react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -16,6 +16,7 @@ const PLACEHOLDER_DESKTOP = 'Search by city, locality, or project...'
 export function HeaderSearch({ className }: HeaderSearchProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [value, setValue] = useState(searchParams.get('q') ?? '')
   const [placeholder, setPlaceholder] = useState(PLACEHOLDER_MOBILE)
 
@@ -34,6 +35,10 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
   useEffect(() => {
     setValue(searchParams.get('q') ?? '')
   }, [searchParams])
+
+  // On the landing page the product hasn't been introduced yet — a search bar
+  // creates cognitive overload before the visitor understands what they're searching.
+  if (pathname === '/') return null
 
   const push = (q: string) => {
     const params = new URLSearchParams(searchParams.toString())

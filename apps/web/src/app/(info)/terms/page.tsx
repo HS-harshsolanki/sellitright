@@ -20,7 +20,7 @@ const SECTIONS = [
   {
     id: '3',
     title: 'User accounts',
-    body: 'To create listings you must register for an account using a valid Indian mobile number. You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. SellItRight reserves the right to suspend or terminate accounts that violate these terms or engage in fraudulent activity.',
+    body: 'To create listings you must register using a Google account. You may optionally add a phone number to your profile after registration. You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. SellItRight reserves the right to suspend or terminate accounts that violate these terms or engage in fraudulent activity.',
   },
   {
     id: '4',

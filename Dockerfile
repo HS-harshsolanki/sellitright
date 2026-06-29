@@ -2,7 +2,7 @@
 FROM node:20-alpine AS base
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN corepack enable && corepack prepare pnpm@9.6.0 --activate
 
 # ── deps stage ───────────────────────────────────────────────────────────────
 FROM base AS deps
@@ -11,7 +11,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY tooling/eslint/package.json ./tooling/eslint/package.json
 COPY tooling/tsconfig/package.json ./tooling/tsconfig/package.json
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # ── builder stage ────────────────────────────────────────────────────────────
 FROM base AS builder

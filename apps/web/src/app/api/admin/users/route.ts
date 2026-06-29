@@ -35,10 +35,9 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
   const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') ?? '25', 10)))
 
-  // Fetch users from Supabase Auth admin API
+  // Fetch a larger batch for filtering (auth API doesn't support server-side text search)
   const { data: usersData, error: usersErr } = await admin.auth.admin.listUsers({
-    page,
-    perPage: limit,
+    perPage: 1000, // get enough to search across
   })
 
   if (usersErr || !usersData) {
@@ -48,7 +47,7 @@ export async function GET(request: NextRequest) {
 
   let authUsers = usersData.users
 
-  // Client-side search filter on email/phone
+  // Client-side search filter on email/phone/name
   if (q) {
     const lq = q.toLowerCase()
     authUsers = authUsers.filter(
@@ -109,7 +108,7 @@ export async function GET(request: NextRequest) {
     }
   })
 
-  // Status filter
+  // Status filter (applied after enrichment but before pagination)
   if (status === 'suspended') {
     users = users.filter((u) => u.currentFlag === 'SUSPENDED')
   } else if (status === 'high-risk') {
@@ -118,8 +117,11 @@ export async function GET(request: NextRequest) {
     users = users.filter((u) => u.currentFlag !== 'SUSPENDED')
   }
 
-  const total = usersData.total ?? users.length
+  // Manual pagination on filtered results
+  const total = users.length
   const totalPages = Math.max(1, Math.ceil(total / limit))
+  const start = (page - 1) * limit
+  const paginated = users.slice(start, start + limit)
 
-  return NextResponse.json({ users, total, page, totalPages })
+  return NextResponse.json({ users: paginated, total, page, totalPages })
 }

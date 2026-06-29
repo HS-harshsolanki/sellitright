@@ -107,7 +107,7 @@ function LoginPageInner() {
               clipRule="evenodd"
             />
           </svg>
-          <span>{error || 'Sign-in failed. Please try again.'}</span>
+          <span>{error || callbackError || 'Sign-in failed. Please try again.'}</span>
         </div>
       )}
 
@@ -138,6 +138,16 @@ function LoginPageInner() {
           Privacy Policy
         </Link>
         .
+      </p>
+
+      <p className="mt-4 text-center text-sm text-[var(--color-muted-foreground)]">
+        Don&apos;t have an account?{' '}
+        <Link
+          href="/register"
+          className="font-medium text-[var(--color-primary)] underline-offset-4 hover:underline"
+        >
+          Create one
+        </Link>
       </p>
     </>
   )

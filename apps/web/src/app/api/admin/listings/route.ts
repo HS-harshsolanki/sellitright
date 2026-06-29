@@ -1,24 +1,20 @@
-import crypto from 'crypto'
-
 import { NextRequest, NextResponse } from 'next/server'
 
+import { isAuthorized } from '@/lib/admin-auth'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { getAllListings } from '@/lib/listing-store'
 import type { MockListing } from '@/lib/mock-data'
 import { createServiceClient } from '@/lib/supabase/server'
 
-const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
-
-function isAuthorized(request: NextRequest): boolean {
-  if (!ADMIN_KEY) return false
-  const provided = request.headers.get('x-admin-key') ?? ''
-  if (provided.length !== ADMIN_KEY.length) return false
-  try {
-    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
-  } catch {
-    return false
-  }
-}
+const PROPERTY_TYPES = ['APARTMENT', 'VILLA', 'PLOT', 'INDEPENDENT_HOUSE', 'PENTHOUSE'] as const
+const LISTING_STATUSES = [
+  'ACTIVE',
+  'DRAFT',
+  'PENDING_REVIEW',
+  'REJECTED',
+  'SOLD',
+  'DELETED',
+] as const
 
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
@@ -39,6 +35,13 @@ export async function GET(request: NextRequest) {
     .replace(/[%_,()\\.]/g, '')
   const propertyType = searchParams.get('propertyType') ?? ''
   const sortBy = searchParams.get('sortBy') ?? 'oldest'
+
+  const safePropertyType = PROPERTY_TYPES.includes(propertyType as (typeof PROPERTY_TYPES)[number])
+    ? propertyType
+    : undefined
+  const safeStatus = LISTING_STATUSES.includes(status as (typeof LISTING_STATUSES)[number])
+    ? status
+    : undefined
 
   // ── Supabase path ────────────────────────────────────────────────────────
   const supabase = createServiceClient()
@@ -74,9 +77,9 @@ export async function GET(request: NextRequest) {
       // Main listings query
       let q = supabase.from('listings').select('*', { count: 'exact' })
 
-      if (status) q = q.eq('status', status)
+      if (safeStatus) q = q.eq('status', safeStatus)
       if (city) q = q.ilike('city', `%${city}%`)
-      if (propertyType) q = q.eq('property_type', propertyType)
+      if (safePropertyType) q = q.eq('property_type', safePropertyType)
 
       // Text search across multiple columns — use Supabase .or() with ilike
       if (query) {
@@ -113,7 +116,7 @@ export async function GET(request: NextRequest) {
   )
   let results: MockListing[] = getAllListings()
 
-  if (status) results = results.filter((l) => l.status === status)
+  if (safeStatus) results = results.filter((l) => l.status === safeStatus)
   if (query) {
     results = results.filter(
       (l) =>
@@ -125,8 +128,8 @@ export async function GET(request: NextRequest) {
     )
   }
   if (city) results = results.filter((l) => l.city.toLowerCase() === city)
-  if (propertyType)
-    results = results.filter((l) => l.propertyType.toLowerCase() === propertyType.toLowerCase())
+  if (safePropertyType)
+    results = results.filter((l) => l.propertyType.toLowerCase() === safePropertyType.toLowerCase())
 
   results = [...results].sort((a, b) => {
     const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()

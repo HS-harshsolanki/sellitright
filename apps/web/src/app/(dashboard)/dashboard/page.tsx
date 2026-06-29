@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { formatPrice } from '@/lib/format'
@@ -626,6 +627,12 @@ function EmptyState({ tab }: { tab: Exclude<TabFilter, 'buyers'> }) {
 }
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams()
+  const cantEditMsg =
+    searchParams.get('msg') === 'cannot-edit-active'
+      ? 'Active listings cannot be edited. To make changes, contact support.'
+      : null
+
   const [activeTab, setActiveTab] = useState<TabFilter>('all')
   const [listings, setListings] = useState<MockListing[]>([])
   const [loading, setLoading] = useState(true)
@@ -785,6 +792,16 @@ export default function DashboardPage() {
           New listing
         </Link>
       </div>
+
+      {cantEditMsg && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          role="alert"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <span>{cantEditMsg}</span>
+        </div>
+      )}
 
       {fetchError && activeTab !== 'buyers' && (
         <div

@@ -81,6 +81,7 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
             value={pricing.price}
             onChange={handlePriceChange}
             aria-invalid={priceMissing ? 'true' : undefined}
+            aria-describedby={priceMissing ? 'price-error' : undefined}
             className={cn(
               inputBase,
               'pl-8 text-xl font-semibold tracking-tight',
@@ -92,7 +93,7 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
         </div>
 
         {priceMissing && (
-          <p role="alert" className="text-destructive text-xs">
+          <p id="price-error" role="alert" className="text-destructive text-xs">
             Please enter your asking price.
           </p>
         )}

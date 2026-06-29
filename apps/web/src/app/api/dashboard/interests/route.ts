@@ -42,7 +42,9 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const statusParam = searchParams.get('status') ?? 'ALL'
+  const VALID_STATUSES = ['ALL', 'PENDING', 'ACCEPTED', 'DECLINED'] as const
+  const rawStatus = searchParams.get('status') ?? 'ALL'
+  const statusParam = (VALID_STATUSES as readonly string[]).includes(rawStatus) ? rawStatus : 'ALL'
   const sort = searchParams.get('sort') ?? 'newest'
   const page = Math.min(500, Math.max(1, parseInt(searchParams.get('page') ?? '1', 10)))
   const limit = 20

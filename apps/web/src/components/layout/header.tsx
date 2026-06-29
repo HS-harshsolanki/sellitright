@@ -92,11 +92,15 @@ interface UserDropdownProps {
 function UserDropdown({ name, email, hasListings, onSignOut }: UserDropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -105,7 +109,10 @@ function UserDropdown({ name, email, hasListings, onSignOut }: UserDropdownProps
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
@@ -116,6 +123,7 @@ function UserDropdown({ name, email, hasListings, onSignOut }: UserDropdownProps
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
@@ -428,26 +436,28 @@ export function Header() {
 
         {/* Zone 3: Right actions — desktop */}
         <div className="hidden shrink-0 items-center gap-3 md:flex">
-          <Link
-            href="/properties"
-            className={cn(
-              'rounded-full px-4 py-2 text-sm font-medium text-[var(--color-muted-foreground)]',
-              'transition-colors duration-150 hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
-            )}
-          >
-            Browse
-          </Link>
-          <Link
-            href="/sell"
-            className={cn(
-              'rounded-full bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm',
-              'transition-all duration-150 hover:bg-gray-800 hover:shadow-md active:scale-[0.97]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
-            )}
-          >
-            Post Property
-          </Link>
+          <nav aria-label="Main navigation" className="flex items-center gap-3">
+            <Link
+              href="/properties"
+              className={cn(
+                'rounded-full px-4 py-2 text-sm font-medium text-[var(--color-muted-foreground)]',
+                'transition-colors duration-150 hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
+              )}
+            >
+              Browse
+            </Link>
+            <Link
+              href="/sell"
+              className={cn(
+                'rounded-full bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm',
+                'transition-all duration-150 hover:bg-gray-800 hover:shadow-md active:scale-[0.97]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
+              )}
+            >
+              Post Property
+            </Link>
+          </nav>
 
           {/* Notification bell — authenticated users only */}
           {!loading && user && <NotificationBell hook={notificationsHook} />}

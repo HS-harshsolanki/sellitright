@@ -149,6 +149,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'You cannot report yourself.' }, { status: 422 })
   }
 
+  // Verify the target user exists (has interacted with this seller as a buyer)
+  const { data: targetUser } = await admin
+    .from('buyer_interest')
+    .select('id')
+    .eq('buyer_id', validated.targetUserId)
+    .eq('seller_id', user.id)
+    .limit(1)
+    .maybeSingle()
+
+  if (!targetUser) {
+    return NextResponse.json({ error: 'User not found.' }, { status: 404 })
+  }
+
   const { data: report, error: insertErr } = await admin
     .from('reports')
     .insert({

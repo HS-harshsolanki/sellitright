@@ -229,10 +229,11 @@ export function StepReview({ draftId }: StepReviewProps) {
           <CheckCircle2 className="h-10 w-10 text-green-600" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-foreground text-2xl font-bold tracking-tight">Sent for review!</h2>
+          <h2 className="text-foreground text-2xl font-bold tracking-tight">
+            Your listing has been submitted for review.
+          </h2>
           <p className="text-muted-foreground max-w-sm">
-            Your listing is now under review. It will go live within{' '}
-            <span className="text-foreground font-medium">24 hours</span> once approved by our team.
+            We&apos;ll notify you once it&apos;s approved.
           </p>
         </div>
 

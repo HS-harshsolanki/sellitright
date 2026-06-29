@@ -75,6 +75,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     .from('buyer_interest')
     .update({ status: action, updated_at: updatedAt })
     .eq('id', id)
+    .eq('seller_id', user.id)
 
   if (updateErr) {
     console.error('[dashboard/interests/[id]] update error:', updateErr.message)

@@ -76,9 +76,12 @@ export const listingCreateSchema = z.object({
         .string()
         .url('Each image must be a valid URL')
         .refine(
-          (url) =>
-            url.includes('.supabase.co/storage/') || url.includes('lh3.googleusercontent.com'),
-          'Image URLs must be from Supabase storage or Google',
+          (url) => {
+            const base = process.env.NEXT_PUBLIC_SUPABASE_URL
+            if (!base) return url.includes('.supabase.co/storage/') // fallback for dev/test
+            return url.startsWith(`${base}/storage/v1/object/public/photos/`)
+          },
+          { message: 'Image must be uploaded to this platform' },
         ),
     )
     .max(20)

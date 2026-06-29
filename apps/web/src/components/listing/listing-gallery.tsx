@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, X, LayoutGrid } from 'lucide-react'
 import Image from 'next/image'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 
 import type { MockListingImage } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
@@ -69,10 +69,43 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
 
   const closeLightbox = useCallback(() => setLightboxOpen(false), [])
 
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (lightboxOpen) {
+      // Auto-focus the dialog so arrow keys work immediately
+      dialogRef.current?.focus()
+    }
+  }, [lightboxOpen])
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowLeft') prev()
     if (e.key === 'ArrowRight') next()
     if (e.key === 'Escape') closeLightbox()
+  }
+
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      closeLightbox()
+      return
+    }
+    if (e.key === 'Tab') {
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusable || focusable.length === 0) return
+      const first = focusable[0]!
+      const last = focusable[focusable.length - 1]!
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    if (e.key === 'ArrowLeft') prev()
+    if (e.key === 'ArrowRight') next()
   }
 
   if (images.length === 0) {
@@ -258,13 +291,14 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
       <AnimatePresence>
         {lightboxOpen && (
           <motion.div
+            ref={dialogRef}
             variants={lightboxVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
             className="fixed inset-0 z-50 flex flex-col bg-black/95"
             onClick={closeLightbox}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleDialogKeyDown}
             tabIndex={-1}
             role="dialog"
             aria-modal="true"
