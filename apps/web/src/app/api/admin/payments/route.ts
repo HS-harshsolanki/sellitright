@@ -78,34 +78,33 @@ export async function GET(request: NextRequest) {
   const rows = data ?? []
 
   // Fetch buyer/seller emails and contact unlock status.
-  // NOTE: N+1 getUserById calls below could be replaced with a single batch query against a
-  // `profiles` table (e.g. .from('profiles').select('id, email').in('id', userIds)), but no
-  // such table exists in the current schema (database.types.ts). Revisit when profiles is added.
-  const uniqueBuyerIds = [...new Set(rows.map((r) => (r as { buyer_id: string }).buyer_id))]
-  const uniqueSellerIds = [...new Set(rows.map((r) => (r as { seller_id: string }).seller_id))]
   const interestIds = rows.map((r) => (r as { interest_id: string }).interest_id).filter(Boolean)
 
-  const [buyerEmailMap, sellerEmailMap, interestRes] = await Promise.all([
-    Promise.all(uniqueBuyerIds.map((id) => admin.auth.admin.getUserById(id))).then((results) => {
-      const map = new Map<string, string | null>()
-      results.forEach((res, i) => {
-        const uid = uniqueBuyerIds[i]
-        if (uid) map.set(uid, res.data.user?.email ?? null)
-      })
-      return map
-    }),
-    Promise.all(uniqueSellerIds.map((id) => admin.auth.admin.getUserById(id))).then((results) => {
-      const map = new Map<string, string | null>()
-      results.forEach((res, i) => {
-        const uid = uniqueSellerIds[i]
-        if (uid) map.set(uid, res.data.user?.email ?? null)
-      })
-      return map
-    }),
+  const userIds = [
+    ...new Set([
+      ...rows.map((r) => (r as { buyer_id: string }).buyer_id).filter(Boolean),
+      ...rows.map((r) => (r as { seller_id: string }).seller_id).filter(Boolean),
+    ]),
+  ] as string[]
+
+  const [profileRes, interestRes] = await Promise.all([
+    userIds.length > 0
+      ? admin.from('profiles').select('id, email, full_name').in('id', userIds)
+      : Promise.resolve({ data: [] }),
     interestIds.length > 0
       ? admin.from('buyer_interest').select('id, contact_unlocked').in('id', interestIds)
       : Promise.resolve({ data: [] }),
   ])
+
+  const profileMap = new Map(
+    (
+      (
+        profileRes as {
+          data: Array<{ id: string; email: string | null; full_name: string | null }>
+        }
+      ).data ?? []
+    ).map((p) => [p.id, { email: p.email, name: p.full_name }]),
+  )
 
   const unlockedMap = new Map<string, boolean>(
     (
@@ -131,8 +130,8 @@ export async function GET(request: NextRequest) {
       id: row.id,
       buyerId: row.buyer_id,
       sellerId: row.seller_id,
-      buyerEmail: buyerEmailMap.get(row.buyer_id) ?? null,
-      sellerEmail: sellerEmailMap.get(row.seller_id) ?? null,
+      buyerEmail: profileMap.get(row.buyer_id)?.email ?? null,
+      sellerEmail: profileMap.get(row.seller_id)?.email ?? null,
       listingId: row.listing_id,
       interestId: row.interest_id,
       razorpayOrderId: row.razorpay_order_id,

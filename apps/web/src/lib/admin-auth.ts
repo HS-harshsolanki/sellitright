@@ -3,29 +3,9 @@ import crypto from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { NextRequest } from 'next/server'
 
+import { COOKIE_NAME, verifySessionToken } from '@/lib/admin-session'
+
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
-
-// ---------------------------------------------------------------------------
-// Session cookie verification (inlined to avoid importing from a route file)
-// ---------------------------------------------------------------------------
-const COOKIE_NAME = 'sir_admin_session'
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000
-
-function verifySessionToken(token: string): boolean {
-  const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET ?? process.env.ADMIN_SECRET_KEY ?? ''
-  if (!SESSION_SECRET) return false
-  const dotIdx = token.indexOf('.')
-  if (dotIdx === -1) return false
-  const tsStr = token.slice(0, dotIdx)
-  const sig = token.slice(dotIdx + 1)
-  const ts = parseInt(tsStr, 10)
-  if (isNaN(ts) || Date.now() - ts > SESSION_TTL_MS) return false
-  const expected = crypto.createHmac('sha256', SESSION_SECRET)
-  expected.update(`admin:${ts}`)
-  const expectedHex = expected.digest('hex')
-  if (expectedHex.length !== sig.length) return false
-  return crypto.timingSafeEqual(Buffer.from(expectedHex), Buffer.from(sig))
-}
 
 // ---------------------------------------------------------------------------
 // In-memory rate limiter — 20 attempts per IP per 60 seconds

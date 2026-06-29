@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 import { CookieConsent } from '@/components/cookie-consent'
 
@@ -91,6 +93,8 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en" className={inter.variable}>
       <body className="bg-background min-h-screen font-sans antialiased">
         <Providers>{children}</Providers>
+        <Analytics />
+        <SpeedInsights />
         <CookieConsent />
       </body>
     </html>

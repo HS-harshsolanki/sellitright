@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { createNotification, createNotifications } from '@/lib/notifications'
+import { logger } from '@/lib/logger'
 import { verifyRazorpaySignature } from '@/lib/razorpay'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
     .eq('status', 'PENDING')
 
   if (updatePaymentErr) {
-    console.error('[payments/verify] update payment error:', updatePaymentErr.message)
+    logger.error('[payments/verify] update payment error', { error: updatePaymentErr.message })
     return NextResponse.json({ error: 'Failed to record payment.' }, { status: 500 })
   }
 
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest) {
     .eq('id', interestId)
 
   if (unlockErr) {
-    console.error('[payments/verify] unlock error:', unlockErr.message)
+    logger.error('[payments/verify] unlock error', { error: unlockErr.message })
     return NextResponse.json(
       { error: 'Payment recorded but contact unlock failed.' },
       { status: 500 },

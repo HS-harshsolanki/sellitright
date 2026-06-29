@@ -327,7 +327,7 @@ export default async function LandingPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       <section aria-labelledby="trust-heading" className="px-4 py-20 sm:px-6 md:py-28">
         <div className="mx-auto max-w-4xl">
-          <Reveal>
+          <Reveal x={-24} y={0}>
             <h2
               id="trust-heading"
               className="max-w-xl text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
@@ -341,7 +341,7 @@ export default async function LandingPage() {
 
           <div className="mt-14 space-y-0">
             {TRUST_PILLARS.map(({ icon: Icon, title, description }, idx) => (
-              <Reveal key={title} delay={idx * 0.05} y={16}>
+              <Reveal key={title} delay={idx * 0.08} x={-16} y={0}>
                 <div className="grid grid-cols-1 gap-4 border-t border-[var(--color-border)] py-7 sm:grid-cols-2 sm:gap-10">
                   <div className="flex items-start gap-4">
                     <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-muted)]">
@@ -370,7 +370,7 @@ export default async function LandingPage() {
         className="bg-[var(--color-muted)] px-4 py-20 sm:px-6 md:py-24"
       >
         <div className="mx-auto max-w-4xl">
-          <Reveal>
+          <Reveal y={20}>
             <h2
               id="faq-heading"
               className="text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
@@ -378,11 +378,11 @@ export default async function LandingPage() {
               Common questions.
             </h2>
           </Reveal>
-          <div className="mt-10 divide-y divide-[var(--color-border)]">
+          <Stagger className="mt-10 divide-y divide-[var(--color-border)]" stagger={0.09} y={12}>
             {FAQ_ITEMS.map(({ question, answer }, idx) => (
               <FAQItem key={idx} question={question} answer={answer} />
             ))}
-          </div>
+          </Stagger>
         </div>
       </section>
 
@@ -391,7 +391,7 @@ export default async function LandingPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       <section aria-labelledby="cities-heading" className="px-4 py-20 sm:px-6 md:py-28">
         <div className="mx-auto max-w-4xl">
-          <Reveal>
+          <FadeIn>
             <h2
               id="cities-heading"
               className="text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
@@ -401,9 +401,9 @@ export default async function LandingPage() {
             <p className="mt-3 text-base leading-relaxed text-[var(--color-muted-foreground)]">
               Owner-listed properties across India&apos;s major residential markets.
             </p>
-          </Reveal>
+          </FadeIn>
 
-          <Stagger className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3" stagger={0.05} y={16}>
+          <Stagger className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3" stagger={0.06} y={20}>
             {CITIES_GRID.map((city) => (
               <Link
                 key={city.name}
@@ -433,7 +433,7 @@ export default async function LandingPage() {
       >
         <div className="mx-auto max-w-4xl">
           <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-8 sm:divide-x sm:divide-white/10">
-            <Reveal>
+            <Reveal x={-24} y={0}>
               <div>
                 <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                   Looking for a home?
@@ -449,7 +449,7 @@ export default async function LandingPage() {
                 </Link>
               </div>
             </Reveal>
-            <Reveal delay={0.08}>
+            <Reveal x={24} y={0} delay={0.06}>
               <div className="sm:pl-8">
                 <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                   Selling your property?
@@ -467,7 +467,7 @@ export default async function LandingPage() {
             </Reveal>
           </div>
 
-          <Reveal delay={0.16}>
+          <FadeIn delay={0.2}>
             <p className="mt-16 text-center text-sm text-white/40">
               Questions? Email us at{' '}
               <a
@@ -477,7 +477,7 @@ export default async function LandingPage() {
                 support@sellitright.in
               </a>
             </p>
-          </Reveal>
+          </FadeIn>
         </div>
       </section>
     </main>

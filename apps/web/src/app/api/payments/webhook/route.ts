@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { createNotification, createNotifications } from '@/lib/notifications'
+import { logger } from '@/lib/logger'
 import { verifyWebhookSignature } from '@/lib/razorpay'
 import { createServiceClient } from '@/lib/supabase/server'
 
@@ -55,13 +56,13 @@ export async function POST(request: NextRequest) {
   // Validate amount matches expected contact-unlock fee
   const paymentAmount = (event.payload?.payment?.entity as { amount?: number } | undefined)?.amount
   if (typeof paymentAmount === 'number' && paymentAmount !== 4900) {
-    console.warn('[webhook] unexpected payment amount:', paymentAmount)
+    logger.warn('[webhook] unexpected payment amount', { paymentAmount })
     return NextResponse.json({ error: 'Unexpected payment amount.' }, { status: 400 })
   }
 
   const admin = createServiceClient()
   if (!admin) {
-    console.error('[webhook] createServiceClient returned null — SUPABASE_SERVICE_ROLE_KEY missing')
+    logger.error('[webhook] createServiceClient returned null — SUPABASE_SERVICE_ROLE_KEY missing')
     return NextResponse.json({ error: 'Service unavailable' }, { status: 500 })
   }
 
@@ -90,7 +91,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (interest?.status !== 'ACCEPTED') {
-    console.warn('[webhook] Interest not ACCEPTED, skipping contact unlock', interest?.id)
+    logger.warn('[webhook] Interest not ACCEPTED, skipping contact unlock', {
+      interestId: interest?.id,
+    })
     return NextResponse.json({ received: true, skipped: true })
   }
 
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest) {
     .eq('status', 'PENDING')
 
   if (updateError) {
-    console.error('[webhook] failed to update payment:', updateError.message)
+    logger.error('[webhook] failed to update payment', { error: updateError.message })
     return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
   }
 

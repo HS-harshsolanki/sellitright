@@ -212,6 +212,32 @@ In Supabase Dashboard → Authentication → URL Configuration:
 
 ---
 
+## Production Monitoring
+
+### Health endpoint
+
+The app exposes `GET /api/health` returning `{ status: "ok"|"degraded"|"down", checks: {...} }`.
+
+- HTTP 200 = healthy
+- HTTP 503 = database unreachable or service client missing
+
+Set up a free uptime monitor at https://uptimerobot.com pointing to:
+`https://your-domain.com/api/health`
+Alert on non-200 responses.
+
+### Analytics
+
+Vercel Analytics and Speed Insights are enabled automatically on Vercel deployments.
+No configuration needed.
+
+### Log drains (optional)
+
+To persist logs beyond Vercel's 1-day retention, configure a Log Drain in the Vercel
+dashboard (Settings → Log Drains) pointing to BetterStack or Axiom (both have free tiers).
+Logs are emitted as structured JSON.
+
+---
+
 ## Useful commands
 
 ```sh

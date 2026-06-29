@@ -11,9 +11,20 @@ import {
   CheckCheck,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import type { NotificationItem, UseNotificationsResult } from '@/hooks/use-notifications'
+
+function getNotificationActionUrl(type: string): string | null {
+  if (type === 'InterestRequest' || type === 'Accepted' || type === 'Rejected') {
+    return '/dashboard?tab=buyers'
+  }
+  if (type === 'ConnectionUnlocked' || type === 'PaymentReceived') {
+    return '/dashboard?tab=buyers'
+  }
+  return null
+}
 
 // Props receive the hook result from the parent (Header) so there is a single
 // shared state across the bell and the mobile badge — no double-fetch.
@@ -60,13 +71,18 @@ function relativeTime(iso: string): string {
 interface NotificationRowProps {
   item: NotificationItem
   onRead: (id: string) => void
+  onNavigate: () => void
 }
 
-function NotificationRow({ item, onRead }: NotificationRowProps) {
+function NotificationRow({ item, onRead, onNavigate }: NotificationRowProps) {
+  const actionUrl = getNotificationActionUrl(item.type)
   return (
     <button
       type="button"
-      onClick={() => onRead(item.id)}
+      onClick={() => {
+        onRead(item.id)
+        if (actionUrl) onNavigate()
+      }}
       className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)] ${
         !item.read ? 'bg-[var(--color-muted)]' : ''
       }`}
@@ -103,6 +119,7 @@ export function NotificationBell({ hook }: NotificationBellProps) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const router = useRouter()
   const { notifications, unreadCount, markRead, markAllRead } = hook
 
   // Refetch when the panel opens so the list is always fresh
@@ -198,7 +215,16 @@ export function NotificationBell({ hook }: NotificationBellProps) {
             ) : (
               <div className="divide-y divide-[var(--color-border)]">
                 {notifications.map((item) => (
-                  <NotificationRow key={item.id} item={item} onRead={(id) => void markRead(id)} />
+                  <NotificationRow
+                    key={item.id}
+                    item={item}
+                    onRead={(id) => void markRead(id)}
+                    onNavigate={() => {
+                      setOpen(false)
+                      const url = getNotificationActionUrl(item.type)
+                      if (url) router.push(url)
+                    }}
+                  />
                 ))}
               </div>
             )}

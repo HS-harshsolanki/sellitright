@@ -1,7 +1,58 @@
 import { NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
+interface HealthStatus {
+  status: 'ok' | 'degraded' | 'down'
+  timestamp: string
+  checks: {
+    database: 'ok' | 'error'
+    serviceClient: 'ok' | 'missing'
+  }
+  version: string
+}
+
 export async function GET() {
-  return NextResponse.json({ status: 'ok', timestamp: new Date().toISOString() })
+  const checks: HealthStatus['checks'] = {
+    database: 'error',
+    serviceClient: 'missing',
+  }
+
+  const admin = createServiceClient()
+
+  if (admin) {
+    checks.serviceClient = 'ok'
+    try {
+      // Lightweight liveness query — just checks DB is reachable
+      const { error } = await admin
+        .from('listings')
+        .select('id', { count: 'exact', head: true })
+        .limit(1)
+      checks.database = error ? 'error' : 'ok'
+    } catch {
+      checks.database = 'error'
+    }
+  }
+
+  const allOk = checks.database === 'ok' && checks.serviceClient === 'ok'
+  const status: HealthStatus['status'] = allOk
+    ? 'ok'
+    : checks.database === 'error'
+      ? 'down'
+      : 'degraded'
+
+  const body: HealthStatus = {
+    status,
+    timestamp: new Date().toISOString(),
+    checks,
+    version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local',
+  }
+
+  return NextResponse.json(body, {
+    status: allOk ? 200 : 503,
+    headers: {
+      'Cache-Control': 'no-store',
+    },
+  })
 }

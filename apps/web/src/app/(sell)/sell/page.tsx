@@ -180,9 +180,11 @@ export default function SellPage() {
       return
     }
 
-    if (useSellFormStore.getState().draftId !== urlDraftId) {
-      useSellFormStore.getState().setDraftId(urlDraftId)
-    }
+    // Only fetch+hydrate if this is a different draft than what's already in the store.
+    // Guarding here prevents re-hydrating (and losing step progress) on back/forward navigation.
+    if (useSellFormStore.getState().draftId === urlDraftId) return
+
+    useSellFormStore.getState().setDraftId(urlDraftId)
 
     void fetch(`/api/listings/draft?id=${urlDraftId}`)
       .then((r) => (r.ok ? r.json() : null))

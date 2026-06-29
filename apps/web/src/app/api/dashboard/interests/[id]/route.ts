@@ -82,8 +82,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Failed to update request.' }, { status: 500 })
   }
 
-  // Notify buyer — fire-and-forget
-  await createNotification({
+  // Notify buyer — fire-and-forget, never block the response
+  createNotification({
     admin,
     userId: interest.buyer_id as string,
     title: action === 'ACCEPTED' ? 'Request accepted' : 'Request declined',
@@ -94,6 +94,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     type: action === 'ACCEPTED' ? 'Accepted' : 'Rejected',
     entityType: 'interest',
     entityId: id,
+  }).catch((err: unknown) => {
+    console.error('[dashboard/interests/[id]] notification failed (non-fatal):', err)
   })
 
   return NextResponse.json({ id, status: action, updatedAt })

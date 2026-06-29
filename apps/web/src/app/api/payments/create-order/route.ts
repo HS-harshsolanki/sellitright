@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 
 import { NextRequest, NextResponse } from 'next/server'
 
+import { logger } from '@/lib/logger'
 import { getRazorpayInstance, isRazorpayConfigured } from '@/lib/razorpay'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (insertError || !pendingPayment) {
-    console.error('[create-order] failed to insert payment row:', insertError?.message)
+    logger.error('[create-order] failed to insert payment row', { error: insertError?.message })
     return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
   }
 
@@ -136,10 +137,9 @@ export async function POST(request: NextRequest) {
       receipt: localReceiptId.slice(0, 40),
     })) as { id: string; amount: number; currency: string }
   } catch (err) {
-    console.error(
-      '[payments/create-order] Razorpay error:',
-      err instanceof Error ? err.message : String(err),
-    )
+    logger.error('[payments/create-order] Razorpay error', {
+      error: err instanceof Error ? err.message : String(err),
+    })
     // Clean up the pending row since there's no order to pay against
     await admin.from('payments').delete().eq('id', pendingPayment.id)
     return NextResponse.json(
@@ -155,7 +155,9 @@ export async function POST(request: NextRequest) {
     .eq('id', pendingPayment.id)
 
   if (orderIdUpdateError) {
-    console.error('[create-order] failed to persist razorpay_order_id:', orderIdUpdateError.message)
+    logger.error('[create-order] failed to persist razorpay_order_id', {
+      error: orderIdUpdateError.message,
+    })
     await admin.from('payments').delete().eq('id', pendingPayment.id)
     return NextResponse.json(
       { error: 'Failed to create payment order. Please try again.' },

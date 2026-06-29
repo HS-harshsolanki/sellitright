@@ -24,15 +24,17 @@ import { cn } from '@/lib/utils'
 
 type TabFilter = 'all' | 'active' | 'draft' | 'pending' | 'rejected' | 'sold' | 'buyers'
 
-const TAB_OPTIONS: { value: TabFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'active', label: 'Active' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'rejected', label: 'Rejected' },
-  { value: 'sold', label: 'Sold' },
-  { value: 'buyers', label: 'Interested Buyers' },
-]
+const TAB_VALUES: TabFilter[] = ['all', 'active', 'draft', 'pending', 'rejected', 'sold', 'buyers']
+
+const TAB_LABELS: Record<TabFilter, string> = {
+  all: 'All',
+  active: 'Active',
+  draft: 'Draft',
+  pending: 'Pending',
+  rejected: 'Rejected',
+  sold: 'Sold',
+  buyers: 'Interested Buyers',
+}
 
 const STATUS_CONFIG: Record<ListingStatus, { label: string; className: string }> = {
   ACTIVE: { label: 'Active', className: 'bg-green-100 text-green-700' },
@@ -633,7 +635,12 @@ export default function DashboardPage() {
       ? 'Active listings cannot be edited. To make changes, contact support.'
       : null
 
-  const [activeTab, setActiveTab] = useState<TabFilter>('all')
+  const tabParam = searchParams.get('tab') as TabFilter | null
+  const initialTab: TabFilter =
+    tabParam && (TAB_VALUES as string[]).includes(tabParam) ? tabParam : 'all'
+
+  const [activeTab, setActiveTab] = useState<TabFilter>(initialTab)
+  const [pendingBuyerCount, setPendingBuyerCount] = useState<number | null>(null)
   const [listings, setListings] = useState<MockListing[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -646,6 +653,18 @@ export default function DashboardPage() {
   const [interestSort, setInterestSort] = useState<'newest' | 'oldest'>('newest')
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // Background fetch of pending buyer count — runs on mount so the badge shows
+  // immediately without needing to click the buyers tab first.
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return
+    fetch('/api/dashboard/interests?status=PENDING&page=1')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { total?: number } | null) => {
+        if (json?.total !== undefined) setPendingBuyerCount(json.total)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -728,6 +747,8 @@ export default function DashboardPage() {
               : item,
           ),
         )
+        // Decrement pending badge when seller acts on a pending request
+        setPendingBuyerCount((c) => (c !== null && c > 0 ? c - 1 : 0))
       } else {
         const err = (await res.json()) as { error?: string }
         setInterestError(err.error ?? 'Failed to update request.')
@@ -813,7 +834,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
           label="Total Listings"
           value={stats.total}
@@ -826,14 +847,47 @@ export default function DashboardPage() {
           icon={<TrendingUp className="h-5 w-5" />}
           accent
         />
-        <div className="col-span-2 sm:col-span-1">
-          <StatCard
-            label="Total Views"
-            value={stats.views.toLocaleString('en-IN')}
-            sub="Lifetime across all listings"
-            icon={<Eye className="h-5 w-5" />}
-          />
-        </div>
+        <StatCard
+          label="Total Views"
+          value={stats.views.toLocaleString('en-IN')}
+          sub="Lifetime across all listings"
+          icon={<Eye className="h-5 w-5" />}
+        />
+        {/* Buyer requests card — always visible, draws attention to pending actions */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('buyers')}
+          className={cn(
+            'flex items-start gap-4 rounded-xl border p-4 text-left transition-all',
+            pendingBuyerCount
+              ? 'border-amber-300 bg-amber-50 hover:bg-amber-100'
+              : 'border-[var(--color-border)] bg-white hover:bg-[var(--color-muted)]',
+          )}
+        >
+          <div
+            className={cn(
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+              pendingBuyerCount
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+            )}
+          >
+            <Users className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm text-[var(--color-muted-foreground)]">Buyer Requests</p>
+            <p className="text-2xl font-bold text-[var(--color-foreground)]">
+              {pendingBuyerCount ?? '—'}
+            </p>
+            {pendingBuyerCount ? (
+              <p className="mt-0.5 text-xs font-medium text-amber-700">Awaiting your response</p>
+            ) : (
+              <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
+                Pending requests
+              </p>
+            )}
+          </div>
+        </button>
       </div>
 
       <div
@@ -841,22 +895,27 @@ export default function DashboardPage() {
         aria-label="Filter listings"
         className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1"
       >
-        {TAB_OPTIONS.map((tab) => (
+        {TAB_VALUES.map((tabValue) => (
           <button
-            key={tab.value}
+            key={tabValue}
             role="tab"
-            aria-selected={activeTab === tab.value}
+            aria-selected={activeTab === tabValue}
             type="button"
-            onClick={() => setActiveTab(tab.value)}
+            onClick={() => setActiveTab(tabValue)}
             className={cn(
-              'flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all',
+              'relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all',
               'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
-              activeTab === tab.value
+              activeTab === tabValue
                 ? 'bg-white text-[var(--color-foreground)] shadow-sm'
                 : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
             )}
           >
-            {tab.label}
+            {TAB_LABELS[tabValue]}
+            {tabValue === 'buyers' && pendingBuyerCount ? (
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
+                {pendingBuyerCount > 99 ? '99+' : pendingBuyerCount}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
