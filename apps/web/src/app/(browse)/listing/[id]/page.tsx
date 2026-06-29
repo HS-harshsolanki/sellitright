@@ -69,6 +69,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
   const supabase = await createClient()
   let listingRaw: MockListing | undefined = undefined
   let isOwner = false
+  let listingStatus: string | null = null
   let viewer: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | undefined =
     undefined
 
@@ -80,6 +81,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
     const data = await getListingData(id)
     if (data) {
+      listingStatus = data.status
       isOwner = viewer?.id === data.seller_id
       const isVisible = data.status === 'ACTIVE' || isOwner
       if (isVisible) {
@@ -122,6 +124,8 @@ export default async function ListingPage({ params }: ListingPageProps) {
         .eq('listing_id', id)
         .eq('buyer_id', viewer.id)
         .in('status', ['PENDING', 'ACCEPTED'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()) as { data: InterestRow | null; error: unknown }
 
       if (existing) {
@@ -141,6 +145,40 @@ export default async function ListingPage({ params }: ListingPageProps) {
       // buyer_interest table may not exist yet (migration not run) — default to false
       hasExistingRequest = false
     }
+  }
+
+  const bhkRoomCount: Record<string, number> = {
+    ONE_BHK: 1,
+    TWO_BHK: 2,
+    THREE_BHK: 3,
+    FOUR_BHK: 4,
+    FIVE_PLUS_BHK: 5,
+  }
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'RealEstateListing',
+    name: listing.title,
+    description: (listing.description ?? '').slice(0, 500),
+    url: `https://sellitright.in/listing/${listing.id}`,
+    datePosted: listing.createdAt,
+    price: listing.price,
+    priceCurrency: 'INR',
+    numberOfRooms: bhkRoomCount[listing.bhkType] ?? null,
+    floorSize: {
+      '@type': 'QuantitativeValue',
+      value: listing.builtUpArea,
+      unitCode: 'FTK',
+    },
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: listing.address,
+      addressLocality: listing.locality,
+      addressRegion: listing.city,
+      postalCode: listing.pincode,
+      addressCountry: 'IN',
+    },
+    image: listing.images[0]?.url ? [listing.images[0].url] : [],
   }
 
   const priceStr = formatPrice(listing.price)
@@ -178,6 +216,18 @@ export default async function ListingPage({ params }: ListingPageProps) {
   return (
     <>
       <div className="pb-32 sm:pb-10">
+        {listingStatus && listingStatus !== 'ACTIVE' && (
+          <div className="border-b border-amber-200 bg-amber-50">
+            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+              <p className="text-sm font-medium text-amber-800">
+                {listingStatus === 'SOLD'
+                  ? 'This property has been sold and is no longer available.'
+                  : 'This listing is currently unavailable.'}
+                {isOwner && ' You can manage it from your Dashboard.'}
+              </p>
+            </div>
+          </div>
+        )}
         {/* ────────────────────────────────────────────────────────────────── */}
         {/* SECTION 1: Title + Share/Save — ABOVE the gallery                 */}
         {/* ────────────────────────────────────────────────────────────────── */}
@@ -388,6 +438,11 @@ export default async function ListingPage({ params }: ListingPageProps) {
         interestStatus={interestStatus}
         contactUnlocked={contactUnlocked}
         sellerPhone={sellerPhone}
+      />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
     </>
   )

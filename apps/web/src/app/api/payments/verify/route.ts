@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { createNotification, createNotifications } from '@/lib/notifications'
 import { logger } from '@/lib/logger'
+import { createNotification, createNotifications } from '@/lib/notifications'
 import { verifyRazorpaySignature } from '@/lib/razorpay'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
@@ -77,6 +77,31 @@ export async function POST(request: NextRequest) {
     .eq('razorpay_order_id', razorpayOrderId)
     .maybeSingle()
 
+  // Demo mode: create-order never inserts a payments row, so look up by interest_id instead
+  if (!payment && isDemoOrder) {
+    const { data: demoInterest } = await admin
+      .from('buyer_interest')
+      .select('id, buyer_id, seller_id')
+      .eq('id', interestId)
+      .single()
+
+    if (!demoInterest || demoInterest.buyer_id !== user.id) {
+      return NextResponse.json({ error: 'Interest record not found.' }, { status: 404 })
+    }
+
+    const sellerRes = await admin.auth.admin.getUserById(demoInterest.seller_id)
+    const demoPhone =
+      sellerRes.data.user?.phone ?? sellerRes.data.user?.user_metadata?.phone ?? null
+    const demoEmail = sellerRes.data.user?.email ?? null
+
+    await admin
+      .from('buyer_interest')
+      .update({ contact_unlocked: true, seller_phone: demoPhone, seller_email: demoEmail })
+      .eq('id', interestId)
+
+    return NextResponse.json({ success: true, sellerPhone: demoPhone, sellerEmail: demoEmail })
+  }
+
   if (paymentErr || !payment) {
     return NextResponse.json({ error: 'Payment record not found.' }, { status: 404 })
   }
@@ -124,8 +149,18 @@ export async function POST(request: NextRequest) {
   }
 
   if (!updateCount || updateCount === 0) {
-    // Another concurrent request already processed this payment
-    return NextResponse.json({ error: 'Payment already processed.' }, { status: 409 })
+    // Concurrent request already processed this — return contact details so client succeeds
+    const { data: concurrentInterest } = await admin
+      .from('buyer_interest')
+      .select('contact_unlocked, seller_phone, seller_email')
+      .eq('id', interestId)
+      .single()
+    return NextResponse.json({
+      success: true,
+      alreadyPaid: true,
+      sellerPhone: concurrentInterest?.seller_phone ?? null,
+      sellerEmail: concurrentInterest?.seller_email ?? null,
+    })
   }
 
   // ── Fetch buyer_interest to get seller_id ────────────────────────────────

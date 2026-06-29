@@ -82,6 +82,27 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // ── Pre-flight: seller must have a phone number ───────────────────────────
+  // Fail before charging so buyer is never left with a paid but unreachable contact.
+  const admin = createServiceClient()
+  if (!admin) {
+    return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
+  }
+
+  const sellerAuth = await admin.auth.admin.getUserById(interest.seller_id)
+  const sellerPhone =
+    sellerAuth.data.user?.phone ?? sellerAuth.data.user?.user_metadata?.phone ?? null
+
+  if (!sellerPhone) {
+    return NextResponse.json(
+      {
+        error:
+          'The seller has not added a phone number yet. They need to update their profile before you can unlock their contact.',
+      },
+      { status: 422 },
+    )
+  }
+
   // ── Razorpay: demo-mode guard ─────────────────────────────────────────────
   if (!isRazorpayConfigured()) {
     if (process.env.NODE_ENV !== 'development') {
@@ -100,11 +121,6 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Step 1: Insert PENDING payment row first ──────────────────────────────
-  const admin = createServiceClient()
-  if (!admin) {
-    return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
-  }
-
   const localReceiptId = crypto.randomUUID()
 
   const { data: pendingPayment, error: insertError } = await admin

@@ -75,15 +75,30 @@ export function UnlockContactSection({
   const [errorType, setErrorType] = useState<ErrorType>('generic')
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null)
   const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const verifyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Clear popup timeout on unmount
+  // Clear timeouts on unmount
   useEffect(() => {
     return () => {
       if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
+      if (verifyTimeoutRef.current) clearTimeout(verifyTimeoutRef.current)
     }
   }, [])
 
   const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? ''
+
+  // Guard: if Razorpay is not configured, show a clear error before opening the modal
+  function assertRazorpayKey(): boolean {
+    if (!razorpayKeyId) {
+      setFlowState('error')
+      setErrorType('generic')
+      setErrorMessage(
+        'Payment is not configured on this device. Please try again later or contact support.',
+      )
+      return false
+    }
+    return true
+  }
 
   async function handleUnlock() {
     setFlowState('ordering')
@@ -117,12 +132,12 @@ export function UnlockContactSection({
         )
         const statusData = (await statusRes.json()) as {
           unlocked?: boolean
-          sellerPhone?: string
-          sellerEmail?: string
+          sellerPhone?: string | null
+          sellerEmail?: string | null
           error?: string
         }
-        if (statusData.unlocked && statusData.sellerPhone) {
-          onUnlocked(statusData.sellerPhone, statusData.sellerEmail ?? null)
+        if (statusData.unlocked) {
+          onUnlocked(statusData.sellerPhone ?? '', statusData.sellerEmail ?? null)
           return
         }
         throw new Error(statusData.error ?? 'Could not retrieve contact details.')
@@ -156,11 +171,11 @@ export function UnlockContactSection({
         })
         const verifyData = (await verifyRes.json()) as {
           success?: boolean
-          sellerPhone?: string
-          sellerEmail?: string
+          sellerPhone?: string | null
+          sellerEmail?: string | null
         }
-        if (verifyData.success && verifyData.sellerPhone) {
-          onUnlocked(verifyData.sellerPhone, verifyData.sellerEmail ?? null)
+        if (verifyData.success) {
+          onUnlocked(verifyData.sellerPhone ?? '', verifyData.sellerEmail ?? null)
           return
         }
         throw new Error('Unlock failed.')
@@ -173,6 +188,7 @@ export function UnlockContactSection({
     }
 
     // ── Step 3: Load Razorpay SDK and open checkout ──────────────────────────
+    if (!assertRazorpayKey()) return
     setCurrentOrderId(orderData.orderId)
     setFlowState('paying')
     const loaded = await loadRazorpayScript()
@@ -193,10 +209,19 @@ export function UnlockContactSection({
       theme: { color: '#222222' },
       handler: async (response: RazorpayResponse) => {
         // ── Step 4: Verify payment on server ──────────────────────────────
-        // Clear popup timeout — payment window was opened successfully
         if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
 
         setFlowState('verifying')
+
+        // Safety timeout — if verify hangs, give the user an escape hatch
+        verifyTimeoutRef.current = setTimeout(() => {
+          setFlowState('error')
+          setErrorType('verification')
+          setErrorMessage(
+            'Your payment was received but confirmation is taking too long. Check your email for a receipt — if charged, contact support.',
+          )
+        }, 20_000)
+
         try {
           const verifyRes = await fetch('/api/payments/verify', {
             method: 'POST',
@@ -208,18 +233,21 @@ export function UnlockContactSection({
               interestId,
             }),
           })
+          if (verifyTimeoutRef.current) clearTimeout(verifyTimeoutRef.current)
+
           const verifyData = (await verifyRes.json()) as {
             success?: boolean
-            sellerPhone?: string
-            sellerEmail?: string
+            sellerPhone?: string | null
+            sellerEmail?: string | null
             error?: string
           }
-          if (verifyData.success && verifyData.sellerPhone) {
-            onUnlocked(verifyData.sellerPhone, verifyData.sellerEmail ?? null)
+          if (verifyData.success) {
+            onUnlocked(verifyData.sellerPhone ?? '', verifyData.sellerEmail ?? null)
             return
           }
           throw new Error(verifyData.error ?? 'Verification failed.')
         } catch (err) {
+          if (verifyTimeoutRef.current) clearTimeout(verifyTimeoutRef.current)
           setFlowState('error')
           setErrorType('verification')
           setErrorMessage(
