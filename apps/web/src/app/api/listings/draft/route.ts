@@ -46,7 +46,7 @@ const BHK_TYPES = [
   'FIVE_PLUS_BHK',
   'STUDIO',
 ] as const
-const FURNISHING_TYPES = ['UNFURNISHED', 'SEMI_FURNISHED', 'FULLY_FURNISHED'] as const
+const FURNISHING_TYPES = ['UNFURNISHED', 'SEMI_FURNISHED', 'FURNISHED'] as const
 
 // Partial schema — all fields optional for draft autosave
 const draftSchema = z.object({

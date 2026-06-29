@@ -168,13 +168,21 @@ export default function SellPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Read ?draftId from URL and pre-load the draft into the store
+  // Read ?draftId from URL and pre-load the draft into the store.
+  // Without a draftId, always reset to step 1 so returning users don't land mid-flow.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const urlDraftId = params.get('draftId')
-    if (!urlDraftId || useSellFormStore.getState().draftId) return
 
-    useSellFormStore.getState().setDraftId(urlDraftId)
+    if (!urlDraftId) {
+      // Fresh listing — reset to step 1 regardless of persisted state
+      useSellFormStore.getState().reset()
+      return
+    }
+
+    if (useSellFormStore.getState().draftId !== urlDraftId) {
+      useSellFormStore.getState().setDraftId(urlDraftId)
+    }
 
     void fetch(`/api/listings/draft?id=${urlDraftId}`)
       .then((r) => (r.ok ? r.json() : null))
