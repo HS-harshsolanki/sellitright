@@ -30,7 +30,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-xs text-[var(--color-muted-foreground)]">
-              Find your perfect home across India.
+              Property on your terms. No middlemen.
             </p>
             <Link
               href="/sell"

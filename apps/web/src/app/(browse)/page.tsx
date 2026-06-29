@@ -1,7 +1,7 @@
-import { ArrowRight, ShieldCheck, Eye, Lock, BadgeCheck, PhoneOff, IndianRupee } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Lock, BadgeCheck, CheckCircle2, Star } from 'lucide-react'
 import Link from 'next/link'
 
-import { Reveal, Stagger } from '@/components/landing/reveal'
+import { Reveal, Stagger, FadeIn } from '@/components/landing/reveal'
 import { ListingCard } from '@/components/listing/listing-card'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { MOCK_LISTINGS, type MockListing } from '@/lib/mock-data'
@@ -12,24 +12,24 @@ import { createClient } from '@/lib/supabase/server'
 
 const PAIN_POINTS = [
   {
-    icon: PhoneOff,
+    num: '01',
     title: 'You enquire once.',
-    description: 'Your number gets sold to 12 brokers before evening.',
+    description: 'Your number gets sold to twelve brokers before evening.',
   },
   {
-    icon: Eye,
+    num: '02',
     title: 'The listing looks perfect.',
     description: 'Photos from two years ago. Owner moved. Property already sold. You still called.',
   },
   {
-    icon: IndianRupee,
+    num: '03',
     title: '1–2% of the sale price.',
     description: 'Lakhs of rupees. For connecting a call you could have made yourself.',
   },
   {
-    icon: Lock,
+    num: '04',
     title: 'Nobody asked you.',
-    description: "Your contact details are shared without consent. You didn't agree to this.",
+    description: "Your contact details were shared without consent. You didn't agree to this.",
   },
 ]
 
@@ -90,7 +90,7 @@ const TRUST_PILLARS = [
       'Contact information is hidden on both sides until an owner explicitly approves a request.',
   },
   {
-    icon: IndianRupee,
+    icon: CheckCircle2,
     title: 'You only pay after both sides agree to connect.',
     description:
       'No upfront fees. No commissions. A small platform fee applies only when a conversation is mutually unlocked.',
@@ -125,6 +125,19 @@ const TRUST_METRICS = [
   { value: '< 24 hrs', label: 'Average Response' },
 ]
 
+const CITIES = [
+  'Mumbai',
+  'Bengaluru',
+  'Pune',
+  'Hyderabad',
+  'Delhi NCR',
+  'Chennai',
+  'Ahmedabad',
+  'Kolkata',
+  'Jaipur',
+  'Surat',
+]
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function LandingPage() {
@@ -147,36 +160,28 @@ export default async function LandingPage() {
   } else {
     featured = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE').slice(0, 6)
   }
+
   return (
     <main className="overflow-x-hidden">
       {/* ══════════════════════════════════════════════════════════════════════
           Chapter 1 — First Impression
-          Large, breathing, immediate. The belief in the first viewport.
+          Clean white. No blobs. Typography does all the work.
+          Left-anchored. Large. Breathing.
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-labelledby="hero-heading"
-        className="relative px-4 pb-24 pt-20 sm:px-6 md:pb-36 md:pt-32"
+        className="px-4 pb-24 pt-20 sm:px-6 md:pb-36 md:pt-32"
       >
-        {/* Faint accent halo — pure atmosphere, no meaning */}
-        <div
-          className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/3"
-          style={{
-            background:
-              'radial-gradient(ellipse at 50% 0%, rgba(198,46,73,0.07) 0%, transparent 65%)',
-          }}
-          aria-hidden="true"
-        />
-
         <div className="mx-auto max-w-4xl">
-          {/* Trust signal — earns its place before the headline */}
+          {/* Trust signal — above the fold, earns its place before the headline */}
           <Reveal>
             <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] shadow-sm">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
-              Every listing is reviewed before it goes live
+              Every listing reviewed before it goes live
             </div>
           </Reveal>
 
-          {/* Headline — large, left-anchored on desktop, confident */}
+          {/* Headline */}
           <Reveal delay={0.05}>
             <h1
               id="hero-heading"
@@ -189,14 +194,11 @@ export default async function LandingPage() {
             </h1>
           </Reveal>
 
-          {/* Subline — three short promises, each its own statement */}
+          {/* Subline — one continuous thought, not a bullet list */}
           <Reveal delay={0.12}>
             <p className="mt-8 max-w-lg text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-              You choose who contacts you.
-              <br />
-              You decide when conversations begin.
-              <br />
-              You know exactly who you&apos;re talking to.
+              Most property portals hand your number to whoever pays them. We don&apos;t. You choose
+              who contacts you, and when — before any conversation begins.
             </p>
           </Reveal>
 
@@ -225,8 +227,8 @@ export default async function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════════════════
           Chapter 2 — The Problem
-          Left-anchored. Editorial list. Accumulation of grievances.
-          No background colour change — continues the white of the hero.
+          Numbered list, not icon list. Numbers feel editorial and earned.
+          Continues the white background — no break yet.
       ══════════════════════════════════════════════════════════════════════ */}
       <section aria-labelledby="problem-heading" className="px-4 py-20 sm:px-6 md:py-28">
         <div className="mx-auto max-w-4xl">
@@ -246,11 +248,14 @@ export default async function LandingPage() {
           </Reveal>
 
           <Stagger className="mt-12 divide-y divide-[var(--color-border)]" stagger={0.07} y={16}>
-            {PAIN_POINTS.map(({ icon: Icon, title, description }) => (
-              <div key={title} className="flex gap-5 py-5 sm:gap-8">
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-muted)]">
-                  <Icon className="h-4 w-4 text-[var(--color-foreground)]" aria-hidden="true" />
-                </div>
+            {PAIN_POINTS.map(({ num, title, description }) => (
+              <div key={num} className="flex gap-6 py-6 sm:gap-10">
+                <span
+                  className="mt-0.5 shrink-0 text-sm font-bold tabular-nums text-[var(--color-border)]"
+                  aria-hidden="true"
+                >
+                  {num}
+                </span>
                 <div>
                   <h3 className="text-sm font-semibold text-[var(--color-foreground)]">{title}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
@@ -265,51 +270,72 @@ export default async function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════════════════
           Chapter 3 — The Shift
-          Near-empty. One sentence. Maximum whitespace.
-          This is the pause before the product is revealed.
-          Fitme principle: a section can be almost nothing and still powerful.
+          A single sentence. Maximum whitespace.
+          The horizontal rule above anchors it — not floating in space.
       ══════════════════════════════════════════════════════════════════════ */}
-      <section aria-label="Transition" className="px-4 py-20 sm:px-6 md:py-32">
+      <section aria-label="Transition" className="px-4 py-20 sm:px-6 md:py-28">
         <div className="mx-auto max-w-4xl">
-          <Reveal y={16}>
-            <div className="border-l-2 border-[var(--color-accent)] pl-6 sm:pl-8">
-              <p className="text-3xl font-semibold leading-snug tracking-tight text-[var(--color-foreground)] sm:text-4xl md:text-5xl">
-                There had to be
-                <br />a better way.
-              </p>
-            </div>
+          <div className="mb-10 h-px bg-[var(--color-border)]" aria-hidden="true" />
+          <Reveal y={12}>
+            <p
+              className="max-w-2xl text-4xl font-semibold leading-tight tracking-tight text-[var(--color-foreground)] sm:text-5xl"
+              style={{ borderLeft: '3px solid var(--color-accent)', paddingLeft: '1.5rem' }}
+            >
+              There had to be
+              <br />a better way.
+            </p>
           </Reveal>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          Trust Metrics — punctuation band between problem and product.
-          Earns meaning now that the problem has been felt.
+          Trust Metrics — left-anchored, asymmetric.
+          Numbers earn credibility because we've shown the problem.
+          City strip below adds geographic proof.
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-label="Platform statistics"
-        className="border-y border-[var(--color-border)] bg-[var(--color-muted)] py-10"
+        className="border-y border-[var(--color-border)] bg-[var(--color-muted)] py-12"
       >
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <Stagger className="grid grid-cols-2 gap-6 sm:grid-cols-4" stagger={0.06} y={12}>
-            {TRUST_METRICS.map(({ value, label }) => (
-              <div key={label} className="text-center">
-                <p className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
-                  {value}
-                </p>
-                <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{label}</p>
+          <FadeIn>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-4">
+              {TRUST_METRICS.map(({ value, label }) => (
+                <div key={label}>
+                  <p className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
+                    {value}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{label}</p>
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+
+          {/* City coverage strip — proof of geographic spread */}
+          <FadeIn delay={0.15}>
+            <div className="mt-8 border-t border-[var(--color-border)] pt-6">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--color-muted-foreground)]">
+                Active in
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {CITIES.map((city) => (
+                  <span
+                    key={city}
+                    className="rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-foreground)]"
+                  >
+                    {city}
+                  </span>
+                ))}
               </div>
-            ))}
-          </Stagger>
+            </div>
+          </FadeIn>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
           Chapter 4 — The Handshake Model
-          The product. The most important section. Gets the most space.
-          Dark background — signals a new chapter, not just another section.
-          Each step is a full row: large number left, content right.
-          Fitme principle: alternating rows create rhythm without cards.
+          The product. The most important section.
+          Dark background signals a new chapter.
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-labelledby="handshake-heading"
@@ -330,29 +356,22 @@ export default async function LandingPage() {
             </p>
           </Reveal>
 
-          {/* Steps as full-width rows — large step number anchors each row */}
           <ol className="mt-16 space-y-0" aria-label="How SellItRight works">
             {HANDSHAKE_STEPS.map(({ step, actor, label, description }, idx) => (
               <Reveal key={step} delay={idx * 0.06} y={20}>
                 <li className="group grid grid-cols-[3rem_1fr] gap-x-6 border-t border-white/10 py-8 sm:grid-cols-[4rem_1fr] sm:gap-x-10 md:grid-cols-[5rem_auto_1fr] md:gap-x-12">
-                  {/* Step number — large, faded */}
                   <span
                     className="text-4xl font-bold tabular-nums leading-none text-white/20 sm:text-5xl"
                     aria-hidden="true"
                   >
                     {step}
                   </span>
-
-                  {/* Actor tag — desktop only middle column */}
                   <span className="hidden self-center md:block">
                     <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/50">
                       {actor}
                     </span>
                   </span>
-
-                  {/* Label + description */}
                   <div className="self-center">
-                    {/* Actor tag — mobile inline */}
                     <span className="mb-1.5 inline-block rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 md:hidden">
                       {actor}
                     </span>
@@ -364,17 +383,14 @@ export default async function LandingPage() {
                 </li>
               </Reveal>
             ))}
-            {/* Closing border */}
             <li aria-hidden="true" className="border-t border-white/10" />
           </ol>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          Chapter 5 — Trust (demonstrated, not declared)
-          Left-anchored heading + right-column description per pillar.
-          Magazine two-column layout — contrasts with the step rows above.
-          White background — immediate breath after the dark Handshake.
+          Chapter 5 — Trust (demonstrated)
+          Magazine two-column layout. White, breathing.
       ══════════════════════════════════════════════════════════════════════ */}
       <section aria-labelledby="trust-heading" className="px-4 py-20 sm:px-6 md:py-28">
         <div className="mx-auto max-w-4xl">
@@ -390,12 +406,10 @@ export default async function LandingPage() {
             </p>
           </Reveal>
 
-          {/* Magazine two-column rows — heading left, detail right */}
           <div className="mt-14 space-y-0">
             {TRUST_PILLARS.map(({ icon: Icon, title, description }, idx) => (
               <Reveal key={title} delay={idx * 0.05} y={16}>
                 <div className="grid grid-cols-1 gap-4 border-t border-[var(--color-border)] py-7 sm:grid-cols-2 sm:gap-10">
-                  {/* Left — icon + claim sentence */}
                   <div className="flex items-start gap-4">
                     <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-muted)]">
                       <Icon className="h-4 w-4 text-[var(--color-foreground)]" aria-hidden="true" />
@@ -404,7 +418,6 @@ export default async function LandingPage() {
                       {title}
                     </h3>
                   </div>
-                  {/* Right — specifics */}
                   <p className="text-sm leading-relaxed text-[var(--color-muted-foreground)] sm:pt-0.5">
                     {description}
                   </p>
@@ -418,8 +431,7 @@ export default async function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════════════════
           Chapter 6 — Homes
-          Muted background for visual separation from the white trust section.
-          Subline reinforces trust at the exact moment the visitor sees listings.
+          Muted background. Trust subline at the moment the visitor sees listings.
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-labelledby="featured-heading"
@@ -477,23 +489,26 @@ export default async function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════════════════
           Chapter 7 — Human Stories
-          Pull-quote layout from v3 — it works.
-          Section label removed — the quote speaks for itself.
-          White background creates contrast after the muted listings section.
+          Pull-quote dominant. Stars on pull quote (social proof shorthand).
+          White background after muted listings.
       ══════════════════════════════════════════════════════════════════════ */}
       <section aria-label="Customer testimonials" className="px-4 py-20 sm:px-6">
         <div className="mx-auto max-w-4xl">
-          {/* Primary pull-quote — large, no card border, the muted bg IS the container */}
+          {/* Primary pull-quote */}
           <Reveal>
             <figure className="rounded-2xl bg-[var(--color-muted)] px-8 py-10 sm:px-12 sm:py-14">
-              <span
-                className="block font-serif text-6xl leading-none text-[var(--color-border)]"
-                aria-hidden="true"
-              >
-                &ldquo;
-              </span>
-              <blockquote className="mt-1 text-xl font-medium leading-relaxed text-[var(--color-foreground)] sm:text-2xl">
-                {TESTIMONIALS[0]!.quote}
+              {/* Star cluster — social proof shorthand */}
+              <div className="mb-6 flex gap-0.5" aria-label="5 out of 5 stars">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className="h-4 w-4 fill-amber-400 text-amber-400"
+                    aria-hidden="true"
+                  />
+                ))}
+              </div>
+              <blockquote className="text-xl font-medium leading-relaxed text-[var(--color-foreground)] sm:text-2xl">
+                &ldquo;{TESTIMONIALS[0]!.quote}&rdquo;
               </blockquote>
               <figcaption className="mt-8 flex items-center gap-3">
                 <div className="h-px flex-1 bg-[var(--color-border)]" aria-hidden="true" />
@@ -515,6 +530,15 @@ export default async function LandingPage() {
             {TESTIMONIALS.slice(1).map(({ quote, name, role }, idx) => (
               <Reveal key={name} delay={idx * 0.07} y={16}>
                 <figure className="flex h-full flex-col rounded-2xl border border-[var(--color-border)] bg-white p-6">
+                  <div className="mb-4 flex gap-0.5" aria-label="5 out of 5 stars">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                        aria-hidden="true"
+                      />
+                    ))}
+                  </div>
                   <blockquote className="flex-1 text-sm leading-relaxed text-[var(--color-foreground)]">
                     &ldquo;{quote}&rdquo;
                   </blockquote>
@@ -532,9 +556,7 @@ export default async function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════════════════
           Chapter 8 — Final Decision
-          White background with border-top — not dark, not muted.
-          The visitor earned this moment. No hard sell.
-          The headline echoes the hero belief but doesn't repeat it.
+          White. Border-top. Left-anchored. No hard sell.
           Both CTAs carry equal visual weight — buyer and seller are peers.
       ══════════════════════════════════════════════════════════════════════ */}
       <section
@@ -555,7 +577,8 @@ export default async function LandingPage() {
 
           <Reveal delay={0.08}>
             <p className="mt-5 max-w-md text-base leading-relaxed text-[var(--color-muted-foreground)]">
-              Verified owners. Genuine buyers. Direct conversations. No middlemen.
+              Verified owners. Genuine buyers. Direct conversations. No one in the middle profiting
+              from your search.
             </p>
           </Reveal>
 
