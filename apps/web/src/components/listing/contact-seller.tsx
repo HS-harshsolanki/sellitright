@@ -24,7 +24,7 @@ interface ContactSellerProps {
   /** Interest ID for the buyer's accepted request */
   interestId?: string | null
   /** Current status of the buyer's interest row */
-  interestStatus?: 'PENDING' | 'ACCEPTED' | null
+  interestStatus?: 'PENDING' | 'ACCEPTED' | 'DECLINED' | null
   /** Whether the contact has already been unlocked */
   contactUnlocked?: boolean
   /** Seller's phone — only set when contactUnlocked = true */
@@ -33,6 +33,8 @@ interface ContactSellerProps {
   sellerEmail?: string | null
   price?: string
   statsLine?: string
+  /** Listing status — CTA is hidden when not ACTIVE */
+  listingStatus?: string | null
 }
 
 export function ContactSeller({
@@ -49,6 +51,7 @@ export function ContactSeller({
   sellerEmail = null,
   price,
   statsLine,
+  listingStatus = null,
 }: ContactSellerProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [requested, setRequested] = useState(hasExistingRequest)
@@ -116,7 +119,16 @@ export function ContactSeller({
           Contact seller
         </h2>
 
-        {isOwner ? (
+        {listingStatus && listingStatus !== 'ACTIVE' && !isOwner ? (
+          /* Listing is sold/inactive — hide contact CTA for non-owners */
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
+            <p className="text-sm font-medium text-amber-800">
+              {listingStatus === 'SOLD'
+                ? 'This property has been sold.'
+                : 'This listing is currently unavailable.'}
+            </p>
+          </div>
+        ) : isOwner ? (
           /* Owner viewing their own listing */
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3 text-center">
             <p className="text-sm font-medium text-[var(--color-foreground)]">
@@ -146,6 +158,14 @@ export function ContactSeller({
               setLocalUnlocked(true)
             }}
           />
+        ) : interestStatus === 'DECLINED' ? (
+          /* Seller declined the request */
+          <div className="bg-[var(--color-muted)]/30 rounded-xl border border-[var(--color-border)] p-4">
+            <p className="text-sm font-medium text-[var(--color-foreground)]">Request declined</p>
+            <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+              The owner chose not to accept this request.
+            </p>
+          </div>
         ) : !isAuthenticated ? (
           /* Unauthenticated — prompt to sign in */
           <div className="space-y-3">
@@ -158,6 +178,9 @@ export function ContactSeller({
             >
               <Link href={`/login?next=/listing/${listingId}`}>Sign in to Request Contact</Link>
             </Button>
+            <p className="mt-2 text-center text-xs text-[var(--color-muted-foreground)]">
+              ₹49 connection fee — only charged after the owner accepts your request
+            </p>
           </div>
         ) : requested ? (
           /* Already has a pending request */
@@ -166,7 +189,10 @@ export function ContactSeller({
               <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" aria-hidden="true" />
               <div>
                 <p className="text-sm font-semibold text-green-800">Request sent</p>
-                <p className="text-xs text-green-700">The seller will reach out to you soon.</p>
+                <p className="text-xs text-green-700">
+                  Waiting for the owner to accept. Once accepted, return here to pay ₹49 and unlock
+                  their number — no charge until then.
+                </p>
               </div>
             </div>
             <button
@@ -179,14 +205,19 @@ export function ContactSeller({
           </div>
         ) : (
           /* Authenticated, no pending request */
-          <Button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="h-12 w-full rounded-xl bg-[var(--color-foreground)] font-semibold text-[var(--color-background)] hover:opacity-90"
-          >
-            <MessageSquare className="mr-2 h-4 w-4" aria-hidden="true" />
-            Request Contact
-          </Button>
+          <div>
+            <Button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="h-12 w-full rounded-xl bg-[var(--color-foreground)] font-semibold text-[var(--color-background)] hover:opacity-90"
+            >
+              <MessageSquare className="mr-2 h-4 w-4" aria-hidden="true" />
+              Request Contact
+            </Button>
+            <p className="mt-2 text-center text-xs text-[var(--color-muted-foreground)]">
+              ₹49 connection fee — only charged after the owner accepts your request
+            </p>
+          </div>
         )}
 
         {/* ── Trust signal — hidden for owner ── */}
@@ -197,7 +228,7 @@ export function ContactSeller({
               aria-hidden="true"
             />
             <p className="text-center text-xs text-[var(--color-muted-foreground)]">
-              Usually responds within 1 hour · No brokerage
+              Direct owner contact · No brokerage
             </p>
           </div>
         )}

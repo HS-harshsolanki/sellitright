@@ -61,6 +61,10 @@ export default function AdminReportsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [confirmingAction, setConfirmingAction] = useState<
+    'ACTIONED' | 'DISMISSED' | `suspend-${string}` | null
+  >(null)
   const limit = 25
 
   const fetchReports = useCallback(async () => {
@@ -256,34 +260,129 @@ export default function AdminReportsPage() {
                     <td className="px-4 py-3">
                       {r.status === 'OPEN' && (
                         <div className="flex flex-wrap gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs"
-                            disabled={actionLoading === r.id}
-                            onClick={() => void updateStatus([r.id], 'ACTIONED')}
-                          >
-                            Resolve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs text-[var(--color-muted-foreground)]"
-                            disabled={actionLoading === r.id}
-                            onClick={() => void updateStatus([r.id], 'DISMISSED')}
-                          >
-                            Dismiss
-                          </Button>
-                          {r.target_user_id && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-red-200 text-xs text-red-700 hover:bg-red-50"
-                              disabled={actionLoading === `suspend-${r.target_user_id}`}
-                              onClick={() => void suspendUser(r.target_user_id!)}
-                            >
-                              Suspend User
-                            </Button>
+                          {confirmingId === r.id && confirmingAction === 'ACTIONED' ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-green-400 text-xs text-green-700 hover:bg-green-50"
+                                disabled={actionLoading === r.id}
+                                onClick={() => {
+                                  setConfirmingId(null)
+                                  setConfirmingAction(null)
+                                  void updateStatus([r.id], 'ACTIONED')
+                                }}
+                              >
+                                Confirm Resolve?
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                                onClick={() => {
+                                  setConfirmingId(null)
+                                  setConfirmingAction(null)
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : confirmingId === r.id && confirmingAction === 'DISMISSED' ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-gray-400 text-xs text-[var(--color-muted-foreground)] hover:bg-gray-50"
+                                disabled={actionLoading === r.id}
+                                onClick={() => {
+                                  setConfirmingId(null)
+                                  setConfirmingAction(null)
+                                  void updateStatus([r.id], 'DISMISSED')
+                                }}
+                              >
+                                Confirm Dismiss?
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                                onClick={() => {
+                                  setConfirmingId(null)
+                                  setConfirmingAction(null)
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : confirmingId === r.id &&
+                            confirmingAction === `suspend-${r.target_user_id}` ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-500 text-xs text-red-700 hover:bg-red-50"
+                                disabled={actionLoading === `suspend-${r.target_user_id}`}
+                                onClick={() => {
+                                  setConfirmingId(null)
+                                  setConfirmingAction(null)
+                                  void suspendUser(r.target_user_id!)
+                                }}
+                              >
+                                Confirm Suspend?
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                                onClick={() => {
+                                  setConfirmingId(null)
+                                  setConfirmingAction(null)
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                                disabled={actionLoading === r.id}
+                                onClick={() => {
+                                  setConfirmingId(r.id)
+                                  setConfirmingAction('ACTIONED')
+                                }}
+                              >
+                                Resolve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs text-[var(--color-muted-foreground)]"
+                                disabled={actionLoading === r.id}
+                                onClick={() => {
+                                  setConfirmingId(r.id)
+                                  setConfirmingAction('DISMISSED')
+                                }}
+                              >
+                                Dismiss
+                              </Button>
+                              {r.target_user_id && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-red-200 text-xs text-red-700 hover:bg-red-50"
+                                  disabled={actionLoading === `suspend-${r.target_user_id}`}
+                                  onClick={() => {
+                                    setConfirmingId(r.id)
+                                    setConfirmingAction(`suspend-${r.target_user_id!}`)
+                                  }}
+                                >
+                                  Suspend User
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       )}

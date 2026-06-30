@@ -265,7 +265,7 @@ function ListingCard({ listing, onDelete, isDeleting }: ListingCardProps) {
         </div>
 
         <div className="mt-3 flex gap-2">
-          {listing.status === 'DRAFT' ? (
+          {listing.status === 'DRAFT' && (
             <Link
               href={`/sell?draftId=${listing.id}`}
               className={cn(
@@ -275,7 +275,8 @@ function ListingCard({ listing, onDelete, isDeleting }: ListingCardProps) {
             >
               Resume Draft
             </Link>
-          ) : (
+          )}
+          {listing.status === 'ACTIVE' && (
             <Link
               href={`/dashboard/listings/${listing.id}/edit`}
               className={cn(
@@ -286,15 +287,17 @@ function ListingCard({ listing, onDelete, isDeleting }: ListingCardProps) {
               Edit
             </Link>
           )}
-          <Link
-            href={`/listing/${listing.id}`}
-            className={cn(
-              'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
-              'transition-colors hover:bg-[var(--color-muted)]',
-            )}
-          >
-            View
-          </Link>
+          {listing.status !== 'DRAFT' && listing.status !== 'DELETED' && (
+            <Link
+              href={`/listing/${listing.id}`}
+              className={cn(
+                'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
+                'transition-colors hover:bg-[var(--color-muted)]',
+              )}
+            >
+              View
+            </Link>
+          )}
           {(listing.status === 'DRAFT' ||
             listing.status === 'INACTIVE' ||
             listing.status === 'REJECTED') && (
@@ -575,7 +578,13 @@ function BuyersTabContent({
   )
 }
 
-function EmptyState({ tab }: { tab: Exclude<TabFilter, 'buyers'> }) {
+function EmptyState({
+  tab,
+  onShowAll,
+}: {
+  tab: Exclude<TabFilter, 'buyers'>
+  onShowAll: () => void
+}) {
   const messages: Record<Exclude<TabFilter, 'buyers'>, { title: string; sub: string }> = {
     all: {
       title: 'No listings yet',
@@ -614,26 +623,39 @@ function EmptyState({ tab }: { tab: Exclude<TabFilter, 'buyers'> }) {
       </div>
       <h3 className="text-base font-semibold text-[var(--color-foreground)]">{msg.title}</h3>
       <p className="mt-1 max-w-xs text-sm text-[var(--color-muted-foreground)]">{msg.sub}</p>
-      <Link
-        href="/sell"
-        className={cn(
-          'mt-6 flex items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white',
-          'transition-opacity hover:opacity-90',
-        )}
-      >
-        <Plus className="h-4 w-4" />
-        Start selling
-      </Link>
+      {tab === 'all' ? (
+        <Link
+          href="/sell"
+          className={cn(
+            'mt-6 flex items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white',
+            'transition-opacity hover:opacity-90',
+          )}
+        >
+          <Plus className="h-4 w-4" />
+          Start selling
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onShowAll}
+          className="mt-4 text-sm text-[var(--color-muted-foreground)] underline underline-offset-2 hover:text-[var(--color-foreground)]"
+        >
+          View all listings
+        </button>
+      )}
     </div>
   )
 }
 
 export default function DashboardPage() {
   const searchParams = useSearchParams()
+  const msgParam = searchParams.get('msg')
   const cantEditMsg =
-    searchParams.get('msg') === 'cannot-edit-active'
+    msgParam === 'cannot-edit-active'
       ? 'Active listings cannot be edited. To make changes, contact support.'
-      : null
+      : msgParam === 'cannot-edit-pending'
+        ? 'Your listing is under review and cannot be edited until the review is complete.'
+        : null
 
   const tabParam = searchParams.get('tab') as TabFilter | null
   const initialTab: TabFilter =
@@ -777,7 +799,9 @@ export default function DashboardPage() {
     }
   }
 
-  const filteredListings = listings.filter((listing) => {
+  const visibleListings = listings.filter((l) => l.status !== 'DELETED')
+
+  const filteredListings = visibleListings.filter((listing) => {
     if (activeTab === 'all') return true
     if (activeTab === 'pending') return listing.status === 'PENDING_REVIEW'
     if (activeTab === 'rejected') return listing.status === 'REJECTED'
@@ -785,10 +809,20 @@ export default function DashboardPage() {
     return listing.status.toLowerCase() === activeTab
   })
 
+  // Per-tab counts for badges — only non-deleted listings
+  const tabCounts: Record<Exclude<TabFilter, 'buyers'>, number> = {
+    all: visibleListings.length,
+    active: visibleListings.filter((l) => l.status === 'ACTIVE').length,
+    draft: visibleListings.filter((l) => l.status === 'DRAFT').length,
+    pending: visibleListings.filter((l) => l.status === 'PENDING_REVIEW').length,
+    rejected: visibleListings.filter((l) => l.status === 'REJECTED').length,
+    sold: visibleListings.filter((l) => l.status === 'SOLD').length,
+  }
+
   const stats = {
-    total: listings.length,
-    active: listings.filter((l) => l.status === 'ACTIVE').length,
-    views: listings.reduce((sum, l) => sum + l.viewCount, 0),
+    total: visibleListings.filter((l) => l.status !== 'SOLD' && l.status !== 'DRAFT').length,
+    active: visibleListings.filter((l) => l.status === 'ACTIVE').length,
+    views: visibleListings.reduce((sum, l) => sum + l.viewCount, 0),
   }
 
   return (
@@ -876,9 +910,13 @@ export default function DashboardPage() {
           </div>
           <div className="min-w-0">
             <p className="text-sm text-[var(--color-muted-foreground)]">Buyer Requests</p>
-            <p className="text-2xl font-bold text-[var(--color-foreground)]">
-              {pendingBuyerCount ?? '—'}
-            </p>
+            {pendingBuyerCount === null ? (
+              <div className="mt-1 h-7 w-8 animate-pulse rounded bg-[var(--color-border)]" />
+            ) : (
+              <p className="text-2xl font-bold text-[var(--color-foreground)]">
+                {pendingBuyerCount}
+              </p>
+            )}
             {pendingBuyerCount ? (
               <p className="mt-0.5 text-xs font-medium text-amber-700">Awaiting your response</p>
             ) : (
@@ -895,29 +933,51 @@ export default function DashboardPage() {
         aria-label="Filter listings"
         className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1"
       >
-        {TAB_VALUES.map((tabValue) => (
-          <button
-            key={tabValue}
-            role="tab"
-            aria-selected={activeTab === tabValue}
-            type="button"
-            onClick={() => setActiveTab(tabValue)}
-            className={cn(
-              'relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all',
-              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
-              activeTab === tabValue
-                ? 'bg-white text-[var(--color-foreground)] shadow-sm'
-                : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-            )}
-          >
-            {TAB_LABELS[tabValue]}
-            {tabValue === 'buyers' && pendingBuyerCount ? (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
-                {pendingBuyerCount > 99 ? '99+' : pendingBuyerCount}
-              </span>
-            ) : null}
-          </button>
-        ))}
+        {TAB_VALUES.filter((tabValue) => {
+          // Always show All and buyers tab
+          if (tabValue === 'all' || tabValue === 'buyers') return true
+          // Hide listing-status tabs with zero items (keeps the bar clean)
+          return tabCounts[tabValue as Exclude<TabFilter, 'buyers'>] > 0 || activeTab === tabValue
+        }).map((tabValue) => {
+          const count =
+            tabValue !== 'buyers' ? tabCounts[tabValue as Exclude<TabFilter, 'buyers'>] : null
+          const buyerBadge = tabValue === 'buyers' && pendingBuyerCount ? pendingBuyerCount : null
+          return (
+            <button
+              key={tabValue}
+              role="tab"
+              aria-selected={activeTab === tabValue}
+              type="button"
+              onClick={() => setActiveTab(tabValue)}
+              className={cn(
+                'relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+                activeTab === tabValue
+                  ? 'bg-white text-[var(--color-foreground)] shadow-sm'
+                  : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+              )}
+            >
+              {TAB_LABELS[tabValue]}
+              {count !== null && count > 0 ? (
+                <span
+                  className={cn(
+                    'flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none',
+                    activeTab === tabValue
+                      ? 'bg-[var(--color-foreground)] text-white'
+                      : 'bg-[var(--color-border)] text-[var(--color-muted-foreground)]',
+                  )}
+                >
+                  {count}
+                </span>
+              ) : null}
+              {buyerBadge ? (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
+                  {buyerBadge > 99 ? '99+' : buyerBadge}
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
       </div>
 
       {activeTab === 'buyers' ? (
@@ -937,7 +997,10 @@ export default function DashboardPage() {
           <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
         </div>
       ) : filteredListings.length === 0 ? (
-        <EmptyState tab={activeTab as Exclude<TabFilter, 'buyers'>} />
+        <EmptyState
+          tab={activeTab as Exclude<TabFilter, 'buyers'>}
+          onShowAll={() => setActiveTab('all')}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredListings.map((listing) => (

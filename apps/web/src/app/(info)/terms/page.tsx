@@ -29,6 +29,21 @@ const SECTIONS = [
   },
   {
     id: '5',
+    title: 'Payment and refunds',
+    body: "The platform charges a one-time connection fee of ₹49 (inclusive of applicable taxes) to unlock seller contact details after a buyer's request is accepted. This fee is non-refundable once contact details are successfully delivered. If a technical failure prevents delivery of contact details, users may request a refund by emailing support@sellitright.in within 7 days of payment, with the Order ID. Refunds, if approved, will be processed within 7-10 business days to the original payment method.",
+  },
+  {
+    id: '6',
+    title: 'Governing law and jurisdiction',
+    body: 'These Terms are governed by and construed in accordance with the laws of India. Any disputes arising out of or relating to these Terms or your use of the Platform shall be subject to the exclusive jurisdiction of the courts of Mumbai, Maharashtra, India.',
+  },
+  {
+    id: '7',
+    title: 'Dispute resolution',
+    body: 'Before initiating formal legal proceedings, users agree to attempt resolution by emailing support@sellitright.in with "Dispute" in the subject line. We will respond within 15 business days. If unresolved, disputes may be referred to the Grievance Officer at grievance@sellitright.in as required under the DPDP Act, 2023.',
+  },
+  {
+    id: '8',
     title: 'Limitation of liability',
     body: 'SellItRight is not a party to any transaction between buyers and sellers and makes no warranties regarding the accuracy of listings or the conduct of users. To the fullest extent permitted by law, SellItRight shall not be liable for any indirect, incidental, special, or consequential damages arising out of or in connection with your use of the platform, even if we have been advised of the possibility of such damages.',
   },

@@ -1,6 +1,6 @@
 'use client'
 
-import { ImagePlus, Link, Star, Trash2, Upload, X } from 'lucide-react'
+import { CheckCircle2, ImagePlus, Link, Loader2, Star, Trash2, Upload, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 
 import { isSupabaseConfigured } from '@/lib/supabase/client'
@@ -254,10 +254,14 @@ export function StepPhotos() {
                       </button>
                     </div>
                   ) : state.progress === 100 ? (
-                    <span className="shrink-0 text-xs font-medium text-green-700">Done</span>
+                    <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-green-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Done
+                    </span>
                   ) : (
-                    <span className="text-muted-foreground shrink-0 text-xs">
-                      {state.progress !== null ? `${state.progress}%` : 'Uploading...'}
+                    <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Uploading…
                     </span>
                   )}
                 </li>

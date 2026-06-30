@@ -27,6 +27,26 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Sign in to manage buyer requests.' }, { status: 401 })
   }
 
+  // Check suspension — seller must not be suspended to accept/decline requests
+  const adminCheck = createServiceClient()
+  if (adminCheck) {
+    const { data: suspensionFlag } = await adminCheck
+      .from('user_flags')
+      .select('flag')
+      .eq('user_id', user.id)
+      .eq('flag', 'SUSPENDED')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (suspensionFlag) {
+      return NextResponse.json(
+        { error: 'Your account is suspended. Contact support.' },
+        { status: 403 },
+      )
+    }
+  }
+
   let body: unknown
   try {
     body = await request.json()

@@ -20,7 +20,7 @@ const STATUS_BADGE: Record<string, string> = {
   SUCCESS: 'bg-green-100 text-green-800',
   PENDING: 'bg-yellow-100 text-yellow-800',
   FAILED: 'bg-red-100 text-red-800',
-  REFUNDED: 'bg-blue-100 text-blue-800',
+  REFUNDED: 'bg-purple-100 text-purple-800',
 }
 
 function StatusIcon({ status }: { status: string }) {
@@ -33,7 +33,7 @@ function formatRupees(paise: number): string {
   return `₹${(paise / 100).toLocaleString('en-IN')}`
 }
 
-type StatusFilter = '' | 'SUCCESS' | 'PENDING' | 'FAILED'
+type StatusFilter = '' | 'SUCCESS' | 'PENDING' | 'FAILED' | 'REFUNDED'
 
 export default function AdminPaymentsPage() {
   const { apiFetch } = useAdminAuth()
@@ -46,6 +46,8 @@ export default function AdminPaymentsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [refundingId, setRefundingId] = useState<string | null>(null)
+  const [confirmRefundId, setConfirmRefundId] = useState<string | null>(null)
   const limit = 25
 
   const fetchPayments = useCallback(async () => {
@@ -80,6 +82,27 @@ export default function AdminPaymentsPage() {
     setPage(1)
   }
 
+  async function handleRefund(paymentId: string) {
+    setRefundingId(paymentId)
+    try {
+      const res = await apiFetch(`/api/admin/payments/${paymentId}/refund`, { method: 'POST' })
+      if (!res.ok) {
+        const body = (await res.json()) as { error?: string }
+        setError(body.error ?? 'Refund failed.')
+        return
+      }
+      // Update the row status in local state
+      setPayments((prev) =>
+        prev.map((p) => (p.id === paymentId ? { ...p, status: 'REFUNDED' } : p)),
+      )
+    } catch {
+      setError('Network error during refund.')
+    } finally {
+      setRefundingId(null)
+      setConfirmRefundId(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -104,6 +127,7 @@ export default function AdminPaymentsPage() {
               ['SUCCESS', 'Success'],
               ['PENDING', 'Pending'],
               ['FAILED', 'Failed'],
+              ['REFUNDED', 'Refunded'],
             ] as [StatusFilter, string][]
           ).map(([val, label]) => (
             <button
@@ -265,6 +289,40 @@ export default function AdminPaymentsPage() {
                               </p>
                             </div>
                           </div>
+
+                          {/* Refund action */}
+                          {p.status === 'SUCCESS' && (
+                            <div className="mt-4 flex items-center gap-2">
+                              {confirmRefundId !== p.id ? (
+                                <button
+                                  onClick={() => setConfirmRefundId(p.id)}
+                                  className="rounded border border-red-300 px-2.5 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                                >
+                                  Refund ₹49
+                                </button>
+                              ) : (
+                                <>
+                                  <span className="text-xs text-[var(--color-muted-foreground)]">
+                                    Confirm refund?
+                                  </span>
+                                  <button
+                                    onClick={() => void handleRefund(p.id)}
+                                    disabled={refundingId === p.id}
+                                    className="rounded bg-red-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                                  >
+                                    {refundingId === p.id ? 'Refunding…' : 'Yes, refund'}
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmRefundId(null)}
+                                    disabled={refundingId === p.id}
+                                    className="rounded border border-[var(--color-border)] px-2.5 py-1 text-xs font-semibold text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] disabled:opacity-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )}

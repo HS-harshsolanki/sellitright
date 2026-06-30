@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -85,6 +85,26 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+    }
+
+    // Check suspension
+    const adminClient = createServiceClient()
+    if (adminClient) {
+      const { data: suspensionFlag } = await adminClient
+        .from('user_flags')
+        .select('flag')
+        .eq('user_id', user.id)
+        .eq('flag', 'SUSPENDED')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (suspensionFlag) {
+        return NextResponse.json(
+          { error: 'Your account is suspended. Contact support.' },
+          { status: 403 },
+        )
+      }
     }
 
     const body: unknown = await request.json()

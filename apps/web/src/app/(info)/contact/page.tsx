@@ -73,17 +73,17 @@ export default function ContactPage() {
         </p>
         <address className="mt-3 text-sm not-italic leading-relaxed text-[var(--color-muted-foreground)]">
           <span className="font-medium text-[var(--color-foreground)]">
-            Grievance Officer: [Name to be designated]
+            Grievance Officer: The Compliance Team
           </span>
           <br />
           SellItRight
           <br />
           Email:{' '}
           <a
-            href="mailto:privacy@sellitright.in?subject=Data%20Grievance"
+            href="mailto:grievance@sellitright.in?subject=Data%20Grievance"
             className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
           >
-            privacy@sellitright.in
+            grievance@sellitright.in
           </a>
           <br />
           Response time: Within 30 days of receipt

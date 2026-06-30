@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { createNotification, createNotifications } from '@/lib/notifications'
 import { logger } from '@/lib/logger'
+import { createNotification } from '@/lib/notifications'
 import { verifyWebhookSignature } from '@/lib/razorpay'
 import { createServiceClient } from '@/lib/supabase/server'
 
@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
   const paymentAmount = (event.payload?.payment?.entity as { amount?: number } | undefined)?.amount
   if (typeof paymentAmount === 'number' && paymentAmount !== 4900) {
     logger.warn('[webhook] unexpected payment amount', { paymentAmount })
-    return NextResponse.json({ error: 'Unexpected payment amount.' }, { status: 400 })
+    // Return 200 so Razorpay stops retrying — amount mismatch is logged but not fatal
+    return NextResponse.json({ received: true, warning: 'Unexpected payment amount.' })
   }
 
   const admin = createServiceClient()
@@ -91,9 +92,33 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (interest?.status !== 'ACCEPTED') {
-    logger.warn('[webhook] Interest not ACCEPTED, skipping contact unlock', {
+    logger.warn('[webhook] Interest not ACCEPTED — marking payment FAILED and notifying buyer', {
       interestId: interest?.id,
+      interestStatus: interest?.status,
     })
+
+    // Mark payment as FAILED so it is not silently left as PENDING/SUCCESS
+    // while the buyer was charged but received no contact details.
+    await admin
+      .from('payments')
+      .update({ status: 'FAILED' })
+      .eq('id', payment.id)
+      .eq('status', 'PENDING')
+
+    // Notify the buyer so they can seek a refund via support.
+    await createNotification({
+      admin,
+      userId: payment.buyer_id,
+      title: 'Payment received — contact not yet available',
+      message:
+        'Your payment was received but the owner has not yet accepted your request. ' +
+        "We'll notify you again when contact is available. Contact support if you were charged.",
+      type: 'System',
+      entityType: 'interest',
+      entityId: payment.interest_id,
+    })
+
+    // Return 200 so Razorpay stops retrying.
     return NextResponse.json({ received: true, skipped: true })
   }
 
@@ -144,25 +169,45 @@ export async function POST(request: NextRequest) {
     })
     .eq('id', payment.interest_id)
 
-  // Notify both parties — fire-and-forget
-  await createNotifications({
-    admin,
-    userIds: [payment.seller_id, payment.buyer_id],
-    title: 'Contact details unlocked',
-    message: 'Your connection is complete. Contact details are now available.',
-    type: 'ConnectionUnlocked',
-    entityType: 'interest',
-    entityId: payment.interest_id,
-  })
-  await createNotification({
-    admin,
-    userId: payment.seller_id,
-    title: 'Payment received',
-    message: 'A buyer paid ₹49 to unlock your contact details.',
-    type: 'PaymentReceived',
-    entityType: 'payment',
-    entityId: payment.id,
-  })
+  // Notify both parties — fire-and-forget, deduped to avoid double notifications
+  // when both verify and webhook succeed for the same payment.
+  for (const userId of [payment.seller_id, payment.buyer_id]) {
+    const { count: existingUnlock } = await admin
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('type', 'ConnectionUnlocked')
+      .eq('entity_id', payment.interest_id)
+    if ((existingUnlock ?? 0) === 0) {
+      await createNotification({
+        admin,
+        userId,
+        title: 'Contact details unlocked',
+        message: 'Your connection is complete. Contact details are now available.',
+        type: 'ConnectionUnlocked',
+        entityType: 'interest',
+        entityId: payment.interest_id,
+      })
+    }
+  }
+
+  const { count: existingPaymentReceived } = await admin
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', payment.seller_id)
+    .eq('type', 'PaymentReceived')
+    .eq('entity_id', payment.id)
+  if ((existingPaymentReceived ?? 0) === 0) {
+    await createNotification({
+      admin,
+      userId: payment.seller_id,
+      title: 'Payment received',
+      message: 'A buyer paid ₹49 to unlock your contact details.',
+      type: 'PaymentReceived',
+      entityType: 'payment',
+      entityId: payment.id,
+    })
+  }
 
   return NextResponse.json({ received: true })
 }

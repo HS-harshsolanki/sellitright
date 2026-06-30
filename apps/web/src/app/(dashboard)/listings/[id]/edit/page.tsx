@@ -47,6 +47,9 @@ export default async function EditListingPage({ params }: EditPageProps) {
   if (status === 'ACTIVE' || status === 'SOLD') {
     redirect('/dashboard?msg=cannot-edit-active')
   }
+  if (status === 'PENDING_REVIEW') {
+    redirect('/dashboard?msg=cannot-edit-pending')
+  }
 
   const listing = mapSupabaseListingToMock(row)
 

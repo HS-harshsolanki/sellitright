@@ -15,9 +15,10 @@ interface MobileBottomBarProps {
   hasExistingRequest?: boolean
   isOwner?: boolean
   interestId?: string | null
-  interestStatus?: 'PENDING' | 'ACCEPTED' | null
+  interestStatus?: 'PENDING' | 'ACCEPTED' | 'DECLINED' | null
   contactUnlocked?: boolean
   sellerPhone?: string | null
+  listingStatus?: string | null
 }
 
 export function MobileBottomBar({
@@ -31,6 +32,7 @@ export function MobileBottomBar({
   interestStatus = null,
   contactUnlocked = false,
   sellerPhone = null,
+  listingStatus = null,
 }: MobileBottomBarProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [unlockSheetOpen, setUnlockSheetOpen] = useState(false)
@@ -56,7 +58,11 @@ export function MobileBottomBar({
         </div>
 
         {/* CTA */}
-        {isOwner ? (
+        {listingStatus && listingStatus !== 'ACTIVE' && !isOwner ? (
+          <div className="flex shrink-0 items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            {listingStatus === 'SOLD' ? 'Sold' : 'Unavailable'}
+          </div>
+        ) : isOwner ? (
           <Link
             href="/dashboard"
             className="flex shrink-0 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-5 py-3 text-sm font-semibold text-[var(--color-foreground)] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"

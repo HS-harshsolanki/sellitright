@@ -63,6 +63,7 @@ export async function logAdminAction(
     newValue?: Record<string, unknown>
     reason?: string
     note?: string
+    actorId?: string
   },
 ): Promise<void> {
   try {
@@ -76,7 +77,7 @@ export async function logAdminAction(
       new_status: params.newStatus ?? null,
       previous_value: params.previousValue ?? null,
       new_value: params.newValue ?? null,
-      actor_id: 'api_key',
+      actor_id: params.actorId ?? 'api_key',
       actor_role: 'reviewer',
       reason: params.reason ?? params.note ?? null,
     })

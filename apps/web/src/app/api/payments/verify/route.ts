@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logger } from '@/lib/logger'
-import { createNotification, createNotifications } from '@/lib/notifications'
+import { createNotification } from '@/lib/notifications'
 import { verifyRazorpaySignature } from '@/lib/razorpay'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
@@ -81,12 +81,19 @@ export async function POST(request: NextRequest) {
   if (!payment && isDemoOrder) {
     const { data: demoInterest } = await admin
       .from('buyer_interest')
-      .select('id, buyer_id, seller_id')
+      .select('id, buyer_id, seller_id, status')
       .eq('id', interestId)
       .single()
 
     if (!demoInterest || demoInterest.buyer_id !== user.id) {
       return NextResponse.json({ error: 'Interest record not found.' }, { status: 404 })
+    }
+
+    if (demoInterest.status !== 'ACCEPTED') {
+      return NextResponse.json(
+        { error: 'Seller has not accepted this request yet.' },
+        { status: 403 },
+      )
     }
 
     const sellerRes = await admin.auth.admin.getUserById(demoInterest.seller_id)
@@ -129,6 +136,26 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  // ── Pre-validate interest status before committing payment ────────────────
+  // Must check BEFORE the CAS payment update so a rejected interest never
+  // results in a charged buyer with no contact details.
+  const { data: interestCheck, error: interestCheckErr } = await admin
+    .from('buyer_interest')
+    .select('id, buyer_id, seller_id, status')
+    .eq('id', interestId)
+    .single()
+
+  if (interestCheckErr || !interestCheck) {
+    return NextResponse.json({ error: 'Interest record not found.' }, { status: 404 })
+  }
+
+  if (interestCheck.status !== 'ACCEPTED') {
+    return NextResponse.json(
+      { error: 'Seller has not accepted this request yet.' },
+      { status: 403 },
+    )
+  }
+
   // ── Update payment to SUCCESS (atomic — only if still PENDING) ───────────
   const { error: updatePaymentErr, count: updateCount } = await admin
     .from('payments')
@@ -163,16 +190,8 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // ── Fetch buyer_interest to get seller_id ────────────────────────────────
-  const { data: interest, error: interestErr } = await admin
-    .from('buyer_interest')
-    .select('id, buyer_id, seller_id')
-    .eq('id', interestId)
-    .single()
-
-  if (interestErr || !interest) {
-    return NextResponse.json({ error: 'Interest record not found.' }, { status: 404 })
-  }
+  // ── Reuse pre-validated interest record (fetched before payment commit) ───
+  const interest = interestCheck
 
   // ── Resolve real contacts from Supabase Auth ──────────────────────────────
   const [sellerAuthResult, buyerAuthResult] = await Promise.all([
@@ -203,32 +222,63 @@ export async function POST(request: NextRequest) {
     .eq('id', interestId)
 
   if (unlockErr) {
-    logger.error('[payments/verify] unlock error', { error: unlockErr.message })
+    logger.error('[payments/verify] unlock error — payment committed but contact not unlocked', {
+      error: unlockErr.message,
+      interestId,
+      paymentId: payment.id,
+    })
+    // Payment is already SUCCESS — buyer was charged. Return a retryable error
+    // with a support reference so the buyer can manually request their contact.
     return NextResponse.json(
-      { error: 'Payment recorded but contact unlock failed.' },
+      {
+        error:
+          'Payment recorded but contact unlock failed. Please refresh the page to retry, or email support@sellitright.in with your payment ID.',
+        paymentId: payment.id,
+        retryable: true,
+      },
       { status: 500 },
     )
   }
 
-  // Notify both parties — fire-and-forget
-  await createNotifications({
-    admin,
-    userIds: [interest.seller_id, interest.buyer_id],
-    title: 'Contact details unlocked',
-    message: 'Your connection is complete. Contact details are now available.',
-    type: 'ConnectionUnlocked',
-    entityType: 'interest',
-    entityId: interestId,
-  })
-  await createNotification({
-    admin,
-    userId: interest.seller_id,
-    title: 'Payment received',
-    message: 'A buyer paid ₹49 to unlock your contact details.',
-    type: 'PaymentReceived',
-    entityType: 'payment',
-    entityId: payment.id,
-  })
+  // Notify both parties — fire-and-forget, deduped to avoid double notifications
+  // when both verify and webhook succeed for the same payment.
+  for (const userId of [interest.seller_id, interest.buyer_id]) {
+    const { count: existingUnlock } = await admin
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('type', 'ConnectionUnlocked')
+      .eq('entity_id', interestId)
+    if ((existingUnlock ?? 0) === 0) {
+      await createNotification({
+        admin,
+        userId,
+        title: 'Contact details unlocked',
+        message: 'Your connection is complete. Contact details are now available.',
+        type: 'ConnectionUnlocked',
+        entityType: 'interest',
+        entityId: interestId,
+      })
+    }
+  }
+
+  const { count: existingPaymentReceived } = await admin
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', interest.seller_id)
+    .eq('type', 'PaymentReceived')
+    .eq('entity_id', payment.id)
+  if ((existingPaymentReceived ?? 0) === 0) {
+    await createNotification({
+      admin,
+      userId: interest.seller_id,
+      title: 'Payment received',
+      message: 'A buyer paid ₹49 to unlock your contact details.',
+      type: 'PaymentReceived',
+      entityType: 'payment',
+      entityId: payment.id,
+    })
+  }
 
   return NextResponse.json({
     success: true,

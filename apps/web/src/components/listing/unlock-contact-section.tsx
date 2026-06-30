@@ -338,11 +338,22 @@ export function UnlockContactSection({
         </p>
       </div>
 
+      {/* Handshake model explainer */}
+      <p className="text-sm text-[var(--color-muted-foreground)]">
+        SellItRight keeps your contact private until both sides agree. Pay a one-time fee to
+        permanently unlock the owner&apos;s phone and WhatsApp — no broker, no subscription.
+      </p>
+
       {/* Price breakdown */}
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3">
         <div className="flex items-center justify-between">
           <p className="text-sm text-[var(--color-foreground)]">Contact unlock fee</p>
-          <p className="text-sm font-bold text-[var(--color-foreground)]">₹49</p>
+          <p className="text-sm font-bold text-[var(--color-foreground)]">
+            ₹49{' '}
+            <span className="text-xs font-normal text-[var(--color-muted-foreground)]">
+              (all-inclusive)
+            </span>
+          </p>
         </div>
         <div className="mt-2 space-y-1.5 text-xs text-[var(--color-muted-foreground)]">
           <div className="flex items-center gap-1.5">
@@ -383,6 +394,17 @@ export function UnlockContactSection({
       <p className="text-center text-xs text-[var(--color-muted-foreground)]">
         Secure payment via Razorpay · One-time fee · No subscription
       </p>
+      <p className="text-center text-xs text-[var(--color-muted-foreground)]">
+        <a
+          href="/refund-policy"
+          className="underline underline-offset-2 hover:text-[var(--color-foreground)]"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Refund policy
+        </a>{' '}
+        — full refund if listing removed within 24h of payment
+      </p>
     </div>
   )
 }
@@ -400,23 +422,38 @@ export function ContactRevealedCard({ sellerPhone, sellerEmail }: ContactReveale
       <p className="text-sm font-semibold text-green-800">Contact unlocked</p>
 
       <div className="space-y-2">
-        <a
-          href={`tel:${sellerPhone.replace(/\s/g, '')}`}
-          className="flex items-center gap-2.5 rounded-lg border border-green-200 bg-white px-3 py-2.5 text-sm font-medium text-[var(--color-foreground)] transition hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-        >
-          <Phone className="h-4 w-4 shrink-0 text-green-600" aria-hidden="true" />
-          {sellerPhone}
-        </a>
+        {sellerPhone && sellerPhone.trim().length > 0 ? (
+          <>
+            <a
+              href={`tel:${sellerPhone.replace(/\s/g, '')}`}
+              className="flex items-center gap-2.5 rounded-lg border border-green-200 bg-white px-3 py-2.5 text-sm font-medium text-[var(--color-foreground)] transition hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+            >
+              <Phone className="h-4 w-4 shrink-0 text-green-600" aria-hidden="true" />
+              {sellerPhone}
+            </a>
 
-        <a
-          href={`https://wa.me/${sellerPhone.replace(/[^0-9]/g, '')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2.5 rounded-lg border border-green-200 bg-white px-3 py-2.5 text-sm font-medium text-[var(--color-foreground)] transition hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-        >
-          <MessageCircle className="h-4 w-4 shrink-0 text-green-600" aria-hidden="true" />
-          WhatsApp
-        </a>
+            <a
+              href={`https://wa.me/${sellerPhone.replace(/[^0-9]/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 rounded-lg border border-green-200 bg-white px-3 py-2.5 text-sm font-medium text-[var(--color-foreground)] transition hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+            >
+              <MessageCircle className="h-4 w-4 shrink-0 text-green-600" aria-hidden="true" />
+              WhatsApp
+            </a>
+          </>
+        ) : (
+          <p className="rounded-lg border border-green-200 bg-white px-3 py-2.5 text-sm text-[var(--color-muted-foreground)]">
+            Phone number not available.{' '}
+            <a
+              href="mailto:support@sellitright.in"
+              className="underline underline-offset-2 hover:text-[var(--color-foreground)]"
+            >
+              Contact support
+            </a>
+            .
+          </p>
+        )}
 
         {sellerEmail && (
           <a

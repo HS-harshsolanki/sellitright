@@ -103,7 +103,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
   // Check buyer's interest state for this listing (server-side, avoids flash)
   let hasExistingRequest = false
-  let interestStatus: 'PENDING' | 'ACCEPTED' | null = null
+  let interestStatus: 'PENDING' | 'ACCEPTED' | 'DECLINED' | null = null
   let contactUnlocked = false
   let sellerPhone: string | null = null
   let sellerEmail: string | null = null
@@ -123,7 +123,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
         .select('id, status, contact_unlocked, seller_phone, seller_email')
         .eq('listing_id', id)
         .eq('buyer_id', viewer.id)
-        .in('status', ['PENDING', 'ACCEPTED'])
+        .in('status', ['PENDING', 'ACCEPTED', 'DECLINED'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()) as { data: InterestRow | null; error: unknown }
@@ -136,7 +136,9 @@ export default async function ListingPage({ params }: ListingPageProps) {
             ? 'PENDING'
             : existing.status === 'ACCEPTED'
               ? 'ACCEPTED'
-              : null
+              : existing.status === 'DECLINED'
+                ? 'DECLINED'
+                : null
         contactUnlocked = existing.contact_unlocked === true
         sellerPhone = contactUnlocked ? (existing.seller_phone ?? null) : null
         sellerEmail = contactUnlocked ? (existing.seller_email ?? null) : null
@@ -397,6 +399,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 sellerEmail={sellerEmail}
                 price={priceStr}
                 statsLine={statsLine}
+                listingStatus={listingStatus}
               />
             </div>
           </div>
@@ -419,6 +422,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 sellerEmail={sellerEmail}
                 price={priceStr}
                 statsLine={statsLine}
+                listingStatus={listingStatus}
               />
             </div>
           </aside>
@@ -438,6 +442,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
         interestStatus={interestStatus}
         contactUnlocked={contactUnlocked}
         sellerPhone={sellerPhone}
+        listingStatus={listingStatus}
       />
 
       <script

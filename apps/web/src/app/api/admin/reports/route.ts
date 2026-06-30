@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { isAuthorized, logAdminAction } from '@/lib/admin-auth'
+import { COOKIE_NAME } from '@/lib/admin-session'
 import { createServiceClient } from '@/lib/supabase/server'
 
 // GET /api/admin/reports
@@ -103,11 +104,18 @@ export async function PATCH(request: NextRequest) {
     )
   }
 
+  // Derive a stable pseudo-identity from the session cookie timestamp
+  // Format: "<timestamp>.<hex-sig>" — use the timestamp portion as actor discriminator
+  const sessionCookie = request.cookies.get(COOKIE_NAME)?.value ?? ''
+  const sessionTs = sessionCookie.split('.')[0] ?? ''
+  const actorId =
+    sessionTs || (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'api_key')
+
   const { error, count } = await admin
     .from('reports')
     .update({
       status: status as string,
-      reviewed_by: 'api_key',
+      reviewed_by: actorId,
       reviewed_at: new Date().toISOString(),
     })
     .in('id', ids as string[])
@@ -117,12 +125,23 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to update reports.' }, { status: 500 })
   }
 
-  void logAdminAction(admin, {
-    action: 'reports_bulk_updated',
-    entityType: 'report',
-    entityId: (ids as string[]).join(','),
-    newValue: { status, count: count ?? ids.length },
-  })
+  const action =
+    status === 'ACTIONED'
+      ? 'report_resolved'
+      : status === 'DISMISSED'
+        ? 'report_dismissed'
+        : 'report_reviewed'
+  await Promise.all(
+    (ids as string[]).map((reportId) =>
+      logAdminAction(admin, {
+        action,
+        entityType: 'report',
+        entityId: reportId,
+        note: `Report marked ${status as string}`,
+        actorId: actorId,
+      }),
+    ),
+  )
 
   return NextResponse.json({ updated: count ?? ids.length })
 }
