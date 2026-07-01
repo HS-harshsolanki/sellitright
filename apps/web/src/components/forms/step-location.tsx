@@ -2,6 +2,8 @@
 
 import { MapPin } from 'lucide-react'
 
+import { LocalityCombobox } from '@/components/forms/locality-combobox'
+import { getLocalitiesForCity, type LocalityOption } from '@/lib/localities'
 import { cn } from '@/lib/utils'
 import { useSellFormStore } from '@/stores/sell-form.store'
 
@@ -42,11 +44,31 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
 
   const handleCityChange = (value: string) => {
     const cityOption = CITIES.find((c) => c.value === value)
+    // Clear locality and pincode when city changes — they belong to the old city
     setLocation({
       city: value,
       state: cityOption?.state ?? '',
+      locality: '',
+      pincode: '',
     })
   }
+
+  const handleLocalitySelect = (option: LocalityOption | null) => {
+    if (!option) {
+      // User cleared or is mid-type — clear locality only
+      setLocation({ locality: '' })
+      return
+    }
+    // Auto-fill locality name, pincode (if available), and city (if not already set)
+    setLocation({
+      locality: option.name,
+      ...(option.pincode ? { pincode: option.pincode } : {}),
+      ...(option.city && !location.city ? { city: option.city } : {}),
+    })
+  }
+
+  const localities = getLocalitiesForCity(location.city)
+  const hasLocalityList = localities.length > 0
 
   return (
     <div className="space-y-6">
@@ -100,29 +122,59 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           </div>
         )}
 
-        {/* Locality */}
+        {/* Locality — combobox when city has a curated list, plain input otherwise */}
         <div className="space-y-1.5">
           <label htmlFor="locality" className={labelClass}>
             Locality / Area <span className="text-destructive">*</span>
           </label>
-          <input
-            id="locality"
-            type="text"
-            placeholder="e.g. Koramangala, Bandra West, Sector 62"
-            value={location.locality}
-            onChange={(e) => setLocation({ locality: e.target.value })}
-            aria-invalid={localityMissing ? 'true' : undefined}
-            className={cn(
-              inputBase,
-              localityMissing
-                ? 'border-destructive focus:border-destructive'
-                : 'border-border focus:border-primary',
-            )}
-          />
-          {localityMissing && (
-            <p role="alert" className="text-destructive text-xs">
-              Please enter your locality or area.
-            </p>
+
+          {hasLocalityList ? (
+            <>
+              <LocalityCombobox
+                localities={localities}
+                value={location.locality}
+                onChange={handleLocalitySelect}
+                hasError={localityMissing}
+                disabled={!location.city}
+                placeholder={
+                  location.city ? `Search localities in ${location.city}…` : 'Select a city first'
+                }
+              />
+              {localityMissing && (
+                <p role="alert" className="text-destructive text-xs">
+                  Please enter your locality or area.
+                </p>
+              )}
+              {location.locality && location.pincode && (
+                <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                  <MapPin className="h-3 w-3" />
+                  Pincode auto-filled:{' '}
+                  <span className="text-foreground font-medium">{location.pincode}</span>
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <input
+                id="locality"
+                type="text"
+                placeholder="e.g. Koramangala, Bandra West, Sector 62"
+                value={location.locality}
+                onChange={(e) => setLocation({ locality: e.target.value })}
+                aria-invalid={localityMissing ? 'true' : undefined}
+                className={cn(
+                  inputBase,
+                  localityMissing
+                    ? 'border-destructive focus:border-destructive'
+                    : 'border-border focus:border-primary',
+                )}
+              />
+              {localityMissing && (
+                <p role="alert" className="text-destructive text-xs">
+                  Please enter your locality or area.
+                </p>
+              )}
+            </>
           )}
         </div>
 
@@ -141,7 +193,7 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           />
         </div>
 
-        {/* Pincode */}
+        {/* Pincode — editable even when auto-filled */}
         <div className="space-y-1.5">
           <label htmlFor="pincode" className={labelClass}>
             Pincode <span className="text-destructive">*</span>
