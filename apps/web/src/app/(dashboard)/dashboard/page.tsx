@@ -11,11 +11,19 @@ import {
   Users,
   Phone,
   Mail,
+  CheckCircle,
+  PauseCircle,
+  PlayCircle,
+  Undo2,
+  ExternalLink,
+  IndianRupee,
+  ChevronRight,
+  Pencil,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { formatPrice } from '@/lib/format'
 import type { MockListing, ListingStatus } from '@/lib/mock-data'
@@ -24,7 +32,14 @@ import { cn } from '@/lib/utils'
 
 type TabFilter = 'all' | 'active' | 'draft' | 'pending' | 'rejected' | 'sold' | 'buyers'
 
-const TAB_VALUES: TabFilter[] = ['all', 'active', 'draft', 'pending', 'rejected', 'sold', 'buyers']
+const TAB_VALUES: Exclude<TabFilter, 'buyers'>[] = [
+  'all',
+  'active',
+  'draft',
+  'pending',
+  'rejected',
+  'sold',
+]
 
 const TAB_LABELS: Record<TabFilter, string> = {
   all: 'All',
@@ -33,20 +48,29 @@ const TAB_LABELS: Record<TabFilter, string> = {
   pending: 'Pending',
   rejected: 'Rejected',
   sold: 'Sold',
-  buyers: 'Interested Buyers',
+  buyers: 'Buyers',
 }
 
-const STATUS_CONFIG: Record<ListingStatus, { label: string; className: string }> = {
-  ACTIVE: { label: 'Active', className: 'bg-green-100 text-green-700' },
-  DRAFT: { label: 'Draft', className: 'bg-yellow-100 text-yellow-700' },
-  SOLD: { label: 'Sold', className: 'bg-blue-100 text-blue-700' },
+const STATUS_CONFIG: Record<ListingStatus, { label: string; className: string; dot: string }> = {
+  ACTIVE: { label: 'Active', className: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
+  DRAFT: { label: 'Draft', className: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' },
+  SOLD: { label: 'Sold', className: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
   INACTIVE: {
     label: 'Inactive',
     className: 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+    dot: 'bg-gray-400',
   },
-  PENDING_REVIEW: { label: 'Pending Review', className: 'bg-orange-100 text-orange-700' },
-  REJECTED: { label: 'Rejected', className: 'bg-red-100 text-red-700' },
-  DELETED: { label: 'Deleted', className: 'bg-gray-200 text-gray-500 line-through' },
+  PENDING_REVIEW: {
+    label: 'Under Review',
+    className: 'bg-orange-100 text-orange-700',
+    dot: 'bg-orange-400',
+  },
+  REJECTED: { label: 'Rejected', className: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
+  DELETED: {
+    label: 'Deleted',
+    className: 'bg-gray-200 text-gray-500 line-through',
+    dot: 'bg-gray-400',
+  },
 }
 
 const PURPOSE_LABEL: Record<string, string> = {
@@ -92,7 +116,6 @@ interface SellerInterestItem {
   buyerEmail?: string | null
 }
 
-// Shape returned by /api/dashboard/listings
 interface DashboardListing {
   id: string
   title: string
@@ -155,33 +178,37 @@ interface StatCardProps {
   value: string | number
   sub?: string
   icon: React.ReactNode
-  accent?: boolean
+  iconBg: string
+  trend?: string
+  trendUp?: boolean
 }
 
-function StatCard({ label, value, sub, icon, accent = false }: StatCardProps) {
+function StatCard({ label, value, sub, icon, iconBg, trend, trendUp }: StatCardProps) {
   return (
-    <div
-      className={cn(
-        'flex items-start gap-4 rounded-xl border border-[var(--color-border)] bg-white p-4',
-        accent && 'border-[var(--color-border)] bg-[var(--color-muted)]',
-      )}
-    >
-      <div
-        className={cn(
-          'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-          accent
-            ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
-            : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+    <div className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-start justify-between">
+        <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl', iconBg)}>
+          {icon}
+        </div>
+        {trend && (
+          <span
+            className={cn(
+              'flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold',
+              trendUp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600',
+            )}
+          >
+            {trendUp ? '↑' : '↓'} {trend}
+          </span>
         )}
-      >
-        {icon}
       </div>
-      <div className="min-w-0">
-        <p className="text-sm text-[var(--color-muted-foreground)]">{label}</p>
-        <p className={cn('text-2xl font-bold', accent && 'text-[var(--color-foreground)]')}>
+      <div>
+        <p className="text-[13px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+          {label}
+        </p>
+        <p className="mt-1 text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
           {value}
         </p>
-        {sub && <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">{sub}</p>}
+        {sub && <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">{sub}</p>}
       </div>
     </div>
   )
@@ -189,30 +216,57 @@ function StatCard({ label, value, sub, icon, accent = false }: StatCardProps) {
 
 interface ListingCardProps {
   listing: MockListing
-  onDelete: (id: string) => Promise<void>
+  onDelete: (id: string) => void
+  onStatusChange: (
+    id: string,
+    action: 'SOLD' | 'PAUSE' | 'REACTIVATE' | 'WITHDRAW_REVIEW',
+  ) => Promise<void>
   isDeleting: boolean
+  statusChangingId: string | null
 }
 
-function ListingCard({ listing, onDelete, isDeleting }: ListingCardProps) {
+function ListingCard({
+  listing,
+  onDelete,
+  onStatusChange,
+  isDeleting,
+  statusChangingId,
+}: ListingCardProps) {
   const statusConfig = STATUS_CONFIG[listing.status]
   const cover = listing.images[0]?.url
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmSold, setConfirmSold] = useState(false)
+  const isBusy = isDeleting || statusChangingId === listing.id
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!confirmDelete && !confirmSold) return
+    timerRef.current = setTimeout(() => {
+      setConfirmDelete(false)
+      setConfirmSold(false)
+    }, 5000)
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [confirmDelete, confirmSold])
 
   return (
-    <article className="group overflow-hidden rounded-xl border border-[var(--color-border)] bg-white transition-shadow hover:shadow-md">
-      <div className="relative aspect-[16/9] overflow-hidden bg-[var(--color-muted)]">
+    <article className="group overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+      {/* ── Image ── */}
+      <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-muted)]">
         {cover ? (
           <Image
             src={cover}
             alt={listing.title}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-[var(--color-muted-foreground)]">
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-[var(--color-muted-foreground)]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8"
+              className="h-10 w-10 opacity-30"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -220,102 +274,386 @@ function ListingCard({ listing, onDelete, isDeleting }: ListingCardProps) {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={1.5}
+                strokeWidth={1}
                 d="M3 9.75L12 3l9 6.75V21H3V9.75z"
               />
             </svg>
+            <span className="text-xs opacity-40">No image</span>
           </div>
         )}
+        {/* Status pill — Airbnb dot style */}
         <span
           className={cn(
-            'absolute left-2 top-2 rounded-full px-2 py-0.5 text-xs font-semibold',
+            'absolute left-3 top-3 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm backdrop-blur-sm',
             statusConfig.className,
           )}
         >
+          <span className={cn('h-1.5 w-1.5 rounded-full', statusConfig.dot)} aria-hidden="true" />
           {statusConfig.label}
+        </span>
+        {/* View count badge top-right */}
+        <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+          <Eye className="h-3 w-3" aria-hidden="true" />
+          {listing.viewCount}
         </span>
       </div>
 
+      {/* ── Body ── */}
       <div className="p-4">
-        <h3 className="line-clamp-1 font-semibold text-[var(--color-foreground)]">
-          {listing.title}
-        </h3>
+        {/* Title + price row */}
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="line-clamp-1 text-sm font-semibold leading-snug text-[var(--color-foreground)]">
+            {listing.title}
+          </h3>
+          <p className="shrink-0 text-sm font-bold text-[var(--color-accent)]">
+            {formatPrice(listing.price)}
+          </p>
+        </div>
+
+        {/* Location */}
         <div className="mt-1 flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
-          <MapPin className="h-3 w-3 shrink-0" />
+          <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
           <span className="truncate">
             {listing.locality}, {listing.city}
           </span>
         </div>
 
+        {/* Rejection reason banner */}
         {listing.status === 'REJECTED' && listing.rejectionReason && (
-          <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <div className="mt-3 flex items-start gap-1.5 rounded-xl bg-red-50 px-3 py-2.5 text-xs text-red-700">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>{listing.rejectionReason}</span>
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-base font-bold text-[var(--color-foreground)]">
-            {formatPrice(listing.price)}
-          </p>
-          <div className="flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
-            <Eye className="h-3.5 w-3.5" />
-            <span>{listing.viewCount}</span>
+        {/* Metadata strip */}
+        {(listing.bhkType ?? listing.builtUpArea) && (
+          <div className="mt-3 flex items-center gap-3 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-muted-foreground)]">
+            {listing.bhkType && (
+              <span className="flex items-center gap-1">
+                <span aria-hidden="true">🛏</span>
+                {listing.bhkType.replace('_BHK', ' BHK').replace('_RK', ' RK')}
+              </span>
+            )}
+            {listing.bathrooms !== null && listing.bathrooms > 0 && (
+              <span className="flex items-center gap-1">
+                <span aria-hidden="true">🚿</span>
+                {listing.bathrooms}
+              </span>
+            )}
+            {listing.builtUpArea ? (
+              <span className="flex items-center gap-1">
+                <span aria-hidden="true">📐</span>
+                {listing.builtUpArea.toLocaleString('en-IN')} sqft
+              </span>
+            ) : null}
           </div>
-        </div>
+        )}
 
-        <div className="mt-3 flex gap-2">
+        {/* ── Primary action row ── */}
+        <div className="mt-4 flex gap-2">
+          {listing.status === 'ACTIVE' && (
+            <>
+              <Link
+                href={`/listing/${listing.id}`}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
+                title="View public listing"
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
+              <Link
+                href={`/dashboard/listings/${listing.id}/edit`}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] py-2 text-xs font-semibold text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+              >
+                <Pencil className="h-3 w-3" aria-hidden="true" />
+                Edit listing
+              </Link>
+            </>
+          )}
+
           {listing.status === 'DRAFT' && (
             <Link
               href={`/sell?draftId=${listing.id}`}
-              className={cn(
-                'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
-                'transition-colors hover:bg-[var(--color-muted)]',
-              )}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
             >
               Resume Draft
             </Link>
           )}
-          {listing.status === 'ACTIVE' && (
-            <Link
-              href={`/dashboard/listings/${listing.id}/edit`}
-              className={cn(
-                'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
-                'transition-colors hover:bg-[var(--color-muted)]',
-              )}
-            >
-              Edit
-            </Link>
+
+          {listing.status === 'INACTIVE' && (
+            <>
+              <Link
+                href={`/listing/${listing.id}`}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
+                title="View listing"
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => void onStatusChange(listing.id, 'REACTIVATE')}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-green-400 bg-green-50 py-2 text-xs font-semibold text-green-700 transition-colors hover:bg-green-100 disabled:opacity-50"
+              >
+                {isBusy ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
+                Reactivate
+              </button>
+            </>
           )}
-          {listing.status !== 'DRAFT' && listing.status !== 'DELETED' && (
-            <Link
-              href={`/listing/${listing.id}`}
-              className={cn(
-                'flex-1 rounded-lg border border-[var(--color-border)] py-2 text-center text-xs font-medium text-[var(--color-foreground)]',
-                'transition-colors hover:bg-[var(--color-muted)]',
-              )}
-            >
-              View
-            </Link>
+
+          {listing.status === 'REJECTED' && (
+            <>
+              <Link
+                href={`/listing/${listing.id}`}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
+                title="View listing"
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
+              <Link
+                href={`/sell?draftId=${listing.id}`}
+                className="flex flex-1 items-center justify-center rounded-xl bg-[var(--color-foreground)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              >
+                Edit &amp; Resubmit
+              </Link>
+            </>
           )}
-          {(listing.status === 'DRAFT' ||
-            listing.status === 'INACTIVE' ||
-            listing.status === 'REJECTED') && (
+
+          {listing.status === 'PENDING_REVIEW' && (
             <button
-              disabled={isDeleting}
-              onClick={() => {
-                if (!confirm('Delete this listing? This cannot be undone.')) return
-                void onDelete(listing.id)
-              }}
-              className={cn(
-                'flex-1 rounded-lg border border-red-200 py-2 text-center text-xs font-medium text-red-600',
-                'transition-colors hover:bg-red-50 disabled:opacity-50',
-              )}
+              type="button"
+              disabled={isBusy}
+              onClick={() => void onStatusChange(listing.id, 'WITHDRAW_REVIEW')}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] py-2 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] disabled:opacity-50"
             >
-              {isDeleting ? <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" /> : 'Delete'}
+              {isBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              Withdraw Review
             </button>
           )}
+
+          {listing.status === 'SOLD' && (
+            <Link
+              href={`/listing/${listing.id}`}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] py-2 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+            >
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
+              View listing
+            </Link>
+          )}
         </div>
+
+        {/* ── Secondary row ── */}
+        {(listing.status === 'ACTIVE' ||
+          listing.status === 'INACTIVE' ||
+          listing.status === 'DRAFT' ||
+          listing.status === 'REJECTED') && (
+          <div className="mt-3 flex items-center gap-3 border-t border-[var(--color-border)] pt-3">
+            {listing.status === 'ACTIVE' &&
+              (confirmSold ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--color-muted-foreground)]">
+                    Mark as sold?
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => {
+                      setConfirmSold(false)
+                      void onStatusChange(listing.id, 'SOLD')
+                    }}
+                    className="text-xs font-semibold text-blue-600 hover:underline disabled:opacity-50"
+                  >
+                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmSold(false)}
+                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => setConfirmSold(true)}
+                    className="text-xs text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] disabled:opacity-50"
+                  >
+                    Mark sold
+                  </button>
+                  <span className="text-[var(--color-border)]" aria-hidden="true">
+                    ·
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => void onStatusChange(listing.id, 'PAUSE')}
+                    className="text-xs text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] disabled:opacity-50"
+                  >
+                    Pause
+                  </button>
+                </>
+              ))}
+
+            {listing.status === 'INACTIVE' &&
+              (confirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--color-muted-foreground)]">Delete?</span>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => {
+                      setConfirmDelete(false)
+                      onDelete(listing.id)
+                    }}
+                    className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : confirmSold ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--color-muted-foreground)]">
+                    Mark as sold?
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => {
+                      setConfirmSold(false)
+                      void onStatusChange(listing.id, 'SOLD')
+                    }}
+                    className="text-xs font-semibold text-blue-600 hover:underline disabled:opacity-50"
+                  >
+                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmSold(false)}
+                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => setConfirmSold(true)}
+                    className="text-xs text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] disabled:opacity-50"
+                  >
+                    Mark sold
+                  </button>
+                  <span className="text-[var(--color-border)]" aria-hidden="true">
+                    ·
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => setConfirmDelete(true)}
+                    className="text-xs text-red-400 transition-colors hover:text-red-600 disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                </>
+              ))}
+
+            {listing.status === 'DRAFT' &&
+              (confirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--color-muted-foreground)]">
+                    Delete draft?
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => {
+                      setConfirmDelete(false)
+                      onDelete(listing.id)
+                    }}
+                    className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => setConfirmDelete(true)}
+                  className="text-xs text-red-400 transition-colors hover:text-red-600 disabled:opacity-50"
+                >
+                  Delete draft
+                </button>
+              ))}
+
+            {listing.status === 'REJECTED' &&
+              (confirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--color-muted-foreground)]">Delete?</span>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => {
+                      setConfirmDelete(false)
+                      onDelete(listing.id)
+                    }}
+                    className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {listing.rejectionReason && (
+                    <span className="flex-1 text-xs text-[var(--color-muted-foreground)]">
+                      Address the reason before resubmitting.
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => setConfirmDelete(true)}
+                    className="ml-auto text-xs text-red-400 transition-colors hover:text-red-600 disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                </>
+              ))}
+          </div>
+        )}
       </div>
     </article>
   )
@@ -338,10 +676,10 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
     month: 'short',
     year: 'numeric',
   })
+  const awaitingPayment = item.status === 'ACCEPTED' && !item.contactUnlocked
 
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-white p-4">
-      {/* Row 1: Name + status badge + listing */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -352,14 +690,17 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
               {statusCfg.label}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-xs text-[var(--color-muted-foreground)]">
+          <Link
+            href={`/listing/${item.listingId}`}
+            className="mt-0.5 flex items-center gap-1 text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:underline"
+          >
             {item.listingTitle}
             {item.listingCity ? ` · ${item.listingCity}` : ''}
-          </p>
+            <ExternalLink className="h-3 w-3 shrink-0 opacity-50" aria-hidden="true" />
+          </Link>
         </div>
       </div>
 
-      {/* Row 2: Metadata chips */}
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="rounded-full bg-[var(--color-muted)] px-2.5 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
           {PURPOSE_LABEL[item.purpose] ?? item.purpose}
@@ -372,14 +713,23 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
         </span>
       </div>
 
-      {/* Row 3: Message */}
       {item.message && (
         <div className="mt-3 rounded-lg bg-[var(--color-muted)] px-3 py-2 text-sm text-[var(--color-muted-foreground)]">
           &ldquo;{item.message}&rdquo;
         </div>
       )}
 
-      {/* Row 4: Buyer contact (visible to seller after payment) */}
+      {/* Accepted but buyer hasn't paid yet */}
+      {awaitingPayment && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+          <IndianRupee className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-hidden="true" />
+          <p className="text-xs font-medium text-blue-700">
+            Awaiting buyer payment — contact details visible once they pay ₹49
+          </p>
+        </div>
+      )}
+
+      {/* Contact unlocked */}
       {item.contactUnlocked && (item.buyerPhone ?? item.buyerEmail) && (
         <div className="mt-3 space-y-1 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
           <p className="text-xs font-semibold text-green-800">Buyer contact unlocked</p>
@@ -404,10 +754,8 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
         </div>
       )}
 
-      {/* Row 5: Date */}
       <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">Requested on {dateStr}</p>
 
-      {/* Row 5: Actions (PENDING only) */}
       {item.status === 'PENDING' && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {confirmDecline ? (
@@ -479,9 +827,12 @@ interface BuyersTabContentProps {
   statusFilter: InterestStatusFilter
   sort: 'newest' | 'oldest'
   actionLoadingId: string | null
+  interestSuccess: string | null
   onStatusFilter: (s: InterestStatusFilter) => void
   onSort: (s: 'newest' | 'oldest') => void
   onAction: (id: string, action: 'ACCEPTED' | 'DECLINED') => Promise<void>
+  onDismissError: () => void
+  onDismissSuccess: () => void
 }
 
 function BuyersTabContent({
@@ -491,9 +842,12 @@ function BuyersTabContent({
   statusFilter,
   sort,
   actionLoadingId,
+  interestSuccess,
   onStatusFilter,
   onSort,
   onAction,
+  onDismissError,
+  onDismissSuccess,
 }: BuyersTabContentProps) {
   const STATUS_FILTERS: { value: InterestStatusFilter; label: string }[] = [
     { value: 'ALL', label: 'All' },
@@ -504,47 +858,70 @@ function BuyersTabContent({
 
   return (
     <div className="space-y-4">
-      {/* Filter row */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => onStatusFilter(f.value)}
-              className={cn(
-                'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
-                statusFilter === f.value
-                  ? 'bg-white text-[var(--color-foreground)] shadow-sm'
-                  : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+      {!loading && interests.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1">
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => onStatusFilter(f.value)}
+                className={cn(
+                  'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+                  statusFilter === f.value
+                    ? 'bg-white text-[var(--color-foreground)] shadow-sm'
+                    : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => onSort(e.target.value as 'newest' | 'oldest')}
+            className="focus:ring-ring rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
         </div>
-        <select
-          value={sort}
-          onChange={(e) => onSort(e.target.value as 'newest' | 'oldest')}
-          className="focus:ring-ring rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2"
-        >
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-        </select>
-      </div>
+      )}
 
-      {/* Content */}
+      {interestSuccess && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+          role="status"
+        >
+          <span className="flex-1">{interestSuccess}</span>
+          <button
+            type="button"
+            onClick={onDismissSuccess}
+            className="shrink-0 text-xs text-green-700 hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
         </div>
       ) : error ? (
         <div
-          className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
           role="alert"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-          <span>{error}</span>
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+          <span className="flex-1">{error}</span>
+          <button
+            type="button"
+            onClick={onDismissError}
+            className="shrink-0 text-xs text-red-600 hover:underline"
+          >
+            Dismiss
+          </button>
         </div>
       ) : interests.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-border)] py-16 text-center">
@@ -580,15 +957,20 @@ function BuyersTabContent({
 
 function EmptyState({
   tab,
+  personaState,
   onShowAll,
 }: {
   tab: Exclude<TabFilter, 'buyers'>
+  personaState: 'loading' | 'buyer' | 'seller'
   onShowAll: () => void
 }) {
+  const isBuyerOnly = personaState === 'buyer'
   const messages: Record<Exclude<TabFilter, 'buyers'>, { title: string; sub: string }> = {
     all: {
-      title: 'No listings yet',
-      sub: 'Start selling by creating your first property listing.',
+      title: isBuyerOnly ? 'No listings to show' : 'No listings yet',
+      sub: isBuyerOnly
+        ? 'Browse properties to express interest in buying.'
+        : 'Start selling by creating your first property listing.',
     },
     active: { title: 'No active listings', sub: 'Your published listings will appear here.' },
     draft: {
@@ -604,11 +986,11 @@ function EmptyState({
   }
   const msg = messages[tab]
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-border)] py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-muted)]">
+    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-border)] py-20 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-muted)]">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-8 w-8 text-[var(--color-muted-foreground)]"
+          className="h-8 w-8 text-[var(--color-muted-foreground)] opacity-50"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -616,7 +998,7 @@ function EmptyState({
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={1.5}
+            strokeWidth={1}
             d="M3 9.75L12 3l9 6.75V21H3V9.75z"
           />
         </svg>
@@ -624,16 +1006,28 @@ function EmptyState({
       <h3 className="text-base font-semibold text-[var(--color-foreground)]">{msg.title}</h3>
       <p className="mt-1 max-w-xs text-sm text-[var(--color-muted-foreground)]">{msg.sub}</p>
       {tab === 'all' ? (
-        <Link
-          href="/sell"
-          className={cn(
-            'mt-6 flex items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white',
-            'transition-opacity hover:opacity-90',
-          )}
-        >
-          <Plus className="h-4 w-4" />
-          Start selling
-        </Link>
+        isBuyerOnly ? (
+          <Link
+            href="/properties"
+            className={cn(
+              'mt-6 flex items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white',
+              'transition-opacity hover:opacity-90',
+            )}
+          >
+            Browse Properties
+          </Link>
+        ) : (
+          <Link
+            href="/sell"
+            className={cn(
+              'mt-6 flex items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white',
+              'transition-opacity hover:opacity-90',
+            )}
+          >
+            <Plus className="h-4 w-4" />
+            Start selling
+          </Link>
+        )
       ) : (
         <button
           type="button"
@@ -647,7 +1041,7 @@ function EmptyState({
   )
 }
 
-export default function DashboardPage() {
+function DashboardPageInner() {
   const searchParams = useSearchParams()
   const msgParam = searchParams.get('msg')
   const cantEditMsg =
@@ -658,26 +1052,64 @@ export default function DashboardPage() {
         : null
 
   const tabParam = searchParams.get('tab') as TabFilter | null
+  const allTabValues: TabFilter[] = [
+    'all',
+    'active',
+    'draft',
+    'pending',
+    'rejected',
+    'sold',
+    'buyers',
+  ]
   const initialTab: TabFilter =
-    tabParam && (TAB_VALUES as string[]).includes(tabParam) ? tabParam : 'all'
+    tabParam && (allTabValues as string[]).includes(tabParam) ? tabParam : 'all'
 
   const [activeTab, setActiveTab] = useState<TabFilter>(initialTab)
+
+  // Sync tab when URL ?tab= changes (e.g. sidebar link click while already on /dashboard)
+  useEffect(() => {
+    const t = tabParam && (allTabValues as string[]).includes(tabParam) ? tabParam : 'all'
+    setActiveTab(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam])
   const [pendingBuyerCount, setPendingBuyerCount] = useState<number | null>(null)
   const [listings, setListings] = useState<MockListing[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
-  // Interested Buyers state
   const [interests, setInterests] = useState<SellerInterestItem[]>([])
   const [interestLoading, setInterestLoading] = useState(false)
   const [interestError, setInterestError] = useState<string | null>(null)
-  const [interestStatusFilter, setInterestStatusFilter] = useState<InterestStatusFilter>('PENDING')
+  const [interestSuccess, setInterestSuccess] = useState<string | null>(null)
+  const [interestStatusFilter, setInterestStatusFilter] = useState<InterestStatusFilter>('ALL')
   const [interestSort, setInterestSort] = useState<'newest' | 'oldest'>('newest')
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [statusChangingId, setStatusChangingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
 
-  // Background fetch of pending buyer count — runs on mount so the badge shows
-  // immediately without needing to click the buyers tab first.
+  // Auto-dismiss action errors after 5s
+  useEffect(() => {
+    if (!actionError) return
+    const t = setTimeout(() => setActionError(null), 5000)
+    return () => clearTimeout(t)
+  }, [actionError])
+
+  // Auto-dismiss actionSuccess after 4s
+  useEffect(() => {
+    if (!actionSuccess) return
+    const t = setTimeout(() => setActionSuccess(null), 4000)
+    return () => clearTimeout(t)
+  }, [actionSuccess])
+
+  // Auto-dismiss interestSuccess after 4s
+  useEffect(() => {
+    if (!interestSuccess) return
+    const t = setTimeout(() => setInterestSuccess(null), 4000)
+    return () => clearTimeout(t)
+  }, [interestSuccess])
+
   useEffect(() => {
     if (!isSupabaseConfigured()) return
     fetch('/api/dashboard/interests?status=PENDING&page=1')
@@ -702,8 +1134,6 @@ export default function DashboardPage() {
             setFetchError('You need to be signed in to view your listings.')
             setListings([])
           } else {
-            if (process.env.NODE_ENV === 'development')
-              console.error('[dashboard] listings fetch failed, status:', res.status)
             setFetchError('Failed to load listings. Please refresh.')
             setListings([])
           }
@@ -729,8 +1159,12 @@ export default function DashboardPage() {
         const params = new URLSearchParams({ status: interestStatusFilter, sort: interestSort })
         const res = await fetch(`/api/dashboard/interests?${params.toString()}`)
         if (res.ok) {
-          const json = (await res.json()) as { interests: SellerInterestItem[] }
+          const json = (await res.json()) as { interests: SellerInterestItem[]; total?: number }
           setInterests(json.interests)
+          // Sync pending badge from API when filter is PENDING
+          if (interestStatusFilter === 'PENDING' && json.total !== undefined) {
+            setPendingBuyerCount(json.total)
+          }
         } else if (res.status === 401) {
           setInterestError('Sign in to view buyer requests.')
           setInterests([])
@@ -750,6 +1184,7 @@ export default function DashboardPage() {
 
   async function handleInterestAction(id: string, action: 'ACCEPTED' | 'DECLINED') {
     setActionLoadingId(id)
+    setInterestError(null)
     try {
       const res = await fetch(`/api/dashboard/interests/${id}`, {
         method: 'PATCH',
@@ -769,8 +1204,10 @@ export default function DashboardPage() {
               : item,
           ),
         )
-        // Decrement pending badge when seller acts on a pending request
         setPendingBuyerCount((c) => (c !== null && c > 0 ? c - 1 : 0))
+        setInterestSuccess(
+          action === 'ACCEPTED' ? 'Request accepted — buyer notified.' : 'Request declined.',
+        )
       } else {
         const err = (await res.json()) as { error?: string }
         setInterestError(err.error ?? 'Failed to update request.')
@@ -782,20 +1219,56 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleDeleteListing(listingId: string) {
+  function handleDeleteListing(listingId: string) {
     setDeletingId(listingId)
+    setActionError(null)
+    fetch(`/api/listings/${listingId}`, { method: 'DELETE' })
+      .then(async (r) => {
+        if (r.ok) {
+          setListings((prev) => prev.filter((l) => l.id !== listingId))
+        } else {
+          const d = (await r.json()) as { error?: string }
+          setActionError(d.error ?? 'Failed to delete listing')
+        }
+      })
+      .catch(() => setActionError('Failed to delete listing'))
+      .finally(() => setDeletingId(null))
+  }
+
+  async function handleStatusChange(
+    listingId: string,
+    action: 'SOLD' | 'PAUSE' | 'REACTIVATE' | 'WITHDRAW_REVIEW',
+  ) {
+    setStatusChangingId(listingId)
+    setActionError(null)
     try {
-      const r = await fetch(`/api/listings/${listingId}`, { method: 'DELETE' })
-      if (r.ok) {
-        setListings((prev) => prev.filter((l) => l.id !== listingId))
+      const res = await fetch(`/api/listings/${listingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      if (res.ok) {
+        const json = (await res.json()) as { id: string; status: string }
+        setListings((prev) =>
+          prev.map((l) => (l.id === json.id ? { ...l, status: json.status as ListingStatus } : l)),
+        )
+        if (action === 'WITHDRAW_REVIEW') {
+          setActionSuccess('Review withdrawn — your listing is back in Drafts.')
+        } else if (action === 'PAUSE') {
+          setActionSuccess('Listing paused — hidden from buyers.')
+        } else if (action === 'REACTIVATE') {
+          setActionSuccess('Listing reactivated and live.')
+        } else if (action === 'SOLD') {
+          setActionSuccess('Listing marked as sold.')
+        }
       } else {
-        const d = (await r.json()) as { error?: string }
-        setFetchError(d.error ?? 'Failed to delete listing')
+        const d = (await res.json()) as { error?: string }
+        setActionError(d.error ?? 'Failed to update listing.')
       }
     } catch {
-      setFetchError('Failed to delete listing')
+      setActionError('Network error — try again.')
     } finally {
-      setDeletingId(null)
+      setStatusChangingId(null)
     }
   }
 
@@ -809,7 +1282,6 @@ export default function DashboardPage() {
     return listing.status.toLowerCase() === activeTab
   })
 
-  // Per-tab counts for badges — only non-deleted listings
   const tabCounts: Record<Exclude<TabFilter, 'buyers'>, number> = {
     all: visibleListings.length,
     active: visibleListings.filter((l) => l.status === 'ACTIVE').length,
@@ -819,33 +1291,49 @@ export default function DashboardPage() {
     sold: visibleListings.filter((l) => l.status === 'SOLD').length,
   }
 
+  const personaState: 'loading' | 'buyer' | 'seller' = loading
+    ? 'loading'
+    : visibleListings.length === 0
+      ? 'buyer'
+      : 'seller'
+
   const stats = {
-    total: visibleListings.filter((l) => l.status !== 'SOLD' && l.status !== 'DRAFT').length,
+    total: visibleListings.length,
     active: visibleListings.filter((l) => l.status === 'ACTIVE').length,
     views: visibleListings.reduce((sum, l) => sum + l.viewCount, 0),
   }
 
+  const pageTitle = personaState === 'buyer' ? 'My Activity' : 'My Listings'
+  const pageSubtitle =
+    personaState === 'buyer'
+      ? 'Track your property interests and requests'
+      : 'Manage and track your property listings'
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* ── Page header ── */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-foreground)] sm:text-2xl">
-            My Listings
-          </h1>
-          <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
-            Manage and track your property listings
-          </p>
-        </div>
-        <Link
-          href="/sell"
-          className={cn(
-            'hidden items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-4 py-2.5 text-sm font-semibold text-white sm:flex',
-            'transition-opacity hover:opacity-90',
+          {personaState === 'loading' ? (
+            <div className="h-8 w-44 animate-pulse rounded-lg bg-[var(--color-border)]" />
+          ) : (
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-3xl">
+              {pageTitle}
+            </h1>
           )}
-        >
-          <Plus className="h-4 w-4" />
-          New listing
-        </Link>
+          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{pageSubtitle}</p>
+        </div>
+        {personaState === 'seller' && (
+          <Link
+            href="/sell"
+            className={cn(
+              'hidden shrink-0 items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white sm:flex',
+              'shadow-sm transition-all hover:opacity-90 hover:shadow-md',
+            )}
+          >
+            <Plus className="h-4 w-4" />+ New listing
+          </Link>
+        )}
       </div>
 
       {cantEditMsg && (
@@ -860,125 +1348,202 @@ export default function DashboardPage() {
 
       {fetchError && activeTab !== 'buyers' && (
         <div
-          className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
           role="alert"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
           <span>{fetchError}</span>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          label="Total Listings"
-          value={stats.total}
-          icon={<LayoutGrid className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Active"
-          value={stats.active}
-          sub="Currently live"
-          icon={<TrendingUp className="h-5 w-5" />}
-          accent
-        />
-        <StatCard
-          label="Total Views"
-          value={stats.views.toLocaleString('en-IN')}
-          sub="Lifetime across all listings"
-          icon={<Eye className="h-5 w-5" />}
-        />
-        {/* Buyer requests card — always visible, draws attention to pending actions */}
-        <button
-          type="button"
-          onClick={() => setActiveTab('buyers')}
-          className={cn(
-            'flex items-start gap-4 rounded-xl border p-4 text-left transition-all',
-            pendingBuyerCount
-              ? 'border-amber-300 bg-amber-50 hover:bg-amber-100'
-              : 'border-[var(--color-border)] bg-white hover:bg-[var(--color-muted)]',
-          )}
+      {actionError && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          role="alert"
         >
-          <div
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+          <span className="flex-1">{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="shrink-0 text-xs text-red-600 hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {actionSuccess && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+          role="status"
+        >
+          <span className="flex-1">{actionSuccess}</span>
+          <button
+            type="button"
+            onClick={() => setActionSuccess(null)}
+            className="shrink-0 text-xs text-green-700 hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Stats grid */}
+      {personaState === 'loading' ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="h-32 animate-pulse rounded-2xl border border-[var(--color-border)] bg-white"
+            />
+          ))}
+        </div>
+      ) : personaState === 'seller' ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            label="Total Listings"
+            value={stats.total}
+            sub="All time"
+            icon={<LayoutGrid className="h-5 w-5 text-violet-600" />}
+            iconBg="bg-violet-100"
+          />
+          <StatCard
+            label="Active"
+            value={stats.active}
+            sub="Currently live"
+            icon={<TrendingUp className="h-5 w-5 text-green-600" />}
+            iconBg="bg-green-100"
+            trend={stats.active > 0 ? 'Live' : undefined}
+            trendUp
+          />
+          <StatCard
+            label="Total Views"
+            value={stats.views.toLocaleString('en-IN')}
+            sub="Across all listings"
+            icon={<Eye className="h-5 w-5 text-sky-600" />}
+            iconBg="bg-sky-100"
+          />
+          {/* Buyer requests — interactive stat card */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('buyers')}
             className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+              'flex flex-col gap-4 rounded-2xl border p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
               pendingBuyerCount
-                ? 'bg-amber-100 text-amber-700'
-                : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+                ? 'border-indigo-200 bg-indigo-50 hover:bg-indigo-100/80'
+                : 'border-[var(--color-border)] bg-white',
             )}
           >
-            <Users className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm text-[var(--color-muted-foreground)]">Buyer Requests</p>
-            {pendingBuyerCount === null ? (
-              <div className="mt-1 h-7 w-8 animate-pulse rounded bg-[var(--color-border)]" />
-            ) : (
-              <p className="text-2xl font-bold text-[var(--color-foreground)]">
-                {pendingBuyerCount}
+            <div className="flex items-start justify-between">
+              <div
+                className={cn(
+                  'flex h-11 w-11 items-center justify-center rounded-xl',
+                  pendingBuyerCount
+                    ? 'bg-indigo-100 text-indigo-600'
+                    : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+                )}
+              >
+                <Users className="h-5 w-5" />
+              </div>
+              {pendingBuyerCount ? (
+                <span className="flex items-center gap-0.5 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                  View all <ChevronRight className="h-3 w-3" aria-hidden="true" />
+                </span>
+              ) : null}
+            </div>
+            <div>
+              <p className="text-[13px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                Buyer Requests
               </p>
-            )}
-            {pendingBuyerCount ? (
-              <p className="mt-0.5 text-xs font-medium text-amber-700">Awaiting your response</p>
-            ) : (
-              <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
-                Pending requests
-              </p>
-            )}
-          </div>
-        </button>
-      </div>
-
-      <div
-        role="tablist"
-        aria-label="Filter listings"
-        className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1"
-      >
-        {TAB_VALUES.filter((tabValue) => {
-          // Always show All and buyers tab
-          if (tabValue === 'all' || tabValue === 'buyers') return true
-          // Hide listing-status tabs with zero items (keeps the bar clean)
-          return tabCounts[tabValue as Exclude<TabFilter, 'buyers'>] > 0 || activeTab === tabValue
-        }).map((tabValue) => {
-          const count =
-            tabValue !== 'buyers' ? tabCounts[tabValue as Exclude<TabFilter, 'buyers'>] : null
-          const buyerBadge = tabValue === 'buyers' && pendingBuyerCount ? pendingBuyerCount : null
-          return (
-            <button
-              key={tabValue}
-              role="tab"
-              aria-selected={activeTab === tabValue}
-              type="button"
-              onClick={() => setActiveTab(tabValue)}
-              className={cn(
-                'relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
-                activeTab === tabValue
-                  ? 'bg-white text-[var(--color-foreground)] shadow-sm'
-                  : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+              {pendingBuyerCount === null ? (
+                <div className="mt-1 h-8 w-10 animate-pulse rounded bg-[var(--color-border)]" />
+              ) : (
+                <p className="mt-1 text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
+                  {pendingBuyerCount}
+                </p>
               )}
-            >
-              {TAB_LABELS[tabValue]}
-              {count !== null && count > 0 ? (
-                <span
+              <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">Pending requests</p>
+            </div>
+          </button>
+        </div>
+      ) : null}
+
+      {/* Tab bar — Airbnb pill style */}
+      {personaState === 'seller' && (
+        <div className="flex items-center gap-2 border-b border-[var(--color-border)] pb-0">
+          <div
+            role="tablist"
+            aria-label="Filter listings"
+            className="flex gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {TAB_VALUES.filter((tabValue) => {
+              if (tabValue === 'all') return true
+              return tabCounts[tabValue] > 0 || activeTab === tabValue
+            }).map((tabValue) => {
+              const count = tabCounts[tabValue]
+              const isActive = activeTab === tabValue
+              return (
+                <button
+                  key={tabValue}
+                  role="tab"
+                  aria-selected={isActive}
+                  type="button"
+                  onClick={() => setActiveTab(tabValue)}
                   className={cn(
-                    'flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none',
-                    activeTab === tabValue
-                      ? 'bg-[var(--color-foreground)] text-white'
-                      : 'bg-[var(--color-border)] text-[var(--color-muted-foreground)]',
+                    'relative flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1',
+                    isActive
+                      ? 'text-[var(--color-foreground)]'
+                      : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
                   )}
                 >
-                  {count}
-                </span>
-              ) : null}
-              {buyerBadge ? (
-                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
-                  {buyerBadge > 99 ? '99+' : buyerBadge}
-                </span>
-              ) : null}
-            </button>
-          )
-        })}
-      </div>
+                  {TAB_LABELS[tabValue]}
+                  {count > 0 && (
+                    <span
+                      className={cn(
+                        'flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold',
+                        isActive
+                          ? 'bg-[var(--color-foreground)] text-white'
+                          : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+                      )}
+                    >
+                      {count}
+                    </span>
+                  )}
+                  {/* Active underline indicator */}
+                  {isActive && (
+                    <span
+                      className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[var(--color-foreground)]"
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Buyers tab — right-aligned with badge */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('buyers')}
+            className={cn(
+              'ml-auto flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-all',
+              activeTab === 'buyers'
+                ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
+                : 'border-[var(--color-border)] bg-white text-[var(--color-muted-foreground)] hover:border-indigo-200 hover:text-indigo-700',
+            )}
+          >
+            <Users className="h-4 w-4" aria-hidden="true" />
+            Buyers
+            {pendingBuyerCount ? (
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-bold leading-none text-white">
+                {pendingBuyerCount > 99 ? '99+' : pendingBuyerCount}
+              </span>
+            ) : null}
+          </button>
+        </div>
+      )}
 
       {activeTab === 'buyers' ? (
         <BuyersTabContent
@@ -988,9 +1553,12 @@ export default function DashboardPage() {
           statusFilter={interestStatusFilter}
           sort={interestSort}
           actionLoadingId={actionLoadingId}
+          interestSuccess={interestSuccess}
           onStatusFilter={setInterestStatusFilter}
           onSort={setInterestSort}
           onAction={handleInterestAction}
+          onDismissError={() => setInterestError(null)}
+          onDismissSuccess={() => setInterestSuccess(null)}
         />
       ) : loading ? (
         <div className="flex items-center justify-center py-24">
@@ -999,33 +1567,56 @@ export default function DashboardPage() {
       ) : filteredListings.length === 0 ? (
         <EmptyState
           tab={activeTab as Exclude<TabFilter, 'buyers'>}
+          personaState={personaState}
           onShowAll={() => setActiveTab('all')}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filteredListings.map((listing) => (
             <ListingCard
               key={listing.id}
               listing={listing}
               onDelete={handleDeleteListing}
+              onStatusChange={handleStatusChange}
               isDeleting={deletingId === listing.id}
+              statusChangingId={statusChangingId}
             />
           ))}
         </div>
       )}
 
-      <div className="fixed bottom-24 right-4 sm:hidden">
-        <Link
-          href="/sell"
-          aria-label="Create new listing"
-          className={cn(
-            'flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-foreground)] text-white shadow-lg',
-            'transition-transform hover:scale-105 active:scale-95',
-          )}
+      {/* FAB for mobile — only for sellers */}
+      {personaState === 'seller' && (
+        <div
+          className="fixed bottom-20 right-4 sm:hidden"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          <Plus className="h-6 w-6" />
-        </Link>
-      </div>
+          <Link
+            href="/sell"
+            aria-label="Create new listing"
+            className={cn(
+              'flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-foreground)] text-white shadow-lg',
+              'transition-transform hover:scale-105 active:scale-95',
+            )}
+          >
+            <Plus className="h-6 w-6" />
+          </Link>
+        </div>
+      )}
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
+        </div>
+      }
+    >
+      <DashboardPageInner />
+    </Suspense>
   )
 }
