@@ -1,6 +1,6 @@
 'use client'
 
-import { MapPin } from 'lucide-react'
+import { AlertCircle, MapPin } from 'lucide-react'
 
 import { LocalityCombobox } from '@/components/forms/locality-combobox'
 import { getLocalitiesForCity, type LocalityOption } from '@/lib/localities'
@@ -44,31 +44,29 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
 
   const handleCityChange = (value: string) => {
     const cityOption = CITIES.find((c) => c.value === value)
-    // Clear locality and pincode when city changes — they belong to the old city
-    setLocation({
-      city: value,
-      state: cityOption?.state ?? '',
-      locality: '',
-      pincode: '',
-    })
+    setLocation({ city: value, state: cityOption?.state ?? '', locality: '', pincode: '' })
   }
 
   const handleLocalitySelect = (option: LocalityOption | null) => {
     if (!option) {
-      // User cleared or is mid-type — clear locality only
       setLocation({ locality: '' })
       return
     }
-    // Auto-fill locality name, pincode (if available), and city (if not already set)
+    // Always write pincode — clears stale value when locality has no pincode
     setLocation({
       locality: option.name,
-      ...(option.pincode ? { pincode: option.pincode } : {}),
+      pincode: option.pincode ?? '',
       ...(option.city && !location.city ? { city: option.city } : {}),
     })
   }
 
   const localities = getLocalitiesForCity(location.city)
-  const hasLocalityList = localities.length > 0
+
+  // Determine if selected locality is curated (has a pincode from the list)
+  const selectedLocality = localities.find((l) => l.name === location.locality)
+  const localityIsCustom = location.locality.trim() !== '' && !selectedLocality
+  const localityHasAutofill =
+    location.locality.trim() !== '' && !!selectedLocality && !!location.pincode
 
   return (
     <div className="space-y-6">
@@ -122,59 +120,46 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           </div>
         )}
 
-        {/* Locality — combobox when city has a curated list, plain input otherwise */}
+        {/* Locality */}
         <div className="space-y-1.5">
           <label htmlFor="locality" className={labelClass}>
             Locality / Area <span className="text-destructive">*</span>
           </label>
 
-          {hasLocalityList ? (
-            <>
-              <LocalityCombobox
-                localities={localities}
-                value={location.locality}
-                onChange={handleLocalitySelect}
-                hasError={localityMissing}
-                disabled={!location.city}
-                placeholder={
-                  location.city ? `Search localities in ${location.city}…` : 'Select a city first'
-                }
-              />
-              {localityMissing && (
-                <p role="alert" className="text-destructive text-xs">
-                  Please enter your locality or area.
-                </p>
-              )}
-              {location.locality && location.pincode && (
-                <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                  <MapPin className="h-3 w-3" />
-                  Pincode auto-filled:{' '}
-                  <span className="text-foreground font-medium">{location.pincode}</span>
-                </p>
-              )}
-            </>
-          ) : (
-            <>
-              <input
-                id="locality"
-                type="text"
-                placeholder="e.g. Koramangala, Bandra West, Sector 62"
-                value={location.locality}
-                onChange={(e) => setLocation({ locality: e.target.value })}
-                aria-invalid={localityMissing ? 'true' : undefined}
-                className={cn(
-                  inputBase,
-                  localityMissing
-                    ? 'border-destructive focus:border-destructive'
-                    : 'border-border focus:border-primary',
-                )}
-              />
-              {localityMissing && (
-                <p role="alert" className="text-destructive text-xs">
-                  Please enter your locality or area.
-                </p>
-              )}
-            </>
+          <LocalityCombobox
+            localities={localities}
+            value={location.locality}
+            onChange={handleLocalitySelect}
+            hasError={localityMissing}
+            disabled={!location.city}
+            placeholder={
+              location.city
+                ? `Search or type your area in ${location.city}…`
+                : 'Select a city first'
+            }
+          />
+
+          {localityMissing && (
+            <p role="alert" className="text-destructive text-xs">
+              Please enter your locality or area.
+            </p>
+          )}
+
+          {/* Pincode auto-filled */}
+          {localityHasAutofill && (
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+              <MapPin className="h-3 w-3" />
+              Pincode auto-filled:{' '}
+              <span className="text-foreground font-medium">{location.pincode}</span>
+            </p>
+          )}
+
+          {/* Custom locality — prompt user to enter pincode manually */}
+          {localityIsCustom && (
+            <p className="flex items-center gap-1 text-xs text-amber-600">
+              <AlertCircle className="h-3 w-3 shrink-0" />
+              This area isn&apos;t in our list — please enter the pincode below.
+            </p>
           )}
         </div>
 
@@ -193,10 +178,13 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           />
         </div>
 
-        {/* Pincode — editable even when auto-filled */}
+        {/* Pincode */}
         <div className="space-y-1.5">
           <label htmlFor="pincode" className={labelClass}>
             Pincode <span className="text-destructive">*</span>
+            {localityIsCustom && (
+              <span className="ml-1 font-normal text-amber-600">(required)</span>
+            )}
           </label>
           <input
             id="pincode"
@@ -214,7 +202,9 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
               inputBase,
               pincodeMissing
                 ? 'border-destructive focus:border-destructive'
-                : 'border-border focus:border-primary',
+                : localityIsCustom && !location.pincode
+                  ? 'border-amber-400 focus:border-amber-500'
+                  : 'border-border focus:border-primary',
             )}
           />
           {pincodeMissing && (
