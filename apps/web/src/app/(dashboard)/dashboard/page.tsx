@@ -19,6 +19,9 @@ import {
   IndianRupee,
   ChevronRight,
   Pencil,
+  BedDouble,
+  Bath,
+  Maximize2,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -185,31 +188,28 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, icon, iconBg, trend, trendUp }: StatCardProps) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-start justify-between">
-        <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl', iconBg)}>
-          {icon}
-        </div>
-        {trend && (
-          <span
-            className={cn(
-              'flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold',
-              trendUp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600',
-            )}
-          >
-            {trendUp ? '↑' : '↓'} {trend}
-          </span>
-        )}
+    <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', iconBg)}>
+        {icon}
       </div>
-      <div>
-        <p className="text-[13px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
-          {label}
-        </p>
-        <p className="mt-1 text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">{label}</p>
+        <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
           {value}
         </p>
-        {sub && <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">{sub}</p>}
+        {sub && <p className="text-[11px] text-[var(--color-muted-foreground)]">{sub}</p>}
       </div>
+      {trend && (
+        <span
+          className={cn(
+            'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+            trendUp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600',
+          )}
+        >
+          {trendUp ? '↑' : '↓'}
+          {trend}
+        </span>
+      )}
     </div>
   )
 }
@@ -251,22 +251,22 @@ function ListingCard({
   }, [confirmDelete, confirmSold])
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-      {/* ── Image ── */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-muted)]">
+    <article className="group overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm transition-all duration-200 hover:shadow-md">
+      {/* ── Image — 16:9 ratio matching Deli-Prop ── */}
+      <div className="relative aspect-video overflow-hidden bg-[var(--color-muted)]">
         {cover ? (
           <Image
             src={cover}
             alt={listing.title}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-[var(--color-muted-foreground)]">
+          <div className="flex h-full flex-col items-center justify-center gap-1.5 text-[var(--color-muted-foreground)]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-10 w-10 opacity-30"
+              className="h-8 w-8 opacity-25"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -278,31 +278,31 @@ function ListingCard({
                 d="M3 9.75L12 3l9 6.75V21H3V9.75z"
               />
             </svg>
-            <span className="text-xs opacity-40">No image</span>
+            <span className="text-[11px] opacity-30">No image</span>
           </div>
         )}
-        {/* Status pill — Airbnb dot style */}
+        {/* Status pill */}
         <span
           className={cn(
-            'absolute left-3 top-3 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm backdrop-blur-sm',
+            'absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm backdrop-blur-sm',
             statusConfig.className,
           )}
         >
           <span className={cn('h-1.5 w-1.5 rounded-full', statusConfig.dot)} aria-hidden="true" />
           {statusConfig.label}
         </span>
-        {/* View count badge top-right */}
-        <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
-          <Eye className="h-3 w-3" aria-hidden="true" />
+        {/* View count */}
+        <span className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+          <Eye className="h-2.5 w-2.5" aria-hidden="true" />
           {listing.viewCount}
         </span>
       </div>
 
-      {/* ── Body ── */}
-      <div className="p-4">
-        {/* Title + price row */}
+      {/* ── Body — tight padding ── */}
+      <div className="p-3">
+        {/* Title + price */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-1 text-sm font-semibold leading-snug text-[var(--color-foreground)]">
+          <h3 className="line-clamp-1 text-sm font-semibold text-[var(--color-foreground)]">
             {listing.title}
           </h3>
           <p className="shrink-0 text-sm font-bold text-[var(--color-accent)]">
@@ -311,39 +311,39 @@ function ListingCard({
         </div>
 
         {/* Location */}
-        <div className="mt-1 flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
-          <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
+          <MapPin className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
           <span className="truncate">
             {listing.locality}, {listing.city}
           </span>
         </div>
 
-        {/* Rejection reason banner */}
+        {/* Rejection reason */}
         {listing.status === 'REJECTED' && listing.rejectionReason && (
-          <div className="mt-3 flex items-start gap-1.5 rounded-xl bg-red-50 px-3 py-2.5 text-xs text-red-700">
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <div className="mt-2 flex items-start gap-1 rounded-lg bg-red-50 px-2.5 py-2 text-[11px] text-red-700">
+            <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
             <span>{listing.rejectionReason}</span>
           </div>
         )}
 
-        {/* Metadata strip */}
+        {/* Metadata strip — Deli-Prop style with Lucide icons */}
         {(listing.bhkType ?? listing.builtUpArea) && (
-          <div className="mt-3 flex items-center gap-3 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-muted-foreground)]">
+          <div className="mt-2.5 flex items-center gap-3 border-t border-[var(--color-border)] pt-2.5 text-[11px] text-[var(--color-muted-foreground)]">
             {listing.bhkType && (
               <span className="flex items-center gap-1">
-                <span aria-hidden="true">🛏</span>
+                <BedDouble className="h-3 w-3 shrink-0" aria-hidden="true" />
                 {listing.bhkType.replace('_BHK', ' BHK').replace('_RK', ' RK')}
               </span>
             )}
             {listing.bathrooms !== null && listing.bathrooms > 0 && (
               <span className="flex items-center gap-1">
-                <span aria-hidden="true">🚿</span>
+                <Bath className="h-3 w-3 shrink-0" aria-hidden="true" />
                 {listing.bathrooms}
               </span>
             )}
             {listing.builtUpArea ? (
               <span className="flex items-center gap-1">
-                <span aria-hidden="true">📐</span>
+                <Maximize2 className="h-3 w-3 shrink-0" aria-hidden="true" />
                 {listing.builtUpArea.toLocaleString('en-IN')} sqft
               </span>
             ) : null}
@@ -351,22 +351,22 @@ function ListingCard({
         )}
 
         {/* ── Primary action row ── */}
-        <div className="mt-4 flex gap-2">
+        <div className="mt-3 flex gap-1.5">
           {listing.status === 'ACTIVE' && (
             <>
               <Link
                 href={`/listing/${listing.id}`}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
                 title="View public listing"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
               <Link
                 href={`/dashboard/listings/${listing.id}/edit`}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] py-2 text-xs font-semibold text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+                className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
               >
                 <Pencil className="h-3 w-3" aria-hidden="true" />
-                Edit listing
+                Edit
               </Link>
             </>
           )}
@@ -374,7 +374,7 @@ function ListingCard({
           {listing.status === 'DRAFT' && (
             <Link
               href={`/sell?draftId=${listing.id}`}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
             >
               Resume Draft
             </Link>
@@ -384,7 +384,7 @@ function ListingCard({
             <>
               <Link
                 href={`/listing/${listing.id}`}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
                 title="View listing"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
@@ -393,12 +393,12 @@ function ListingCard({
                 type="button"
                 disabled={isBusy}
                 onClick={() => void onStatusChange(listing.id, 'REACTIVATE')}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-green-400 bg-green-50 py-2 text-xs font-semibold text-green-700 transition-colors hover:bg-green-100 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-green-400 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-50 disabled:opacity-50"
               >
                 {isBusy ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                  <PlayCircle className="h-3 w-3" aria-hidden="true" />
                 )}
                 Reactivate
               </button>
@@ -409,14 +409,14 @@ function ListingCard({
             <>
               <Link
                 href={`/listing/${listing.id}`}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
                 title="View listing"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
               <Link
                 href={`/sell?draftId=${listing.id}`}
-                className="flex flex-1 items-center justify-center rounded-xl bg-[var(--color-foreground)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                className="flex flex-1 items-center justify-center rounded-lg bg-[var(--color-foreground)] py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
               >
                 Edit &amp; Resubmit
               </Link>
@@ -428,21 +428,21 @@ function ListingCard({
               type="button"
               disabled={isBusy}
               onClick={() => void onStatusChange(listing.id, 'WITHDRAW_REVIEW')}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] py-2 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] disabled:opacity-50"
             >
               {isBusy ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />
+                <Undo2 className="h-3 w-3" aria-hidden="true" />
               )}
-              Withdraw Review
+              Withdraw
             </button>
           )}
 
           {listing.status === 'SOLD' && (
             <Link
               href={`/listing/${listing.id}`}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] py-2 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
             >
               <ExternalLink className="h-3 w-3" aria-hidden="true" />
               View listing
@@ -455,7 +455,7 @@ function ListingCard({
           listing.status === 'INACTIVE' ||
           listing.status === 'DRAFT' ||
           listing.status === 'REJECTED') && (
-          <div className="mt-3 flex items-center gap-3 border-t border-[var(--color-border)] pt-3">
+          <div className="mt-2.5 flex items-center gap-3 border-t border-[var(--color-border)] pt-2.5">
             {listing.status === 'ACTIVE' &&
               (confirmSold ? (
                 <div className="flex items-center gap-2">
@@ -1310,28 +1310,28 @@ function DashboardPageInner() {
       : 'Manage and track your property listings'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* ── Page header ── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div>
           {personaState === 'loading' ? (
-            <div className="h-8 w-44 animate-pulse rounded-lg bg-[var(--color-border)]" />
+            <div className="h-7 w-40 animate-pulse rounded-lg bg-[var(--color-border)]" />
           ) : (
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-3xl">
+            <h1 className="text-xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-2xl">
               {pageTitle}
             </h1>
           )}
-          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{pageSubtitle}</p>
+          <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">{pageSubtitle}</p>
         </div>
         {personaState === 'seller' && (
           <Link
             href="/sell"
             className={cn(
-              'hidden shrink-0 items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white sm:flex',
-              'shadow-sm transition-all hover:opacity-90 hover:shadow-md',
+              'hidden shrink-0 items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-4 py-2 text-sm font-semibold text-white sm:flex',
+              'transition-opacity hover:opacity-90',
             )}
           >
-            <Plus className="h-4 w-4" />+ New listing
+            <Plus className="h-4 w-4" /> New listing
           </Link>
         )}
       </div>
@@ -1395,7 +1395,7 @@ function DashboardPageInner() {
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="h-32 animate-pulse rounded-2xl border border-[var(--color-border)] bg-white"
+              className="h-16 animate-pulse rounded-xl border border-[var(--color-border)] bg-white"
             />
           ))}
         </div>
@@ -1405,14 +1405,14 @@ function DashboardPageInner() {
             label="Total Listings"
             value={stats.total}
             sub="All time"
-            icon={<LayoutGrid className="h-5 w-5 text-violet-600" />}
+            icon={<LayoutGrid className="h-4 w-4 text-violet-600" />}
             iconBg="bg-violet-100"
           />
           <StatCard
             label="Active"
             value={stats.active}
             sub="Currently live"
-            icon={<TrendingUp className="h-5 w-5 text-green-600" />}
+            icon={<TrendingUp className="h-4 w-4 text-green-600" />}
             iconBg="bg-green-100"
             trend={stats.active > 0 ? 'Live' : undefined}
             trendUp
@@ -1421,50 +1421,46 @@ function DashboardPageInner() {
             label="Total Views"
             value={stats.views.toLocaleString('en-IN')}
             sub="Across all listings"
-            icon={<Eye className="h-5 w-5 text-sky-600" />}
+            icon={<Eye className="h-4 w-4 text-sky-600" />}
             iconBg="bg-sky-100"
           />
-          {/* Buyer requests — interactive stat card */}
+          {/* Buyer requests — compact interactive card matching StatCard height */}
           <button
             type="button"
             onClick={() => setActiveTab('buyers')}
             className={cn(
-              'flex flex-col gap-4 rounded-2xl border p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+              'flex items-center gap-3 rounded-xl border p-4 text-left shadow-sm transition-shadow hover:shadow-md',
               pendingBuyerCount
-                ? 'border-indigo-200 bg-indigo-50 hover:bg-indigo-100/80'
+                ? 'border-indigo-200 bg-indigo-50'
                 : 'border-[var(--color-border)] bg-white',
             )}
           >
-            <div className="flex items-start justify-between">
-              <div
-                className={cn(
-                  'flex h-11 w-11 items-center justify-center rounded-xl',
-                  pendingBuyerCount
-                    ? 'bg-indigo-100 text-indigo-600'
-                    : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
-                )}
-              >
-                <Users className="h-5 w-5" />
-              </div>
-              {pendingBuyerCount ? (
-                <span className="flex items-center gap-0.5 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
-                  View all <ChevronRight className="h-3 w-3" aria-hidden="true" />
-                </span>
-              ) : null}
+            <div
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                pendingBuyerCount
+                  ? 'bg-indigo-100 text-indigo-600'
+                  : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+              )}
+            >
+              <Users className="h-4 w-4" />
             </div>
-            <div>
-              <p className="text-[13px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
                 Buyer Requests
               </p>
               {pendingBuyerCount === null ? (
-                <div className="mt-1 h-8 w-10 animate-pulse rounded bg-[var(--color-border)]" />
+                <div className="mt-0.5 h-5 w-8 animate-pulse rounded bg-[var(--color-border)]" />
               ) : (
-                <p className="mt-1 text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
+                <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
                   {pendingBuyerCount}
                 </p>
               )}
-              <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">Pending requests</p>
+              <p className="text-[11px] text-[var(--color-muted-foreground)]">Pending</p>
             </div>
+            {pendingBuyerCount ? (
+              <ChevronRight className="h-4 w-4 shrink-0 text-indigo-400" aria-hidden="true" />
+            ) : null}
           </button>
         </div>
       ) : null}
