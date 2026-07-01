@@ -48,6 +48,7 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
   const pricePerSqFt = getPricePerSqFt(rawPrice, details.builtUpArea)
 
   const priceMissing = showErrors && rawPrice <= 0
+  const priceTooLow = showErrors && rawPrice > 0 && rawPrice < 100_000
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digits = e.target.value.replace(/\D/g, '')
@@ -80,12 +81,12 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
             placeholder="0"
             value={pricing.price}
             onChange={handlePriceChange}
-            aria-invalid={priceMissing ? 'true' : undefined}
-            aria-describedby={priceMissing ? 'price-error' : undefined}
+            aria-invalid={priceMissing || priceTooLow ? 'true' : undefined}
+            aria-describedby={priceMissing || priceTooLow ? 'price-error' : undefined}
             className={cn(
               inputBase,
               'pl-8 text-xl font-semibold tracking-tight',
-              priceMissing
+              priceMissing || priceTooLow
                 ? 'border-destructive focus:border-destructive'
                 : 'border-border focus:border-primary',
             )}
@@ -95,6 +96,11 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
         {priceMissing && (
           <p id="price-error" role="alert" className="text-destructive text-xs">
             Please enter your asking price.
+          </p>
+        )}
+        {priceTooLow && (
+          <p id="price-error" role="alert" className="text-destructive text-xs">
+            Minimum listing price is ₹1 Lakh. Please check your entry.
           </p>
         )}
 

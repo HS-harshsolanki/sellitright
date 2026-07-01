@@ -117,6 +117,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
 
   const bhkMissing = showErrors && !details.bhkType
   const areaMissing = showErrors && !details.builtUpArea
+  const furnishingMissing = showErrors && !details.furnishing
 
   const toggleAmenity = (amenity: string) => {
     const current = details.amenities
@@ -276,7 +277,9 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
 
       {/* Furnishing */}
       <fieldset className="space-y-3">
-        <legend className={labelClass}>Furnishing Status</legend>
+        <legend className={labelClass}>
+          Furnishing Status <span className="text-destructive">*</span>
+        </legend>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {FURNISHING_OPTIONS.map((opt) => {
             const isSelected = details.furnishing === opt.value
@@ -291,7 +294,9 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
                   'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                   isSelected
                     ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/40',
+                    : furnishingMissing
+                      ? 'border-destructive/60 hover:border-primary/40'
+                      : 'border-border hover:border-primary/40',
                 )}
               >
                 <p
@@ -307,6 +312,11 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
             )
           })}
         </div>
+        {furnishingMissing && (
+          <p role="alert" className="text-destructive text-xs">
+            Please select furnishing status.
+          </p>
+        )}
       </fieldset>
 
       {/* Counters */}

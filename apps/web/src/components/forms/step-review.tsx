@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle2, Edit2, Loader2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Edit2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -128,16 +128,48 @@ function buildAutoDescription(
 
 type SubmitState = 'idle' | 'loading' | 'success' | 'error'
 
+interface IncompleteField {
+  label: string
+  stepIndex: number
+}
+
 interface StepReviewProps {
   /** If a draft was autosaved, we patch it to PENDING_REVIEW instead of creating a new record */
   draftId?: string | null
+  /** Whether the seller has a valid phone number on file. Blocks submission if false. */
+  hasPhone?: boolean
 }
 
-export function StepReview({ draftId }: StepReviewProps) {
-  const { propertyType, location, details, photos, pricing, goToStep, reset } = useSellFormStore()
+export function StepReview({ draftId, hasPhone = true }: StepReviewProps) {
+  const { propertyType, location, details, photos, pricing, goToStep, reset, setSubmitted } =
+    useSellFormStore()
 
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  // Build a list of everything that would fail Zod validation at submit time
+  function getIncompleteFields(): IncompleteField[] {
+    const issues: IncompleteField[] = []
+    if (!propertyType) issues.push({ label: 'Property type not selected', stepIndex: 0 })
+    if (!location.city) issues.push({ label: 'City missing', stepIndex: 1 })
+    if (!location.locality.trim()) issues.push({ label: 'Locality / area missing', stepIndex: 1 })
+    if (location.pincode.length !== 6)
+      issues.push({ label: 'Pincode must be 6 digits', stepIndex: 1 })
+    if (!location.state) issues.push({ label: 'State missing', stepIndex: 1 })
+    if (!details.bhkType) issues.push({ label: 'BHK configuration not selected', stepIndex: 2 })
+    if (!details.builtUpArea) issues.push({ label: 'Built-up area missing', stepIndex: 2 })
+    if (!details.furnishing) issues.push({ label: 'Furnishing status not selected', stepIndex: 2 })
+    const rawPrice = Number(pricing.price.replace(/,/g, ''))
+    if (rawPrice < 100_000)
+      issues.push({
+        label: rawPrice <= 0 ? 'Asking price missing' : 'Price below ₹1 Lakh minimum',
+        stepIndex: 4,
+      })
+    return issues
+  }
+
+  const incompleteFields = getIncompleteFields()
+  const isReadyToSubmit = incompleteFields.length === 0
 
   const bhkLabel = details.bhkType ? (BHK_LABELS[details.bhkType] ?? '') : ''
   const propertyLabel = propertyType ? (PROPERTY_TYPE_LABELS[propertyType] ?? '') : ''
@@ -200,19 +232,29 @@ export function StepReview({ draftId }: StepReviewProps) {
 
       if (!res.ok) {
         console.error('[step-review] submit failed, status:', res.status)
+        const body = (await res.json().catch(() => ({}))) as { error?: string; action?: string }
         if (res.status === 401) {
-          setErrorMessage('Please sign in to submit your listing.')
+          setErrorMessage('You are not signed in. Please sign in and try again.')
+        } else if (res.status === 403) {
+          setErrorMessage('Your account is suspended. Please contact support.')
+        } else if (res.status === 422 && body.action === 'profile') {
+          setErrorMessage(
+            'Add a phone number to your profile before submitting. Buyers need it to contact you.',
+          )
         } else if (res.status === 400) {
-          setErrorMessage('Some details are missing or invalid. Please review your listing.')
+          setErrorMessage(
+            body.error ?? 'One or more fields failed validation. Please review each section.',
+          )
         } else {
-          setErrorMessage('Something went wrong. Please try again.')
+          setErrorMessage('Something went wrong on our end. Please try again in a moment.')
         }
         setSubmitState('error')
         return
       }
 
       setSubmitState('success')
-      // Clear any autosave error banner so it doesn't show on the success screen
+      // Mark as submitted so autosave stops firing (prevents "Draft save failed" on success screen)
+      setSubmitted(true)
       useSellFormStore.getState().setSaveStatus('idle')
       // reset() is deferred — called when user navigates away so the success screen stays visible
     } catch {
@@ -453,25 +495,61 @@ export function StepReview({ draftId }: StepReviewProps) {
 
       {/* Submit CTA */}
       <div className="space-y-3 pt-2">
-        <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+        {/* Missing fields banner — shown before first submit attempt */}
+        {!isReadyToSubmit && (
+          <div
+            role="alert"
+            className="border-destructive/30 bg-destructive/5 space-y-2 rounded-xl border px-4 py-3"
           >
-            <path
-              fillRule="evenodd"
-              d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
-              clipRule="evenodd"
-            />
-          </svg>
+            <p className="text-destructive flex items-center gap-2 text-sm font-semibold">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              Please fix the following before submitting:
+            </p>
+            <ul className="space-y-1">
+              {incompleteFields.map((f) => (
+                <li key={f.label} className="flex items-center justify-between text-xs">
+                  <span className="text-destructive/90">{f.label}</span>
+                  <button
+                    type="button"
+                    onClick={() => goToStep(f.stepIndex)}
+                    className="text-primary ml-4 shrink-0 font-medium underline underline-offset-2 hover:opacity-75"
+                  >
+                    Fix →
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* No-phone warning */}
+        {!hasPhone && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-900">
+                Add a phone number before submitting
+              </p>
+              <p className="mt-0.5 text-xs text-amber-800">
+                Buyers need your phone to contact you after paying ₹49.{' '}
+                <a href="/profile" className="font-medium underline underline-offset-2">
+                  Go to Profile →
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Review notice */}
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
           <p className="text-xs text-amber-800">
             Your listing will be reviewed by our team before going live. This usually takes less
             than 24 hours.
           </p>
         </div>
 
+        {/* API error */}
         {errorMessage && (
           <div
             role="alert"
@@ -484,12 +562,12 @@ export function StepReview({ draftId }: StepReviewProps) {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={submitState === 'loading'}
+          disabled={submitState === 'loading' || !hasPhone || !isReadyToSubmit}
           className={cn(
             'flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-white shadow-sm',
             'focus-visible:ring-ring transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-            submitState === 'loading'
-              ? 'bg-primary/70 cursor-not-allowed'
+            submitState === 'loading' || !hasPhone || !isReadyToSubmit
+              ? 'bg-primary/50 cursor-not-allowed'
               : 'bg-primary hover:bg-primary/90 active:scale-[0.99]',
           )}
         >

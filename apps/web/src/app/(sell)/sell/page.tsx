@@ -122,6 +122,8 @@ export default function SellPage() {
     if (isSaving.current) return
 
     const state = useSellFormStore.getState()
+    // Don't autosave once the listing has been submitted for review
+    if (state.submitted) return
     // Don't autosave until the user has at least picked a property type
     if (!state.propertyType) return
 
@@ -200,19 +202,21 @@ export default function SellPage() {
       case 'property-type':
         return propertyType !== null
       case 'location':
+        // address is optional — falls back to "locality, city" at submit time
         return Boolean(
           location.city &&
           location.locality.trim() &&
           location.pincode.length === 6 &&
-          location.address.trim() &&
           location.state,
         )
       case 'details':
-        return Boolean(details.bhkType && details.builtUpArea)
+        // furnishing is required by the API schema
+        return Boolean(details.bhkType && details.builtUpArea && details.furnishing)
       case 'photos':
         return true
       case 'pricing':
-        return Number(pricing.price.replace(/,/g, '')) > 0
+        // Minimum realistic price: ₹1 lakh
+        return Number(pricing.price.replace(/,/g, '')) >= 100_000
       case 'review':
         return false
       default:
@@ -246,8 +250,10 @@ export default function SellPage() {
         return <StepPhotos />
       case 'pricing':
         return <StepPricing showErrors={showErrors} />
-      case 'review':
-        return <StepReview draftId={draftId} />
+      case 'review': {
+        const hasPhone = !!(user?.user_metadata?.phone ?? user?.phone)
+        return <StepReview draftId={draftId} hasPhone={hasPhone} />
+      }
     }
   }
 
