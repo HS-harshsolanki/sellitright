@@ -1,6 +1,6 @@
 'use client'
 
-import { Share2, Heart } from 'lucide-react'
+import { Share2 } from 'lucide-react'
 import { useState } from 'react'
 
 interface ShareSaveButtonsProps {
@@ -9,7 +9,6 @@ interface ShareSaveButtonsProps {
 }
 
 export function ShareSaveButtons({ title, url }: ShareSaveButtonsProps) {
-  const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
 
   async function handleShare() {
@@ -35,17 +34,6 @@ export function ShareSaveButtons({ title, url }: ShareSaveButtonsProps) {
       >
         <Share2 className="h-4 w-4" aria-hidden="true" />
         {copied ? 'Copied!' : 'Share'}
-      </button>
-      <button
-        onClick={() => setSaved((s) => !s)}
-        className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium text-[var(--color-foreground)] transition hover:bg-[var(--color-muted)]"
-        aria-label={saved ? 'Remove from saved' : 'Save listing'}
-      >
-        <Heart
-          className={`h-4 w-4 ${saved ? 'fill-red-500 text-red-500' : ''}`}
-          aria-hidden="true"
-        />
-        {saved ? 'Saved' : 'Save'}
       </button>
     </div>
   )

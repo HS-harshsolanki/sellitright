@@ -162,6 +162,7 @@ export default async function LandingPage() {
                 <input
                   type="text"
                   name="q"
+                  required
                   placeholder="Search by city — Mumbai, Pune, Delhi..."
                   aria-label="Search by city"
                   className="focus:ring-[var(--color-primary)]/10 h-11 w-full rounded-lg border border-[var(--color-border)] bg-white pl-9 pr-4 text-sm text-[var(--color-foreground)] transition-[border-color,box-shadow] placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2"
