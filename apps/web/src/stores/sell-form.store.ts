@@ -47,24 +47,42 @@ export interface PricingData {
   description: string
 }
 
-export type SellStep = 'property-type' | 'location' | 'details' | 'photos' | 'pricing' | 'review'
+export type SellStep =
+  | 'property-type'
+  | 'city'
+  | 'bhk'
+  | 'area'
+  | 'furnishing'
+  | 'amenities'
+  | 'photos'
+  | 'price'
+  | 'address'
+  | 'review'
 
 export const SELL_STEPS: SellStep[] = [
   'property-type',
-  'location',
-  'details',
+  'city',
+  'bhk',
+  'area',
+  'furnishing',
+  'amenities',
   'photos',
-  'pricing',
+  'price',
+  'address',
   'review',
 ]
 
 export const STEP_LABELS: Record<SellStep, string> = {
-  'property-type': 'What type?',
-  location: 'Where is it?',
-  details: 'Tell us more',
-  photos: 'Add photos',
-  pricing: 'Set your price',
-  review: 'Review & publish',
+  'property-type': 'Property type',
+  city: 'City',
+  bhk: 'Bedrooms',
+  area: 'Area',
+  furnishing: 'Furnishing',
+  amenities: 'Amenities',
+  photos: 'Photos',
+  price: 'Price',
+  address: 'Location details',
+  review: 'Review',
 }
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'

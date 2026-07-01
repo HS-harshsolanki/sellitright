@@ -1,19 +1,23 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
-import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { CheckCircle2, Loader2 } from 'lucide-react'
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
-import { StepDetails } from '@/components/forms/step-details'
-import { StepLocation } from '@/components/forms/step-location'
+import { StepAddress } from '@/components/forms/step-address'
+import { StepAmenities } from '@/components/forms/step-amenities'
+import { StepArea } from '@/components/forms/step-area'
+import { StepBhk } from '@/components/forms/step-bhk'
+import { StepCity } from '@/components/forms/step-city'
+import { StepFurnishing } from '@/components/forms/step-furnishing'
 import { StepPhotos } from '@/components/forms/step-photos'
-import { StepPricing } from '@/components/forms/step-pricing'
+import { StepPrice } from '@/components/forms/step-price'
 import { StepPropertyType } from '@/components/forms/step-property-type'
 import { StepReview } from '@/components/forms/step-review'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
-import { cn } from '@/lib/utils'
 import { SELL_STEPS, STEP_LABELS, type SellStep, useSellFormStore } from '@/stores/sell-form.store'
 
 const pageVariants = {
@@ -36,7 +40,7 @@ const pageVariants = {
 function SaveIndicator({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
   if (status === 'idle') return null
   return (
-    <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+    <span className="flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)]">
       {status === 'saving' && (
         <>
           <Loader2 className="h-3 w-3 animate-spin" />
@@ -92,7 +96,6 @@ export default function SellPage() {
     currentStep,
     nextStep,
     prevStep,
-    goToStep,
     propertyType,
     location,
     details,
@@ -103,8 +106,10 @@ export default function SellPage() {
     setSaveStatus,
   } = store
 
+  const prefersReducedMotion = useReducedMotion()
   const [showErrors, setShowErrors] = useState(false)
   const [saveErrorIsAuth, setSaveErrorIsAuth] = useState(false)
+  const [direction, setDirection] = useState(1)
 
   const currentIndex = SELL_STEPS.indexOf(currentStep)
   const totalSteps = SELL_STEPS.length
@@ -112,6 +117,7 @@ export default function SellPage() {
 
   const isFirstStep = currentIndex === 0
   const isReviewStep = currentStep === 'review'
+  const isLastBeforeReview = currentIndex === SELL_STEPS.length - 2
 
   // ── Autosave ─────────────────────────────────────────────────────────────────
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -199,20 +205,24 @@ export default function SellPage() {
     switch (currentStep) {
       case 'property-type':
         return propertyType !== null
-      case 'location':
-        return Boolean(
-          location.city &&
-          location.locality.trim() &&
-          location.pincode.length === 6 &&
-          location.address.trim() &&
-          location.state,
-        )
-      case 'details':
-        return Boolean(details.bhkType && details.builtUpArea)
+      case 'city':
+        return Boolean(location.city)
+      case 'bhk':
+        return Boolean(details.bhkType)
+      case 'area':
+        return Boolean(details.builtUpArea)
+      case 'furnishing':
+        return true // optional
+      case 'amenities':
+        return true // optional
       case 'photos':
-        return true
-      case 'pricing':
+        return true // optional
+      case 'price':
         return Number(pricing.price.replace(/,/g, '')) > 0
+      case 'address':
+        return Boolean(
+          location.locality.trim() && location.pincode.length === 6 && location.address.trim(),
+        )
       case 'review':
         return false
       default:
@@ -223,6 +233,7 @@ export default function SellPage() {
   function handleNext() {
     if (canProceed()) {
       setShowErrors(false)
+      setDirection(1)
       nextStep()
     } else {
       setShowErrors(true)
@@ -231,6 +242,7 @@ export default function SellPage() {
 
   function handlePrev() {
     setShowErrors(false)
+    setDirection(-1)
     prevStep()
   }
 
@@ -238,179 +250,110 @@ export default function SellPage() {
     switch (step) {
       case 'property-type':
         return <StepPropertyType showErrors={showErrors} />
-      case 'location':
-        return <StepLocation showErrors={showErrors} />
-      case 'details':
-        return <StepDetails showErrors={showErrors} />
+      case 'city':
+        return <StepCity showErrors={showErrors} />
+      case 'bhk':
+        return <StepBhk showErrors={showErrors} />
+      case 'area':
+        return <StepArea showErrors={showErrors} />
+      case 'furnishing':
+        return <StepFurnishing showErrors={showErrors} />
+      case 'amenities':
+        return <StepAmenities showErrors={showErrors} />
       case 'photos':
         return <StepPhotos />
-      case 'pricing':
-        return <StepPricing showErrors={showErrors} />
+      case 'price':
+        return <StepPrice showErrors={showErrors} />
+      case 'address':
+        return <StepAddress showErrors={showErrors} />
       case 'review':
         return <StepReview draftId={draftId} />
     }
   }
 
-  const nextLabel = currentIndex === totalSteps - 2 ? 'Review' : 'Next'
+  // Suppress unused warning — saveErrorIsAuth is used in the error banner below
+  void saveErrorIsAuth
+  void user
 
   return (
-    <>
-      {/* Progress bar */}
-      <div className="mb-8 space-y-3">
-        {/* Step labels — shown on sm+ */}
-        <div className="hidden items-center gap-0 sm:flex">
-          {SELL_STEPS.map((step, idx) => {
-            const isActive = step === currentStep
-            const isPast = idx < currentIndex
-
-            return (
-              <div key={step} className="flex flex-1 items-center">
-                <div className="flex flex-col items-center gap-1">
-                  {isPast ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowErrors(false)
-                        goToStep(idx)
-                      }}
-                      aria-label={`Go back to ${STEP_LABELS[step]}`}
-                      className={cn(
-                        'flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold',
-                        'border-primary bg-primary text-white',
-                        'focus-visible:ring-ring cursor-pointer transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                      )}
-                    >
-                      <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  ) : (
-                    <div
-                      className={cn(
-                        'flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-all',
-                        isActive
-                          ? 'border-primary bg-primary text-white'
-                          : 'border-border text-muted-foreground bg-white',
-                      )}
-                    >
-                      {idx + 1}
-                    </div>
-                  )}
-                  <span
-                    className={cn(
-                      'whitespace-nowrap text-xs',
-                      isActive
-                        ? 'text-foreground font-semibold'
-                        : isPast
-                          ? 'text-muted-foreground hover:text-foreground cursor-pointer'
-                          : 'text-muted-foreground',
-                    )}
-                  >
-                    {STEP_LABELS[step]}
-                  </span>
-                </div>
-                {idx < SELL_STEPS.length - 1 && (
-                  <div
-                    className={cn(
-                      'mb-5 h-0.5 flex-1 transition-colors',
-                      isPast ? 'bg-primary' : 'bg-border',
-                    )}
-                  />
-                )}
-              </div>
-            )
-          })}
+    <div className="flex min-h-screen flex-col bg-white">
+      {/* TOP BAR — Airbnb style */}
+      <header className="flex h-16 items-center justify-between border-b border-[var(--color-border)] px-6">
+        {/* Left: step label as back context */}
+        <div className="w-32 text-sm text-[var(--color-muted-foreground)]">
+          {STEP_LABELS[currentStep]}
         </div>
 
-        {/* Mobile: progress bar + step counter */}
-        <div className="sm:hidden">
-          <div className="mb-2 flex items-center justify-between text-xs">
-            {!isFirstStep ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowErrors(false)
-                  goToStep(currentIndex - 1)
-                }}
-                className="text-foreground hover:text-primary focus-visible:ring-ring flex items-center gap-1 rounded font-medium focus-visible:outline-none focus-visible:ring-2"
-                aria-label="Go back to previous step"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                {STEP_LABELS[currentStep]}
-              </button>
-            ) : (
-              <span className="text-foreground font-medium">{STEP_LABELS[currentStep]}</span>
-            )}
-            <span className="text-muted-foreground">
-              Step {currentIndex + 1} of {totalSteps}
-            </span>
-          </div>
-          <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-            <motion.div
-              className="bg-primary h-full rounded-full"
-              animate={{ width: `${progressPct}%` }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-            />
-          </div>
+        {/* Center: step counter */}
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <span className="text-[var(--color-muted-foreground)]">{STEP_LABELS[currentStep]}</span>
+          <span className="text-[var(--color-muted-foreground)]">·</span>
+          <span>
+            Step {currentIndex + 1} of {SELL_STEPS.length - 1}
+          </span>
         </div>
 
-        {/* Autosave indicator */}
-        <div className="flex items-center justify-between">
-          <div>
-            {saveStatus === 'error' && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
-                <span className="font-medium">Draft not saved</span>
-                {!user || saveErrorIsAuth ? (
-                  <span className="text-amber-600">— sign in to enable autosave</span>
-                ) : (
-                  <span className="text-amber-600">— will retry automatically</span>
-                )}
-              </div>
-            )}
-          </div>
+        {/* Right: save and autosave indicator */}
+        <div className="flex w-32 items-center justify-end gap-3">
           <SaveIndicator status={saveStatus} />
-        </div>
-      </div>
-
-      {/* Step content with animated transitions */}
-      <div className="min-h-[60vh]">
-        <AnimatePresence mode="wait" custom={currentIndex}>
-          <motion.div
-            key={currentStep}
-            custom={currentIndex}
-            variants={pageVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
+          <Link
+            href="/"
+            className="rounded-full border border-[var(--color-border)] px-4 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--color-muted)]"
           >
-            {renderStep(currentStep)}
-          </motion.div>
-        </AnimatePresence>
+            Save &amp; exit
+          </Link>
+        </div>
+      </header>
+
+      {/* Slim progress bar below header */}
+      <div className="h-0.5 w-full bg-[var(--color-muted)]">
+        <motion.div
+          className="h-full bg-[var(--color-primary)]"
+          animate={{ width: `${progressPct}%` }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        />
       </div>
 
-      {/* Navigation */}
-      {!isReviewStep && (
-        <div
-          className={cn(
-            'border-border pb-safe fixed bottom-0 left-0 right-0 z-40 border-t bg-white/95 p-4 backdrop-blur-sm',
-            'sm:static sm:mt-12 sm:border-none sm:bg-transparent sm:p-0 sm:pb-0 sm:backdrop-blur-none',
+      {/* Autosave error banner */}
+      {saveStatus === 'error' && (
+        <div className="flex items-center justify-center gap-1.5 border-b border-amber-200 bg-amber-50 px-6 py-2 text-xs text-amber-800">
+          <span className="font-medium">Draft not saved</span>
+          {!user || saveErrorIsAuth ? (
+            <span className="text-amber-600">— sign in to enable autosave</span>
+          ) : (
+            <span className="text-amber-600">— will retry automatically</span>
           )}
-        >
-          <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
+        </div>
+      )}
+
+      {/* CONTENT — centered in viewport */}
+      <main className="flex flex-1 items-start justify-center overflow-y-auto px-6 py-12 sm:items-center sm:py-16">
+        <div className="w-full max-w-3xl">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={currentStep}
+              custom={direction}
+              variants={prefersReducedMotion ? undefined : pageVariants}
+              initial={prefersReducedMotion ? false : 'enter'}
+              animate={prefersReducedMotion ? false : 'center'}
+              exit={prefersReducedMotion ? undefined : 'exit'}
+            >
+              {renderStep(currentStep)}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </main>
+
+      {/* BOTTOM NAV — Airbnb style: full width */}
+      {!isReviewStep && (
+        <footer className="border-t border-[var(--color-border)] bg-white px-8 py-5">
+          <div className="mx-auto flex max-w-5xl items-center justify-between">
             {!isFirstStep ? (
               <button
                 type="button"
                 onClick={handlePrev}
-                className={cn(
-                  'border-border text-foreground flex items-center gap-1.5 rounded-xl border px-5 py-3 text-sm font-semibold',
-                  'hover:bg-muted focus-visible:ring-ring transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                )}
+                className="rounded-full border border-[var(--color-border)] px-7 py-3 text-sm font-semibold underline transition-colors hover:bg-[var(--color-muted)]"
               >
-                <ChevronLeft className="h-4 w-4" />
                 Back
               </button>
             ) : (
@@ -420,21 +363,13 @@ export default function SellPage() {
             <button
               type="button"
               onClick={handleNext}
-              className={cn(
-                'flex items-center gap-1.5 rounded-xl px-6 py-3 text-sm font-bold text-white',
-                'focus-visible:ring-ring transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                'bg-primary hover:bg-primary/90 shadow-sm active:scale-[0.98]',
-              )}
+              className="rounded-full bg-[var(--color-foreground)] px-8 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
             >
-              {nextLabel}
-              <ChevronRight className="h-4 w-4" />
+              {isLastBeforeReview ? 'Review listing' : 'Next'}
             </button>
           </div>
-        </div>
+        </footer>
       )}
-
-      {/* Bottom padding on mobile for fixed nav */}
-      {!isReviewStep && <div className="h-24 sm:hidden" aria-hidden="true" />}
-    </>
+    </div>
   )
 }
