@@ -91,13 +91,14 @@ export async function POST(request: NextRequest) {
 
   const sellerAuth = await admin.auth.admin.getUserById(interest.seller_id)
   const sellerPhone =
-    sellerAuth.data.user?.phone ?? sellerAuth.data.user?.user_metadata?.phone ?? null
+    sellerAuth.data.user?.user_metadata?.phone ?? sellerAuth.data.user?.phone ?? null
+  const sellerPhoneVerified = sellerAuth.data.user?.user_metadata?.phone_verified === true
 
-  if (!sellerPhone) {
+  if (!sellerPhone || !sellerPhoneVerified) {
     return NextResponse.json(
       {
         error:
-          'The seller has not added a phone number yet. They need to update their profile before you can unlock their contact.',
+          'The seller has not verified their phone number yet. Contact support if this persists.',
       },
       { status: 422 },
     )

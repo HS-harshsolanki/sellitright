@@ -37,6 +37,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Phone gate — seller must have a verified WhatsApp number before posting
+    const { data: sellerAuth } = await admin.auth.admin.getUserById(user.id)
+    const phoneVerified = sellerAuth.user?.user_metadata?.phone_verified === true
+    const rawPhone = sellerAuth.user?.user_metadata?.phone ?? sellerAuth.user?.phone ?? null
+    const normalizePhone = (raw: string) => {
+      const digits = raw.replace(/\D/g, '')
+      if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2)
+      if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1)
+      return digits
+    }
+    const sellerPhone = rawPhone ? normalizePhone(rawPhone) : null
+
+    if (!sellerPhone || !/^[6-9]\d{9}$/.test(sellerPhone)) {
+      return NextResponse.json(
+        {
+          error: 'Verify your WhatsApp number in your profile before posting a property.',
+          action: 'profile',
+        },
+        { status: 422 },
+      )
+    }
+
+    if (!phoneVerified) {
+      return NextResponse.json(
+        {
+          error:
+            'Your phone number is not yet verified. Complete WhatsApp verification in your profile.',
+          action: 'profile',
+        },
+        { status: 422 },
+      )
+    }
+
     const raw: unknown = await request.json()
     const { draftId, ...validated } = bodySchema.parse(raw)
 

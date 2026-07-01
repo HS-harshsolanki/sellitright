@@ -1,6 +1,15 @@
 'use client'
 
-import { User, Mail, Phone, LogOut, Save } from 'lucide-react'
+import {
+  AlertCircle,
+  CheckCircle2,
+  LogOut,
+  Mail,
+  Phone,
+  Save,
+  ShieldCheck,
+  User,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -23,35 +32,61 @@ function Spinner({ className }: { className?: string }) {
   )
 }
 
+const WA_COLOR = '#25D366'
+
+function WhatsAppIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      style={style}
+      aria-hidden="true"
+    >
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  )
+}
+
+type PhoneFlowState = 'idle' | 'sending' | 'otp-sent' | 'verifying' | 'verified'
+
 export default function ProfilePage() {
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
-  const [displayName, setDisplayName] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  useEffect(() => {
-    return () => {
-      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
-    }
-  }, [])
+  const [displayName, setDisplayName] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
+  const [nameError, setNameError] = useState('')
+
+  const [phoneInput, setPhoneInput] = useState('')
+  const [otpInput, setOtpInput] = useState('')
+  const [flowState, setFlowState] = useState<PhoneFlowState>('idle')
+  const [phoneError, setPhoneError] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+      if (cooldownRef.current) clearInterval(cooldownRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
     if (user) {
       setDisplayName(user.user_metadata?.full_name ?? '')
-      setPhoneNumber(user.user_metadata?.phone ?? user.phone ?? '')
+      setPhoneInput(user.user_metadata?.phone ?? user.phone ?? '')
+      if (user.user_metadata?.phone_verified) setFlowState('verified')
     }
   }, [user])
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/login?next=/profile')
-    }
+    if (!loading && !user) router.replace('/login?next=/profile')
   }, [loading, user, router])
 
   if (loading || !user) {
@@ -66,23 +101,99 @@ export default function ProfilePage() {
   const provider = user.app_metadata?.provider ?? 'email'
   const avatarUrl: string | null = user.user_metadata?.avatar_url ?? null
   const initials = displayName?.[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? '?'
+  const verifiedPhone: string = user.user_metadata?.phone_verified
+    ? (user.user_metadata?.phone ?? '')
+    : ''
 
-  async function handleSave(e: React.FormEvent) {
+  const INDIAN_MOBILE_RE = /^[6-9]\d{9}$/
+  function normalizePhone(raw: string): string {
+    const digits = raw.replace(/\D/g, '')
+    if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2)
+    if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1)
+    return digits
+  }
+
+  function startCooldown(seconds = 30) {
+    setResendCooldown(seconds)
+    if (cooldownRef.current) clearInterval(cooldownRef.current)
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(cooldownRef.current!)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  async function handleSendOtp() {
+    setPhoneError('')
+    const normalized = normalizePhone(phoneInput)
+    if (!INDIAN_MOBILE_RE.test(normalized)) {
+      setPhoneError('Enter a valid 10-digit Indian mobile number (e.g. 98765 43210)')
+      return
+    }
+    setFlowState('sending')
+    try {
+      const res = await fetch('/api/phone/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: normalized }),
+      })
+      const data = (await res.json()) as { error?: string }
+      if (!res.ok) {
+        setPhoneError(data.error ?? 'Failed to send OTP. Please try again.')
+        setFlowState('idle')
+        return
+      }
+      setFlowState('otp-sent')
+      startCooldown(30)
+    } catch {
+      setPhoneError('Network error — please check your connection.')
+      setFlowState('idle')
+    }
+  }
+
+  async function handleVerifyOtp() {
+    setPhoneError('')
+    const normalized = normalizePhone(phoneInput)
+    const digits = otpInput.replace(/\D/g, '').slice(0, 6)
+    if (digits.length !== 6) {
+      setPhoneError('Enter the 6-digit OTP from WhatsApp.')
+      return
+    }
+    setFlowState('verifying')
+    try {
+      const res = await fetch('/api/phone/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: normalized, otp: digits }),
+      })
+      const data = (await res.json()) as { error?: string }
+      if (!res.ok) {
+        setPhoneError(data.error ?? 'Verification failed. Please try again.')
+        setFlowState('otp-sent')
+        return
+      }
+      await createClient().auth.refreshSession()
+      setFlowState('verified')
+      setOtpInput('')
+    } catch {
+      setPhoneError('Network error — please check your connection.')
+      setFlowState('otp-sent')
+    }
+  }
+
+  async function handleSaveName(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    setError('')
+    setNameError('')
     setSaved(false)
-
-    const { error } = await createClient().auth.updateUser({
-      data: { full_name: displayName, phone: phoneNumber },
-    })
-
+    const { error } = await createClient().auth.updateUser({ data: { full_name: displayName } })
     setSaving(false)
-
     if (error) {
-      if (process.env.NODE_ENV === 'development')
-        console.error('[profile] updateUser error:', error.message)
-      setError('Failed to save changes. Please try again.')
+      setNameError('Failed to save name. Please try again.')
     } else {
       setSaved(true)
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
@@ -108,14 +219,19 @@ export default function ProfilePage() {
         window.location.href = '/?deleted=1'
       } else {
         const d = (await res.json()) as { error?: string }
-        setError(d.error ?? 'Failed to delete account')
+        setNameError(d.error ?? 'Failed to delete account')
       }
     } catch {
-      setError('Failed to delete account')
+      setNameError('Failed to delete account')
     } finally {
       setIsDeleting(false)
     }
   }
+
+  const normalizedInput = normalizePhone(phoneInput)
+  const phoneInputValid = INDIAN_MOBILE_RE.test(normalizedInput)
+  const isSending = flowState === 'sending'
+  const isVerifying = flowState === 'verifying'
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -125,6 +241,16 @@ export default function ProfilePage() {
           Manage your account details
         </p>
       </div>
+
+      {flowState !== 'verified' && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <Phone className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+          <p className="text-sm text-amber-800">
+            <span className="font-semibold">Verify your WhatsApp number</span> to post properties
+            and receive buyer inquiries.
+          </p>
+        </div>
+      )}
 
       {/* Avatar + identity */}
       <div className="flex items-center gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-5">
@@ -147,17 +273,232 @@ export default function ProfilePage() {
           <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
             Signed in via <span className="font-medium capitalize">{provider}</span>
           </p>
+          {flowState === 'verified' && verifiedPhone && (
+            <p className="mt-1 flex items-center gap-1 text-xs font-medium text-green-700">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              +91 {verifiedPhone} verified
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Edit form */}
+      {/* WhatsApp verification card */}
+      <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white p-5">
+        <div className="flex items-center gap-2">
+          <WhatsAppIcon className="h-5 w-5" style={{ color: WA_COLOR }} />
+          <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
+            WhatsApp verification
+          </h2>
+          {flowState === 'verified' && (
+            <span className="ml-auto flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Verified
+            </span>
+          )}
+        </div>
+
+        {flowState === 'verified' ? (
+          <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
+            Your WhatsApp number <span className="font-semibold">+91 {verifiedPhone}</span> is
+            verified. Buyers can reach you directly after their request is accepted.
+            <button
+              type="button"
+              onClick={() => {
+                setFlowState('idle')
+                setPhoneInput('')
+                setOtpInput('')
+                setPhoneError('')
+              }}
+              className="ml-2 text-xs underline opacity-60 hover:opacity-100"
+            >
+              Change number
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Phone input */}
+            <div>
+              <label
+                htmlFor="phone-number"
+                className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
+              >
+                WhatsApp number <span className="text-[var(--color-destructive)]">*</span>
+              </label>
+              <div
+                className={cn(
+                  'flex h-11 items-center overflow-hidden rounded-lg border',
+                  phoneError && flowState === 'idle'
+                    ? 'border-[var(--color-destructive)]'
+                    : 'border-[var(--color-border)]',
+                  'focus-within:ring-2 focus-within:ring-[var(--color-ring)]',
+                  (flowState === 'otp-sent' || flowState === 'verifying') &&
+                    'bg-[var(--color-muted)]',
+                )}
+              >
+                <span className="ml-3 shrink-0 text-sm font-medium text-[var(--color-muted-foreground)]">
+                  +91
+                </span>
+                <input
+                  id="phone-number"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={phoneInput}
+                  onChange={(e) => {
+                    setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10))
+                    setPhoneError('')
+                  }}
+                  disabled={
+                    flowState === 'otp-sent' || flowState === 'verifying' || flowState === 'sending'
+                  }
+                  placeholder="98765 43210"
+                  className="h-full flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-[var(--color-muted-foreground)] disabled:cursor-not-allowed"
+                  autoComplete="tel"
+                />
+              </div>
+              <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                We&apos;ll send a one-time code to this WhatsApp number.
+              </p>
+            </div>
+
+            {/* OTP input — shown after sending */}
+            {(flowState === 'otp-sent' || flowState === 'verifying') && (
+              <div>
+                <label
+                  htmlFor="otp-input"
+                  className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
+                >
+                  6-digit WhatsApp code
+                </label>
+                <div className="flex gap-3">
+                  <div
+                    className={cn(
+                      'flex h-11 flex-1 items-center overflow-hidden rounded-lg border',
+                      phoneError
+                        ? 'border-[var(--color-destructive)]'
+                        : 'border-[var(--color-border)]',
+                      'focus-within:ring-2 focus-within:ring-[var(--color-ring)]',
+                    )}
+                  >
+                    <input
+                      id="otp-input"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      autoComplete="one-time-code"
+                      placeholder="• • • • • •"
+                      value={otpInput}
+                      onChange={(e) => {
+                        setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))
+                        setPhoneError('')
+                      }}
+                      disabled={isVerifying}
+                      className="h-full w-full bg-transparent px-4 text-center text-lg font-bold tracking-widest outline-none placeholder:text-[var(--color-muted-foreground)] disabled:opacity-50"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleVerifyOtp}
+                    disabled={isVerifying || otpInput.replace(/\D/g, '').length < 6}
+                    className={cn(
+                      'flex h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white transition-all',
+                      'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                      isVerifying || otpInput.replace(/\D/g, '').length < 6
+                        ? 'bg-[var(--color-primary)]/50 cursor-not-allowed'
+                        : 'hover:bg-[var(--color-primary)]/90 bg-[var(--color-primary)] active:scale-[0.98]',
+                    )}
+                  >
+                    {isVerifying && <Spinner className="h-4 w-4" />}
+                    {isVerifying ? 'Verifying…' : 'Verify'}
+                  </button>
+                </div>
+
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFlowState('idle')
+                      setOtpInput('')
+                      setPhoneError('')
+                    }}
+                    className="text-xs text-[var(--color-muted-foreground)] underline hover:text-[var(--color-foreground)]"
+                  >
+                    Change number
+                  </button>
+                  <span className="text-[var(--color-muted-foreground)]">·</span>
+                  {resendCooldown > 0 ? (
+                    <span className="text-xs text-[var(--color-muted-foreground)]">
+                      Resend in {resendCooldown}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFlowState('idle')
+                        void handleSendOtp()
+                      }}
+                      className="text-xs text-[var(--color-primary)] underline"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)]">
+                  <WhatsAppIcon className="h-3.5 w-3.5" style={{ color: WA_COLOR }} />
+                  Check your WhatsApp messages for a 6-digit code. Valid for 10 minutes.
+                </p>
+              </div>
+            )}
+
+            {/* Send OTP button */}
+            {flowState === 'idle' && (
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                disabled={isSending || !phoneInputValid}
+                className={cn(
+                  'flex h-11 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold text-white transition-all',
+                  'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                  isSending || !phoneInputValid
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'active:scale-[0.98]',
+                )}
+                style={{ backgroundColor: WA_COLOR }}
+              >
+                {isSending ? (
+                  <>
+                    <Spinner className="h-4 w-4" />
+                    Sending OTP…
+                  </>
+                ) : (
+                  <>
+                    <WhatsAppIcon className="h-4 w-4" />
+                    Send OTP on WhatsApp
+                  </>
+                )}
+              </button>
+            )}
+
+            {phoneError && (
+              <p
+                className="flex items-center gap-1.5 text-sm text-[var(--color-destructive)]"
+                role="alert"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {phoneError}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Display name form */}
       <form
-        onSubmit={handleSave}
+        onSubmit={handleSaveName}
         className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white p-5"
       >
         <h2 className="text-sm font-semibold text-[var(--color-foreground)]">Account details</h2>
-
-        {/* Display name */}
         <div>
           <label
             htmlFor="display-name"
@@ -181,8 +522,6 @@ export default function ProfilePage() {
             />
           </div>
         </div>
-
-        {/* Email (read-only) */}
         {email && (
           <div>
             <p className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]">
@@ -200,41 +539,11 @@ export default function ProfilePage() {
             </p>
           </div>
         )}
-
-        {/* Phone number — editable; stored in user_metadata */}
-        <div>
-          <label
-            htmlFor="phone-number"
-            className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
-          >
-            Contact phone number
-          </label>
-          <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] focus-within:ring-2 focus-within:ring-[var(--color-ring)]">
-            <Phone
-              className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
-              aria-hidden="true"
-            />
-            <input
-              id="phone-number"
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="+91 98765 43210"
-              className="h-full flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-[var(--color-muted-foreground)]"
-              autoComplete="tel"
-            />
-          </div>
-          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-            Shared with buyers only after you accept their request.
-          </p>
-        </div>
-
-        {error && (
+        {nameError && (
           <p className="text-sm text-[var(--color-destructive)]" role="alert">
-            {error}
+            {nameError}
           </p>
         )}
-
         <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={saving}>
           {saving ? (
             <span className="flex items-center gap-2">
@@ -249,13 +558,13 @@ export default function ProfilePage() {
           ) : (
             <span className="flex items-center gap-2">
               <Save className="h-4 w-4" />
-              Save changes
+              Save name
             </span>
           )}
         </Button>
       </form>
 
-      {/* Danger zone */}
+      {/* Session */}
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--color-foreground)]">Session</h2>
         <Button
@@ -269,7 +578,7 @@ export default function ProfilePage() {
         </Button>
       </div>
 
-      {/* Data rights section */}
+      {/* Data rights */}
       <section className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
         <h2 className="mb-4 text-sm font-semibold text-[var(--color-foreground)]">Your data</h2>
         <div className="flex flex-col gap-3">
