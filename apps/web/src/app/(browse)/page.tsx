@@ -165,12 +165,12 @@ export default async function LandingPage() {
                   required
                   placeholder="Search by city — Mumbai, Pune, Delhi..."
                   aria-label="Search by city"
-                  className="focus:ring-[var(--color-primary)]/10 h-11 w-full rounded-lg border border-[var(--color-border)] bg-white pl-9 pr-4 text-sm text-[var(--color-foreground)] transition-[border-color,box-shadow] placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2"
+                  className="focus:ring-[var(--color-foreground)]/10 h-11 w-full rounded-xl border border-[var(--color-border)] bg-white pl-9 pr-4 text-sm text-[var(--color-foreground)] transition-[border-color,box-shadow] placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-foreground)] focus:outline-none focus:ring-2"
                 />
               </div>
               <button
                 type="submit"
-                className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-5 text-sm font-medium text-white transition-colors hover:bg-[#b02840] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-[var(--color-foreground)] px-5 text-sm font-semibold text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-foreground)]"
               >
                 Search
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -271,60 +271,48 @@ export default async function LandingPage() {
             </p>
           </FadeIn>
 
-          {/* Chat-bubble timeline — Owner on left, Buyer on right */}
-          <ol className="mt-14 space-y-4" aria-label="How SellItRight works">
-            {HANDSHAKE_STEPS.map(({ step, actor, label, description }, idx) => {
-              const isOwner = actor === 'Owner'
-              const isBoth = actor === 'Both'
-              return (
-                <Reveal key={step} delay={idx * 0.09} y={20}>
-                  <li
-                    className={`flex gap-3 ${isBoth ? 'justify-center' : isOwner ? 'justify-start' : 'justify-end'}`}
-                  >
-                    {isBoth ? (
-                      <div className="w-full max-w-sm rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-center backdrop-blur-sm">
-                        <span className="mb-1 inline-block rounded-full bg-white/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white/80">
-                          Both sides
-                        </span>
-                        <h3 className="mt-1.5 text-base font-semibold text-white">{label}</h3>
-                        <p className="mt-1 text-sm leading-relaxed text-white/60">{description}</p>
-                      </div>
-                    ) : (
-                      <div
-                        className={`flex max-w-xs flex-col gap-1 sm:max-w-sm ${!isOwner ? 'items-end' : 'items-start'}`}
-                      >
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-widest text-white/50 ${!isOwner ? 'mr-1' : 'ml-1'}`}
-                        >
-                          {actor} · {step}
-                        </span>
-                        <div
-                          className={`rounded-2xl px-5 py-4 ${isOwner ? 'rounded-tl-sm bg-white/10' : 'rounded-tr-sm bg-white/[0.18]'}`}
-                        >
-                          <h3 className="text-base font-semibold text-white">{label}</h3>
-                          <p className="mt-1 text-sm leading-relaxed text-white/60">
-                            {description}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </li>
-                </Reveal>
-              )
-            })}
+          {/* Numbered step timeline — step dot + connector line */}
+          <ol className="relative mt-14 space-y-0" aria-label="How SellItRight works">
+            {HANDSHAKE_STEPS.map(({ step, actor, label, description }, idx) => (
+              <Reveal key={step} delay={idx * 0.09} y={16}>
+                <li className="relative flex gap-6 pb-10 last:pb-0">
+                  {/* Connector line (hidden on last item) */}
+                  {idx < HANDSHAKE_STEPS.length - 1 && (
+                    <div
+                      className="absolute left-4 top-9 h-full w-px bg-white/15"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {/* Step dot */}
+                  <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xs font-bold tabular-nums text-white/70">
+                    {step}
+                  </div>
+                  {/* Content */}
+                  <div className="pb-1 pt-1">
+                    <span className="mb-2 inline-block rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                      {actor}
+                    </span>
+                    <h3 className="text-base font-semibold text-white sm:text-lg">{label}</h3>
+                    <p className="mt-1.5 max-w-md text-sm leading-relaxed text-white/55">
+                      {description}
+                    </p>
+                  </div>
+                </li>
+              </Reveal>
+            ))}
           </ol>
 
           <Reveal delay={0.5} y={16}>
-            <div className="mt-12 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="mt-10 flex flex-col items-start gap-3 border-t border-white/10 pt-10 sm:flex-row sm:items-center sm:gap-4">
               <Link
                 href="/sell"
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
               >
                 List Your Property <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href="/properties"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/25 px-6 py-3 text-sm font-semibold text-white/80 transition-all hover:border-white/50 hover:text-white"
               >
                 Browse Homes <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
@@ -350,13 +338,13 @@ export default async function LandingPage() {
             </p>
           </Reveal>
 
-          <Stagger className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2" stagger={0.08} y={20}>
+          <Stagger className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2" stagger={0.08} y={20}>
             {TRUST_PILLARS.map(({ icon: Icon, title, description }) => (
               <div
                 key={title}
-                className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)] p-6"
+                className="flex gap-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)] p-6"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white">
                   <Icon className="h-5 w-5 text-[var(--color-foreground)]" aria-hidden="true" />
                 </div>
                 <div>
@@ -443,34 +431,44 @@ export default async function LandingPage() {
         className="bg-[var(--color-primary)] px-4 py-24 sm:px-6 md:py-32"
       >
         <div className="mx-auto max-w-4xl">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:[&>*]:contents">
             <Reveal x={-24} y={0}>
-              <div className="flex flex-col rounded-2xl border border-white/10 bg-white/5 p-8">
-                <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  Looking for a home?
-                </h2>
-                <p className="mt-3 flex-1 text-base leading-relaxed text-white/60">
-                  Search verified owner listings in your city. No broker calls.
-                </p>
+              <div className="flex flex-col gap-4 rounded-2xl border border-white/10 p-8">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
+                    For buyers
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                    Looking for a home?
+                  </h2>
+                  <p className="mt-3 text-base leading-relaxed text-white/55">
+                    Search verified owner listings in your city. No broker calls.
+                  </p>
+                </div>
                 <Link
                   href="/properties"
-                  className="mt-8 inline-flex items-center gap-2 self-start rounded-xl border border-white/30 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-white/10"
+                  className="mt-auto inline-flex items-center gap-2 self-start rounded-xl border border-white/25 px-6 py-3 text-sm font-semibold text-white transition-all hover:border-white/50 hover:bg-white/5"
                 >
                   Find a Home <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </div>
             </Reveal>
             <Reveal x={24} y={0} delay={0.06}>
-              <div className="flex flex-col rounded-2xl bg-white/10 p-8">
-                <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  Selling your property?
-                </h2>
-                <p className="mt-3 flex-1 text-base leading-relaxed text-white/60">
-                  List in 5 minutes. We verify it. Buyers come to you.
-                </p>
+              <div className="flex flex-col gap-4 rounded-2xl bg-white/10 p-8">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
+                    For sellers
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                    Selling your property?
+                  </h2>
+                  <p className="mt-3 text-base leading-relaxed text-white/55">
+                    List in 5 minutes. We verify it. Buyers come to you.
+                  </p>
+                </div>
                 <Link
                   href="/sell"
-                  className="mt-8 inline-flex items-center gap-2 self-start rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
+                  className="mt-auto inline-flex items-center gap-2 self-start rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
                 >
                   List Your Property <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
