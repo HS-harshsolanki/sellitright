@@ -35,14 +35,7 @@ import { cn } from '@/lib/utils'
 
 type TabFilter = 'all' | 'active' | 'draft' | 'pending' | 'rejected' | 'sold' | 'buyers'
 
-const TAB_VALUES: Exclude<TabFilter, 'buyers'>[] = [
-  'all',
-  'active',
-  'draft',
-  'pending',
-  'rejected',
-  'sold',
-]
+const TAB_VALUES: TabFilter[] = ['all', 'active', 'draft', 'pending', 'rejected', 'sold', 'buyers']
 
 const TAB_LABELS: Record<TabFilter, string> = {
   all: 'All',
@@ -858,35 +851,37 @@ function BuyersTabContent({
 
   return (
     <div className="space-y-4">
-      {!loading && interests.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1">
-            {STATUS_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                type="button"
-                onClick={() => onStatusFilter(f.value)}
-                className={cn(
-                  'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
-                  statusFilter === f.value
-                    ? 'bg-white text-[var(--color-foreground)] shadow-sm'
-                    : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+      {/* Section header with filter chips — distinct from the top tab bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-[var(--color-muted-foreground)]">Filter:</span>
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => onStatusFilter(f.value)}
+              className={cn(
+                'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all',
+                statusFilter === f.value
+                  ? 'border-[var(--color-foreground)] bg-[var(--color-foreground)] text-white'
+                  : 'border-[var(--color-border)] bg-white text-[var(--color-muted-foreground)] hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]',
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {!loading && interests.length > 0 && (
           <select
             value={sort}
             onChange={(e) => onSort(e.target.value as 'newest' | 'oldest')}
-            className="focus:ring-ring rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2"
+            className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
           >
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
           </select>
-        </div>
-      )}
+        )}
+      </div>
 
       {interestSuccess && (
         <div
@@ -1465,79 +1460,65 @@ function DashboardPageInner() {
         </div>
       ) : null}
 
-      {/* Tab bar — Airbnb pill style */}
+      {/* Single unified tab bar — listing filters + Buyers in one row */}
       {personaState === 'seller' && (
-        <div className="flex items-center gap-2 border-b border-[var(--color-border)] pb-0">
-          <div
-            role="tablist"
-            aria-label="Filter listings"
-            className="flex gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {TAB_VALUES.filter((tabValue) => {
-              if (tabValue === 'all') return true
-              return tabCounts[tabValue] > 0 || activeTab === tabValue
-            }).map((tabValue) => {
-              const count = tabCounts[tabValue]
-              const isActive = activeTab === tabValue
-              return (
-                <button
-                  key={tabValue}
-                  role="tab"
-                  aria-selected={isActive}
-                  type="button"
-                  onClick={() => setActiveTab(tabValue)}
-                  className={cn(
-                    'relative flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1',
-                    isActive
-                      ? 'text-[var(--color-foreground)]'
-                      : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-                  )}
-                >
-                  {TAB_LABELS[tabValue]}
-                  {count > 0 && (
-                    <span
-                      className={cn(
-                        'flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold',
-                        isActive
-                          ? 'bg-[var(--color-foreground)] text-white'
+        <div
+          role="tablist"
+          aria-label="Dashboard sections"
+          className="flex gap-0.5 overflow-x-auto border-b border-[var(--color-border)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {TAB_VALUES.filter((tabValue) => {
+            if (tabValue === 'all' || tabValue === 'buyers') return true
+            return tabCounts[tabValue as Exclude<TabFilter, 'buyers'>] > 0 || activeTab === tabValue
+          }).map((tabValue) => {
+            const isBuyers = tabValue === 'buyers'
+            const count = isBuyers
+              ? (pendingBuyerCount ?? 0)
+              : tabCounts[tabValue as Exclude<TabFilter, 'buyers'>]
+            const isActive = activeTab === tabValue
+            return (
+              <button
+                key={tabValue}
+                role="tab"
+                aria-selected={isActive}
+                type="button"
+                onClick={() => setActiveTab(tabValue)}
+                className={cn(
+                  'relative flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1',
+                  isActive
+                    ? 'text-[var(--color-foreground)]'
+                    : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
+                  isBuyers && 'ml-auto',
+                )}
+              >
+                {isBuyers && <Users className="h-3.5 w-3.5" aria-hidden="true" />}
+                {TAB_LABELS[tabValue]}
+                {count > 0 && (
+                  <span
+                    className={cn(
+                      'flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold',
+                      isActive
+                        ? isBuyers
+                          ? 'bg-indigo-500 text-white'
+                          : 'bg-[var(--color-foreground)] text-white'
+                        : isBuyers
+                          ? 'bg-indigo-100 text-indigo-700'
                           : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
-                      )}
-                    >
-                      {count}
-                    </span>
-                  )}
-                  {/* Active underline indicator */}
-                  {isActive && (
-                    <span
-                      className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[var(--color-foreground)]"
-                      aria-hidden="true"
-                    />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Buyers tab — right-aligned with badge */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('buyers')}
-            className={cn(
-              'ml-auto flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-all',
-              activeTab === 'buyers'
-                ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-                : 'border-[var(--color-border)] bg-white text-[var(--color-muted-foreground)] hover:border-indigo-200 hover:text-indigo-700',
-            )}
-          >
-            <Users className="h-4 w-4" aria-hidden="true" />
-            Buyers
-            {pendingBuyerCount ? (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-bold leading-none text-white">
-                {pendingBuyerCount > 99 ? '99+' : pendingBuyerCount}
-              </span>
-            ) : null}
-          </button>
+                    )}
+                  >
+                    {count > 99 ? '99+' : count}
+                  </span>
+                )}
+                {isActive && (
+                  <span
+                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[var(--color-foreground)]"
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            )
+          })}
         </div>
       )}
 
