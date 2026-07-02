@@ -3,11 +3,10 @@ import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logger } from '@/lib/logger'
+import { sendSmsOtp } from '@/lib/msg91'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { sendWhatsAppOtp } from '@/lib/whatsapp'
 
 // phone_otp_requests is a new table not yet in the generated Supabase types.
-// Use this helper to bypass type checking until `supabase gen types` is re-run.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function otpTable(client: ReturnType<typeof createServiceClient>): any {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -105,21 +104,21 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await sendWhatsAppOtp(phone, otp)
+    await sendSmsOtp(phone, otp)
   } catch (err) {
-    logger.error('[send-otp] WhatsApp send failed', {
+    logger.error('[send-otp] SMS send failed', {
       error: err instanceof Error ? err.message : String(err),
     })
     // Clean up the OTP row so the rate limit isn't consumed on a failed send
     await otpTable(admin).delete().eq('otp_hash', otpHash)
     return NextResponse.json(
-      { error: 'Failed to send WhatsApp message. Please try again.' },
+      { error: 'Failed to send OTP SMS. Please try again.' },
       { status: 502 },
     )
   }
 
   return NextResponse.json({
-    message: `OTP sent to WhatsApp on +91 ${phone.slice(0, 5)}XXXXX`,
+    message: `OTP sent via SMS to +91 ${phone.slice(0, 5)}XXXXX`,
     expiresInMinutes: OTP_TTL_MINUTES,
   })
 }

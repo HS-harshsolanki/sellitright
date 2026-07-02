@@ -160,7 +160,7 @@ export default function ProfilePage() {
     const normalized = normalizePhone(phoneInput)
     const digits = otpInput.replace(/\D/g, '').slice(0, 6)
     if (digits.length !== 6) {
-      setPhoneError('Enter the 6-digit OTP from WhatsApp.')
+      setPhoneError('Enter the 6-digit OTP from the SMS.')
       return
     }
     setFlowState('verifying')
@@ -246,8 +246,8 @@ export default function ProfilePage() {
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <Phone className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
           <p className="text-sm text-amber-800">
-            <span className="font-semibold">Verify your WhatsApp number</span> to post properties
-            and receive buyer inquiries.
+            <span className="font-semibold">Verify your phone number</span> to post properties and
+            receive buyer inquiries.
           </p>
         </div>
       )}
@@ -285,9 +285,9 @@ export default function ProfilePage() {
       {/* WhatsApp verification card */}
       <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white p-5">
         <div className="flex items-center gap-2">
-          <WhatsAppIcon className="h-5 w-5" style={{ color: WA_COLOR }} />
+          <Phone className="h-5 w-5 text-[var(--color-primary)]" />
           <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
-            WhatsApp verification
+            Phone verification
           </h2>
           {flowState === 'verified' && (
             <span className="ml-auto flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
@@ -357,7 +357,7 @@ export default function ProfilePage() {
                 />
               </div>
               <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-                We&apos;ll send a one-time code to this WhatsApp number.
+                We&apos;ll send a one-time code via SMS to this number.
               </p>
             </div>
 
@@ -368,7 +368,7 @@ export default function ProfilePage() {
                   htmlFor="otp-input"
                   className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
                 >
-                  6-digit WhatsApp code
+                  6-digit SMS code
                 </label>
                 <div className="flex gap-3">
                   <div
@@ -445,8 +445,8 @@ export default function ProfilePage() {
                 </div>
 
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)]">
-                  <WhatsAppIcon className="h-3.5 w-3.5" style={{ color: WA_COLOR }} />
-                  Check your WhatsApp messages for a 6-digit code. Valid for 10 minutes.
+                  <Phone className="h-3.5 w-3.5" />
+                  Check your SMS messages for a 6-digit code. Valid for 10 minutes.
                 </p>
               </div>
             )}
@@ -463,8 +463,8 @@ export default function ProfilePage() {
                   isSending || !phoneInputValid
                     ? 'cursor-not-allowed opacity-50'
                     : 'active:scale-[0.98]',
+                  'bg-[var(--color-primary)]',
                 )}
-                style={{ backgroundColor: WA_COLOR }}
               >
                 {isSending ? (
                   <>
@@ -473,8 +473,8 @@ export default function ProfilePage() {
                   </>
                 ) : (
                   <>
-                    <WhatsAppIcon className="h-4 w-4" />
-                    Send OTP on WhatsApp
+                    <Phone className="h-4 w-4" />
+                    Send OTP via SMS
                   </>
                 )}
               </button>
