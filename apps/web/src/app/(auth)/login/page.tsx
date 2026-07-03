@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 
+import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
 import { Button } from '@/components/ui/button'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
@@ -76,13 +77,9 @@ function LoginPageInner() {
   return (
     <>
       <div className="mb-8 text-center">
-        <Link href="/" className="inline-block">
-          <span className="sr-only">SellItRight home</span>
-          <span aria-hidden="true" className="text-2xl font-bold tracking-tight">
-            <span className="text-[var(--color-accent)]">Sell</span>
-            <span className="text-[var(--color-foreground)]">ItRight</span>
-          </span>
-        </Link>
+        <div className="flex justify-center">
+          <ChapterNewLogo size="md" />
+        </div>
         <h1 className="mt-4 text-xl font-semibold text-[var(--color-foreground)]">Welcome back</h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
           Sign in to manage your listings

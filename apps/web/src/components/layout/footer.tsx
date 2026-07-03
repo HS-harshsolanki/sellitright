@@ -1,6 +1,8 @@
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
 
+import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
+
 const FOOTER_LINKS = [
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
@@ -16,20 +18,9 @@ export function Footer() {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           {/* Logo + tagline + CTA */}
           <div className="flex flex-col gap-2">
-            <Link
-              href="/"
-              className="flex items-center gap-1 text-base font-bold leading-none tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-            >
-              <span className="sr-only">SellItRight home</span>
-              <span aria-hidden="true" className="text-[var(--color-accent)]">
-                Sell
-              </span>
-              <span aria-hidden="true" className="text-[var(--color-foreground)]">
-                ItRight
-              </span>
-            </Link>
+            <ChapterNewLogo size="sm" />
             <p className="text-xs text-[var(--color-muted-foreground)]">
-              Property on your terms. No middlemen.
+              Find your next place in life.
             </p>
             <Link
               href="/sell"
@@ -59,15 +50,15 @@ export function Footer() {
 
         {/* Copyright */}
         <p className="mt-6 text-xs text-[var(--color-muted-foreground)]">
-          &copy; {new Date().getFullYear()} SellItRight. All rights reserved.
+          &copy; {new Date().getFullYear()} ChapterNew. All rights reserved.
         </p>
         <p className="mt-2 text-xs text-[var(--color-muted-foreground)]">
           Questions?{' '}
           <a
-            href="mailto:support@sellitright.in"
+            href="mailto:support@chapternew.com"
             className="underline underline-offset-2 hover:text-[var(--color-foreground)]"
           >
-            support@sellitright.in
+            support@chapternew.com
           </a>
         </p>
       </div>

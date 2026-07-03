@@ -3,7 +3,7 @@
 @theme {
   --color-primary: #222222;
   --color-primary-foreground: #ffffff;
-  --color-accent: #e0284f;
+  --color-accent: #e63500;
   --color-accent-foreground: #ffffff;
   --color-background: #ffffff;
   --color-foreground: #222222;
@@ -24,7 +24,7 @@
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {

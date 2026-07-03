@@ -11,10 +11,10 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' https://checkout.razorpay.com",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com",
       "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://images.unsplash.com",
-      "style-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
       "font-src 'self'",
       'frame-src https://api.razorpay.com https://checkout.razorpay.com',
       "frame-ancestors 'self'",

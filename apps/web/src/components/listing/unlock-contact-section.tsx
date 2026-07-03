@@ -204,7 +204,7 @@ export function UnlockContactSection({
       amount: orderData.amount,
       currency: orderData.currency,
       order_id: orderData.orderId,
-      name: 'SellItRight',
+      name: 'ChapterNew',
       description: `Unlock seller contact for: ${listingTitle.slice(0, 60)}`,
       theme: { color: '#222222' },
       handler: async (response: RazorpayResponse) => {
@@ -294,7 +294,7 @@ export function UnlockContactSection({
   }
 
   if (flowState === 'error') {
-    const supportHref = `mailto:support@sellitright.in?subject=Payment%20verification%20failed&body=Order%20ID%3A%20${encodeURIComponent(currentOrderId ?? 'unknown')}`
+    const supportHref = `mailto:support@chapternew.com?subject=Payment%20verification%20failed&body=Order%20ID%3A%20${encodeURIComponent(currentOrderId ?? 'unknown')}`
 
     return (
       <div className="space-y-3">
@@ -340,7 +340,7 @@ export function UnlockContactSection({
 
       {/* Handshake model explainer */}
       <p className="text-sm text-[var(--color-muted-foreground)]">
-        SellItRight keeps your contact private until both sides agree. Pay a one-time fee to
+        ChapterNew keeps your contact private until both sides agree. Pay a one-time fee to
         permanently unlock the owner&apos;s phone and WhatsApp — no broker, no subscription.
       </p>
 
@@ -446,7 +446,7 @@ export function ContactRevealedCard({ sellerPhone, sellerEmail }: ContactReveale
           <p className="rounded-lg border border-green-200 bg-white px-3 py-2.5 text-sm text-[var(--color-muted-foreground)]">
             Phone number not available.{' '}
             <a
-              href="mailto:support@sellitright.in"
+              href="mailto:support@chapternew.com"
               className="underline underline-offset-2 hover:text-[var(--color-foreground)]"
             >
               Contact support

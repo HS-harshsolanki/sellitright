@@ -4,26 +4,26 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Contact',
   description:
-    'Get in touch with the SellItRight team for support, feedback, or to report a listing.',
+    'Get in touch with the ChapterNew team for support, feedback, or to report a listing.',
 }
 
 const TOPICS = [
   {
     title: 'General support',
     body: 'Questions about your account, a listing, or how the platform works?',
-    email: 'support@sellitright.in',
+    email: 'support@chapternew.com',
     cta: 'Email support',
   },
   {
     title: 'Report a listing',
     body: 'Spotted something fraudulent or inaccurate? Send us the listing URL and a brief description. We act within 24 hours.',
-    email: 'support@sellitright.in',
+    email: 'support@chapternew.com',
     cta: 'Report a listing',
   },
   {
     title: 'Privacy requests',
     body: 'To access, correct, or delete your personal data, reach out to our privacy team.',
-    email: 'privacy@sellitright.in',
+    email: 'privacy@chapternew.com',
     cta: 'Privacy request',
   },
 ]
@@ -54,7 +54,7 @@ export default function ContactPage() {
               {body}
             </p>
             <a
-              href={`mailto:${email}?subject=${encodeURIComponent(cta + ' — SellItRight')}`}
+              href={`mailto:${email}?subject=${encodeURIComponent(cta + ' — ChapterNew')}`}
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
             >
               {cta}
@@ -76,14 +76,14 @@ export default function ContactPage() {
             Grievance Officer: The Compliance Team
           </span>
           <br />
-          SellItRight
+          ChapterNew
           <br />
           Email:{' '}
           <a
-            href="mailto:grievance@sellitright.in?subject=Data%20Grievance"
+            href="mailto:grievance@chapternew.com?subject=Data%20Grievance"
             className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
           >
-            grievance@sellitright.in
+            grievance@chapternew.com
           </a>
           <br />
           Response time: Within 30 days of receipt

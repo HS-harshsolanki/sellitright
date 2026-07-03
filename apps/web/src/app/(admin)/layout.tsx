@@ -25,9 +25,7 @@ function AdminKeyGate({ onSuccess }: { onSuccess: () => void }) {
             <span className="rounded bg-[var(--color-foreground)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
               Admin
             </span>
-            <span className="text-sm font-semibold text-[var(--color-foreground)]">
-              SellItRight
-            </span>
+            <span className="text-sm font-semibold text-[var(--color-foreground)]">ChapterNew</span>
           </div>
           <h1 className="text-xl font-bold text-[var(--color-foreground)]">Admin Access</h1>
           <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">

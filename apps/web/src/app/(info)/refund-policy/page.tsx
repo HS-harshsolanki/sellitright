@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Refund Policy | SellItRight',
-  description: 'Understand when and how SellItRight issues refunds for the ₹49 connection fee.',
+  title: 'Refund Policy | ChapterNew',
+  description: 'Understand when and how ChapterNew issues refunds for the ₹49 connection fee.',
 }
 
 const SECTIONS = [
@@ -27,7 +27,7 @@ const SECTIONS = [
   {
     id: '3',
     title: 'How to request a refund',
-    body: 'Email support@sellitright.in with your payment ID (found in your email receipt) and a brief description of the issue. We respond within 2 business days. If your case qualifies under the criteria above, we will initiate the refund without requiring further documentation.',
+    body: 'Email support@chapternew.com with your payment ID (found in your email receipt) and a brief description of the issue. We respond within 2 business days. If your case qualifies under the criteria above, we will initiate the refund without requiring further documentation.',
   },
   {
     id: '4',
@@ -42,7 +42,7 @@ const SECTIONS = [
   {
     id: '6',
     title: 'Grievance Officer',
-    body: 'For complaints related to payments, refunds, or service quality under the Consumer Protection Act 2019, contact our Grievance Officer: Name: Harsh Solanki, Designation: Founder, Email: grievance@sellitright.in, Address: SellItRight Internet Services, India (full postal address available on request at grievance@sellitright.in). We will acknowledge your complaint within 48 hours and resolve it within 30 days.',
+    body: 'For complaints related to payments, refunds, or service quality under the Consumer Protection Act 2019, contact our Grievance Officer: Name: Harsh Solanki, Designation: Founder, Email: grievance@chapternew.com, Address: ChapterNew Internet Services, India (full postal address available on request at grievance@chapternew.com). We will acknowledge your complaint within 48 hours and resolve it within 30 days.',
   },
 ]
 
@@ -119,10 +119,10 @@ export default function RefundPolicyPage() {
       <div className="mt-12 rounded-xl border border-[var(--color-border)] px-5 py-4 text-sm text-[var(--color-muted-foreground)]">
         Questions about a refund? Email us at{' '}
         <a
-          href="mailto:support@sellitright.in"
+          href="mailto:support@chapternew.com"
           className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
         >
-          support@sellitright.in
+          support@chapternew.com
         </a>
         . Also see our{' '}
         <Link

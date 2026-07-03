@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/admin/', '/dashboard/', '/sell/', '/api/'],
       },
     ],
-    sitemap: 'https://sellitright.in/sitemap.xml',
+    sitemap: 'https://chapternew.com/sitemap.xml',
   }
 }

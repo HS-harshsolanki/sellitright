@@ -162,7 +162,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
     '@type': 'RealEstateListing',
     name: listing.title,
     description: (listing.description ?? '').slice(0, 500),
-    url: `https://sellitright.in/listing/${listing.id}`,
+    url: `https://chapternew.com/listing/${listing.id}`,
     datePosted: listing.createdAt,
     price: listing.price,
     priceCurrency: 'INR',

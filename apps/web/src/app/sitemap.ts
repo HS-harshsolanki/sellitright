@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://sellitright.in'
+  const base = 'https://chapternew.com'
   const now = new Date().toISOString()
 
   const staticRoutes: MetadataRoute.Sitemap = [

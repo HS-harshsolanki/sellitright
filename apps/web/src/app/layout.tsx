@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
@@ -9,10 +9,14 @@ import { Providers } from './providers'
 
 import './globals.css'
 
-const inter = Inter({
-  subsets: ['latin'],
+const satoshi = localFont({
+  src: [
+    { path: '../../public/fonts/Satoshi-Regular.woff2', weight: '400', style: 'normal' },
+    { path: '../../public/fonts/Satoshi-Medium.woff2', weight: '500', style: 'normal' },
+    { path: '../../public/fonts/Satoshi-Bold.woff2', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-satoshi',
   display: 'swap',
-  variable: '--font-inter',
 })
 
 export const viewport: Viewport = {
@@ -23,10 +27,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://sellitright.in'),
+  metadataBase: new URL('https://chapternew.com'),
   title: {
-    default: 'SellItRight — Buy Property Directly from Owners',
-    template: '%s | SellItRight',
+    default: 'ChapterNew — Find Your Next Place in Life',
+    template: '%s | ChapterNew',
   },
   description:
     'Find verified properties across India. Buy directly from owners with zero broker fees. Browse apartments, villas, and houses — only genuine listings.',
@@ -37,12 +41,12 @@ export const metadata: Metadata = {
     'real estate India no brokerage',
     'verified property listings',
   ],
-  authors: [{ name: 'SellItRight' }],
+  authors: [{ name: 'ChapterNew' }],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SellItRight',
+    title: 'ChapterNew',
   },
   formatDetection: {
     telephone: true,
@@ -50,19 +54,19 @@ export const metadata: Metadata = {
     address: false,
   },
   openGraph: {
-    title: 'SellItRight — Buy Property Directly from Owners',
+    title: 'ChapterNew — Find Your Next Place in Life',
     description:
       'Find verified properties across India. Buy directly from owners with zero broker fees.',
     type: 'website',
     locale: 'en_IN',
-    siteName: 'SellItRight',
-    url: 'https://sellitright.in',
+    siteName: 'ChapterNew',
+    url: 'https://chapternew.com',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SellItRight — Buy Property Directly from Owners',
+    title: 'ChapterNew — Find Your Next Place in Life',
     description: 'Verified properties. Zero broker fees. Connect directly with owners.',
-    site: '@sellitright',
+    site: '@chapternew',
   },
   robots: {
     index: true,
@@ -90,7 +94,7 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={satoshi.variable}>
       <body className="bg-background min-h-screen font-sans antialiased">
         <Providers>{children}</Providers>
         <Analytics />

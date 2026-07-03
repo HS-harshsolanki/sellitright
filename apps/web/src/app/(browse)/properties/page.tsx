@@ -10,7 +10,7 @@ import { BrowseClient } from './browse-client'
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Properties for Sale | SellItRight',
+  title: 'Properties for Sale | ChapterNew',
   description: 'Browse owner-listed properties across India.',
 }
 

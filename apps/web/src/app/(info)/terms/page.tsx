@@ -3,34 +3,34 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
-  description: 'Read the terms and conditions governing your use of SellItRight.',
+  description: 'Read the terms and conditions governing your use of ChapterNew.',
 }
 
 const SECTIONS = [
   {
     id: '1',
     title: 'Acceptance of terms',
-    body: 'By accessing or using SellItRight, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any part of these terms, you may not use our platform. We reserve the right to update these terms at any time, and continued use of the platform constitutes your acceptance of any changes.',
+    body: 'By accessing or using ChapterNew, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any part of these terms, you may not use our platform. We reserve the right to update these terms at any time, and continued use of the platform constitutes your acceptance of any changes.',
   },
   {
     id: '2',
     title: 'Use of the platform',
-    body: 'SellItRight provides a marketplace for property listings in India. You agree to use the platform only for lawful purposes and in a manner that does not infringe the rights of others. You are responsible for ensuring that all information you submit, including property details and photographs, is accurate, truthful, and does not violate any third-party rights.',
+    body: 'ChapterNew provides a marketplace for property listings in India. You agree to use the platform only for lawful purposes and in a manner that does not infringe the rights of others. You are responsible for ensuring that all information you submit, including property details and photographs, is accurate, truthful, and does not violate any third-party rights.',
   },
   {
     id: '3',
     title: 'User accounts',
-    body: 'To create listings you must register using a Google account. You may optionally add a phone number to your profile after registration. You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. SellItRight reserves the right to suspend or terminate accounts that violate these terms or engage in fraudulent activity.',
+    body: 'To create listings you must register using a Google account. You may optionally add a phone number to your profile after registration. You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. ChapterNew reserves the right to suspend or terminate accounts that violate these terms or engage in fraudulent activity.',
   },
   {
     id: '4',
     title: 'Listings and content',
-    body: "All listings are subject to review and approval. SellItRight may reject or remove any listing that does not meet our quality standards, contains inaccurate information, or violates applicable laws. You retain ownership of the content you submit but grant SellItRight a non-exclusive, royalty-free licence to display and distribute it in connection with the platform's services.",
+    body: "All listings are subject to review and approval. ChapterNew may reject or remove any listing that does not meet our quality standards, contains inaccurate information, or violates applicable laws. You retain ownership of the content you submit but grant ChapterNew a non-exclusive, royalty-free licence to display and distribute it in connection with the platform's services.",
   },
   {
     id: '5',
     title: 'Payment and refunds',
-    body: "The platform charges a one-time connection fee of ₹49 (inclusive of applicable taxes) to unlock seller contact details after a buyer's request is accepted. This fee is non-refundable once contact details are successfully delivered. If a technical failure prevents delivery of contact details, users may request a refund by emailing support@sellitright.in within 7 days of payment, with the Order ID. Refunds, if approved, will be processed within 7-10 business days to the original payment method.",
+    body: "The platform charges a one-time connection fee of ₹49 (inclusive of applicable taxes) to unlock seller contact details after a buyer's request is accepted. This fee is non-refundable once contact details are successfully delivered. If a technical failure prevents delivery of contact details, users may request a refund by emailing support@chapternew.com within 7 days of payment, with the Order ID. Refunds, if approved, will be processed within 7-10 business days to the original payment method.",
   },
   {
     id: '6',
@@ -40,12 +40,12 @@ const SECTIONS = [
   {
     id: '7',
     title: 'Dispute resolution',
-    body: 'Before initiating formal legal proceedings, users agree to attempt resolution by emailing support@sellitright.in with "Dispute" in the subject line. We will respond within 15 business days. If unresolved, disputes may be referred to the Grievance Officer at grievance@sellitright.in as required under the DPDP Act, 2023.',
+    body: 'Before initiating formal legal proceedings, users agree to attempt resolution by emailing support@chapternew.com with "Dispute" in the subject line. We will respond within 15 business days. If unresolved, disputes may be referred to the Grievance Officer at grievance@chapternew.com as required under the DPDP Act, 2023.',
   },
   {
     id: '8',
     title: 'Limitation of liability',
-    body: 'SellItRight is not a party to any transaction between buyers and sellers and makes no warranties regarding the accuracy of listings or the conduct of users. To the fullest extent permitted by law, SellItRight shall not be liable for any indirect, incidental, special, or consequential damages arising out of or in connection with your use of the platform, even if we have been advised of the possibility of such damages.',
+    body: 'ChapterNew is not a party to any transaction between buyers and sellers and makes no warranties regarding the accuracy of listings or the conduct of users. To the fullest extent permitted by law, ChapterNew shall not be liable for any indirect, incidental, special, or consequential damages arising out of or in connection with your use of the platform, even if we have been advised of the possibility of such damages.',
   },
 ]
 

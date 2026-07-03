@@ -43,7 +43,7 @@ function SidebarContent({ items, pathname, onLogout }: SidebarContentProps) {
           <span className="rounded bg-[var(--color-foreground)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
             Admin
           </span>
-          <span className="text-sm font-semibold text-[var(--color-foreground)]">SellItRight</span>
+          <span className="text-sm font-semibold text-[var(--color-foreground)]">ChapterNew</span>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ export function AdminSidebar() {
           <span className="rounded bg-[var(--color-foreground)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
             Admin
           </span>
-          <span className="text-sm font-semibold text-[var(--color-foreground)]">SellItRight</span>
+          <span className="text-sm font-semibold text-[var(--color-foreground)]">ChapterNew</span>
         </div>
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>

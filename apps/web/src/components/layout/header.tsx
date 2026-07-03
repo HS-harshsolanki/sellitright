@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
+import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
 import { HeaderSearch } from '@/components/layout/header-search'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -51,21 +52,7 @@ function useHasListings(userId: string | undefined): boolean {
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 
 function Logo() {
-  return (
-    <Link
-      href="/"
-      className="shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-    >
-      <span className="sr-only">SellItRight home</span>
-      <span
-        aria-hidden="true"
-        className="text-base font-semibold leading-none tracking-tight sm:text-xl"
-      >
-        <span className="text-[var(--color-accent)]">Sell</span>
-        <span className="text-[var(--color-foreground)]">ItRight</span>
-      </span>
-    </Link>
-  )
+  return <ChapterNewLogo size="sm" />
 }
 
 function SearchFallback() {
@@ -274,9 +261,8 @@ function MobileSheet({
 
       <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-6">
         <SheetHeader className="mb-5">
-          <SheetTitle className="text-left text-base font-bold tracking-tight">
-            <span className="text-[var(--color-primary)]">Sell</span>
-            <span className="text-[var(--color-foreground)]">ItRight</span>
+          <SheetTitle className="text-left">
+            <ChapterNewLogo size="sm" asLink={false} />
           </SheetTitle>
         </SheetHeader>
 

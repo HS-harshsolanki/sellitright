@@ -4,7 +4,7 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'About',
   description:
-    'Learn about SellItRight — our mission, how the platform works, and why owners choose us to sell their properties.',
+    'Learn about ChapterNew — our mission, how the platform works, and why owners choose us to sell their properties.',
 }
 
 const PILLARS = [
@@ -57,7 +57,7 @@ export default function AboutPage() {
           Property transactions that work for real people
         </h1>
         <p className="mt-4 text-base leading-relaxed text-[var(--color-muted-foreground)]">
-          SellItRight was built to cut out the noise in Indian real estate — the cold calls, the
+          ChapterNew was built to cut out the noise in Indian real estate — the cold calls, the
           broker markups, the listings that go nowhere. We connect property owners directly with
           buyers across every city in India.
         </p>

@@ -3,14 +3,14 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'Learn how SellItRight collects, uses, and protects your personal information.',
+  description: 'Learn how ChapterNew collects, uses, and protects your personal information.',
 }
 
 const SECTIONS = [
   {
     id: '1',
     title: 'Information we collect',
-    body: "We collect information you provide directly — your mobile number, name, and property listing details. We also automatically collect technical data including your IP address, browser type, and usage patterns when you interact with the platform. This information is used solely to operate and improve SellItRight's services.",
+    body: "We collect information you provide directly — your mobile number, name, and property listing details. We also automatically collect technical data including your IP address, browser type, and usage patterns when you interact with the platform. This information is used solely to operate and improve ChapterNew's services.",
   },
   {
     id: '2',
@@ -25,12 +25,12 @@ const SECTIONS = [
   {
     id: '4',
     title: 'Your rights',
-    body: 'You have the right to access, correct, or delete your personal data held by us. You may also object to processing or request that we restrict how we use your data. To exercise any of these rights, please contact us at privacy@sellitright.in. We will respond to all valid requests within 30 days in accordance with applicable data protection laws.',
+    body: 'You have the right to access, correct, or delete your personal data held by us. You may also object to processing or request that we restrict how we use your data. To exercise any of these rights, please contact us at privacy@chapternew.com. We will respond to all valid requests within 30 days in accordance with applicable data protection laws.',
   },
   {
     id: '5',
     title: 'Cookies and tracking',
-    body: 'SellItRight uses cookies and similar technologies to maintain your session, remember your preferences, and gather analytics about platform usage. You can control cookie settings through your browser preferences. Disabling cookies may affect the functionality of certain features. We do not use cookies to serve third-party advertising or track you across other websites.',
+    body: 'ChapterNew uses cookies and similar technologies to maintain your session, remember your preferences, and gather analytics about platform usage. You can control cookie settings through your browser preferences. Disabling cookies may affect the functionality of certain features. We do not use cookies to serve third-party advertising or track you across other websites.',
   },
 ]
 
@@ -175,10 +175,10 @@ export default function PrivacyPage() {
       <div className="mt-12 rounded-xl border border-[var(--color-border)] px-5 py-4 text-sm text-[var(--color-muted-foreground)]">
         Questions about this policy?{' '}
         <a
-          href="mailto:privacy@sellitright.in"
+          href="mailto:privacy@chapternew.com"
           className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
         >
-          privacy@sellitright.in
+          privacy@chapternew.com
         </a>{' '}
         or visit our{' '}
         <Link

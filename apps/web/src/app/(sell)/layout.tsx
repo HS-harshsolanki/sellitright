@@ -2,12 +2,13 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
-  title: 'List Your Property — SellItRight',
+  title: 'List Your Property — ChapterNew',
   description:
-    'List your property on SellItRight and reach thousands of verified buyers across India.',
+    'List your property on ChapterNew and reach thousands of verified buyers across India.',
 }
 
 interface SellLayoutProps {
@@ -29,16 +30,7 @@ export default async function SellLayout({ children }: SellLayoutProps) {
     <div className="flex min-h-screen flex-col bg-white">
       {/* Minimal top bar */}
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-4 backdrop-blur-sm sm:px-6">
-        {/* Logo — "Sell" in accent, "ItRight" in foreground dark, matching main header */}
-        <Link href="/" className="flex items-center text-lg font-bold">
-          <span className="sr-only">SellItRight home</span>
-          <span aria-hidden="true" className="text-[var(--color-accent)]">
-            Sell
-          </span>
-          <span aria-hidden="true" className="text-[var(--color-foreground)]">
-            ItRight
-          </span>
-        </Link>
+        <ChapterNewLogo size="sm" />
 
         {/* Right side: exit link */}
         <div className="flex items-center gap-3">

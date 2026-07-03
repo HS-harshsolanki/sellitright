@@ -100,7 +100,7 @@ export default function AdminDashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-[var(--color-foreground)]">Dashboard</h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Overview of the SellItRight marketplace.
+          Overview of the ChapterNew marketplace.
         </p>
       </div>
 

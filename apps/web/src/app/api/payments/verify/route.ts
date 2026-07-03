@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          'Payment recorded but contact unlock failed. Please refresh the page to retry, or email support@sellitright.in with your payment ID.',
+          'Payment recorded but contact unlock failed. Please refresh the page to retry, or email support@chapternew.com with your payment ID.',
         paymentId: payment.id,
         retryable: true,
       },

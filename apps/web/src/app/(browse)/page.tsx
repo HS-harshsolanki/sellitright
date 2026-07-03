@@ -98,9 +98,9 @@ const TRUST_PILLARS = [
 
 const FAQ_ITEMS = [
   {
-    question: 'Is SellItRight a broker?',
+    question: 'Is ChapterNew a broker?',
     answer:
-      'No. We are a platform. We connect owners and buyers directly — no SellItRight employee is involved in your negotiation, price discussion, or site visit. We charge a one-time platform fee only when both sides agree to connect.',
+      'No. We are a platform. We connect owners and buyers directly — no ChapterNew employee is involved in your negotiation, price discussion, or site visit. We charge a one-time platform fee only when both sides agree to connect.',
   },
   {
     question: 'What does the platform fee cover?',
@@ -141,13 +141,13 @@ export default async function LandingPage() {
               id="hero-heading"
               className="text-5xl font-semibold leading-tight tracking-tight text-[var(--color-foreground)] sm:text-6xl md:text-7xl"
             >
-              Your home. Your terms. No broker.
+              Find your next place in life.
             </h1>
           </Reveal>
 
           <Reveal delay={0.1} y={20}>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-              SellItRight connects verified owners directly with serious buyers — no middlemen, no
+              ChapterNew connects verified owners directly with serious buyers — no middlemen, no
               number leaks, no surprises.
             </p>
           </Reveal>
@@ -272,7 +272,7 @@ export default async function LandingPage() {
           </FadeIn>
 
           {/* Numbered step timeline — step dot + connector line */}
-          <ol className="relative mt-14 space-y-0" aria-label="How SellItRight works">
+          <ol className="relative mt-14 space-y-0" aria-label="How ChapterNew works">
             {HANDSHAKE_STEPS.map(({ step, actor, label, description }, idx) => (
               <Reveal key={step} delay={idx * 0.09} y={16}>
                 <li className="relative flex gap-6 pb-10 last:pb-0">
@@ -480,10 +480,10 @@ export default async function LandingPage() {
             <p className="mt-12 text-center text-sm text-white/40">
               Questions? Email us at{' '}
               <a
-                href="mailto:support@sellitright.in"
+                href="mailto:support@chapternew.com"
                 className="text-white/60 underline underline-offset-4 hover:text-white"
               >
-                support@sellitright.in
+                support@chapternew.com
               </a>
             </p>
           </FadeIn>

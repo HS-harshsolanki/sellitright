@@ -1,7 +1,7 @@
 {
-  "name": "SellItRight",
-  "short_name": "SellItRight",
-  "description": "Browse verified flat listings across India. Buy directly from owners, no brokerage.",
+  "name": "ChapterNew",
+  "short_name": "ChapterNew",
+  "description": "Find your next place in life. Browse verified property listings across India.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -15,6 +15,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 
 import { SignOutButton } from '@/components/auth/sign-out-button'
+import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
@@ -52,14 +53,7 @@ function SidebarNavInner({ pendingBuyerCount }: SidebarNavProps) {
   return (
     <aside className="hidden w-56 shrink-0 border-r border-[var(--color-border)] bg-white lg:flex lg:flex-col">
       <div className="flex h-16 items-center border-b border-[var(--color-border)] px-6">
-        <Link
-          href="/"
-          className="flex items-center gap-1 text-lg font-bold leading-none tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-          aria-label="SellItRight home"
-        >
-          <span className="text-[var(--color-accent)]">Sell</span>
-          <span className="text-[var(--color-foreground)]">ItRight</span>
-        </Link>
+        <ChapterNewLogo size="sm" />
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Dashboard navigation">
@@ -152,14 +146,7 @@ function SidebarNav(props: SidebarNavProps) {
 function TopBar() {
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-4 backdrop-blur-sm lg:hidden">
-      <Link
-        href="/"
-        className="flex items-center gap-1 text-base font-bold leading-none tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-        aria-label="SellItRight home"
-      >
-        <span className="text-[var(--color-accent)]">Sell</span>
-        <span className="text-[var(--color-foreground)]">ItRight</span>
-      </Link>
+      <ChapterNewLogo size="sm" />
       <Link
         href="/sell"
         className={cn(
