@@ -1,16 +1,6 @@
-export type BHKType =
-  | 'ONE_BHK'
-  | 'TWO_BHK'
-  | 'THREE_BHK'
-  | 'FOUR_BHK'
-  | 'FIVE_PLUS_BHK'
+export type BHKType = 'ONE_BHK' | 'TWO_BHK' | 'THREE_BHK' | 'FOUR_BHK' | 'FIVE_PLUS_BHK'
 
-export type PropertyType =
-  | 'APARTMENT'
-  | 'VILLA'
-  | 'PLOT'
-  | 'INDEPENDENT_HOUSE'
-  | 'PENTHOUSE'
+export type PropertyType = 'APARTMENT' | 'VILLA' | 'PLOT' | 'INDEPENDENT_HOUSE' | 'PENTHOUSE'
 
 export type Facing =
   | 'NORTH'
@@ -26,7 +16,14 @@ export type Furnishing = 'FURNISHED' | 'SEMI_FURNISHED' | 'UNFURNISHED'
 
 export type Parking = 'COVERED' | 'OPEN' | 'BOTH' | 'NONE'
 
-export type ListingStatus = 'DRAFT' | 'ACTIVE' | 'SOLD' | 'INACTIVE' | 'PENDING_REVIEW' | 'REJECTED'
+export type ListingStatus =
+  | 'DRAFT'
+  | 'ACTIVE'
+  | 'SOLD'
+  | 'INACTIVE'
+  | 'PENDING_REVIEW'
+  | 'REJECTED'
+  | 'DELETED'
 
 export interface MockSeller {
   id: string
@@ -326,7 +323,16 @@ export const MOCK_LISTINGS: MockListing[] = [
     pincode: '400053',
     latitude: 19.1364,
     longitude: 72.8296,
-    amenities: ['Swimming Pool', 'Gym', 'Clubhouse', '24/7 Security', 'Power Backup', 'Lift', 'CCTV', 'Jogging Track'],
+    amenities: [
+      'Swimming Pool',
+      'Gym',
+      'Clubhouse',
+      '24/7 Security',
+      'Power Backup',
+      'Lift',
+      'CCTV',
+      'Jogging Track',
+    ],
     status: 'ACTIVE',
     rejectionReason: null,
     isVerified: true,
@@ -339,9 +345,24 @@ export const MOCK_LISTINGS: MockListing[] = [
       isVerified: true,
     },
     images: [
-      { id: 'img-012', url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80', caption: 'Living Room', order: 0 },
-      { id: 'img-013', url: 'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=1200&q=80', caption: 'Bedroom', order: 1 },
-      { id: 'img-014', url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=80', caption: 'Kitchen', order: 2 },
+      {
+        id: 'img-012',
+        url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80',
+        caption: 'Living Room',
+        order: 0,
+      },
+      {
+        id: 'img-013',
+        url: 'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=1200&q=80',
+        caption: 'Bedroom',
+        order: 1,
+      },
+      {
+        id: 'img-014',
+        url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=80',
+        caption: 'Kitchen',
+        order: 2,
+      },
     ],
     createdAt: '2024-12-01T08:00:00Z',
   },
@@ -370,7 +391,18 @@ export const MOCK_LISTINGS: MockListing[] = [
     pincode: '411045',
     latitude: 18.5596,
     longitude: 73.7786,
-    amenities: ['Swimming Pool', 'Gym', 'Clubhouse', 'Children Play Area', '24/7 Security', 'Power Backup', 'Lift', 'Garden', 'Jogging Track', 'Indoor Games'],
+    amenities: [
+      'Swimming Pool',
+      'Gym',
+      'Clubhouse',
+      'Children Play Area',
+      '24/7 Security',
+      'Power Backup',
+      'Lift',
+      'Garden',
+      'Jogging Track',
+      'Indoor Games',
+    ],
     status: 'ACTIVE',
     rejectionReason: null,
     isVerified: true,
@@ -383,10 +415,30 @@ export const MOCK_LISTINGS: MockListing[] = [
       isVerified: true,
     },
     images: [
-      { id: 'img-015', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80', caption: 'Living Room', order: 0 },
-      { id: 'img-016', url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=80', caption: 'Bedroom', order: 1 },
-      { id: 'img-017', url: 'https://images.unsplash.com/photo-1600210491369-e753d80a41f3?w=1200&q=80', caption: 'View from Balcony', order: 2 },
-      { id: 'img-018', url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=80', caption: 'Kitchen', order: 3 },
+      {
+        id: 'img-015',
+        url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',
+        caption: 'Living Room',
+        order: 0,
+      },
+      {
+        id: 'img-016',
+        url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=80',
+        caption: 'Bedroom',
+        order: 1,
+      },
+      {
+        id: 'img-017',
+        url: 'https://images.unsplash.com/photo-1600210491369-e753d80a41f3?w=1200&q=80',
+        caption: 'View from Balcony',
+        order: 2,
+      },
+      {
+        id: 'img-018',
+        url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=80',
+        caption: 'Kitchen',
+        order: 3,
+      },
     ],
     createdAt: '2024-11-28T11:00:00Z',
   },
@@ -414,8 +466,16 @@ export const MOCK_LISTINGS: MockListing[] = [
     state: 'Maharashtra',
     pincode: '400076',
     latitude: 19.1176,
-    longitude: 72.9060,
-    amenities: ['Swimming Pool', 'Gym', '24/7 Security', 'Power Backup', 'Lift', 'CCTV', 'Landscaped Garden'],
+    longitude: 72.906,
+    amenities: [
+      'Swimming Pool',
+      'Gym',
+      '24/7 Security',
+      'Power Backup',
+      'Lift',
+      'CCTV',
+      'Landscaped Garden',
+    ],
     status: 'ACTIVE',
     rejectionReason: null,
     isVerified: false,
@@ -428,9 +488,24 @@ export const MOCK_LISTINGS: MockListing[] = [
       isVerified: false,
     },
     images: [
-      { id: 'img-019', url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80', caption: 'Living Area', order: 0 },
-      { id: 'img-020', url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80', caption: 'Bedroom', order: 1 },
-      { id: 'img-021', url: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&q=80', caption: 'Kitchen', order: 2 },
+      {
+        id: 'img-019',
+        url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80',
+        caption: 'Living Area',
+        order: 0,
+      },
+      {
+        id: 'img-020',
+        url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80',
+        caption: 'Bedroom',
+        order: 1,
+      },
+      {
+        id: 'img-021',
+        url: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&q=80',
+        caption: 'Kitchen',
+        order: 2,
+      },
     ],
     createdAt: '2024-12-05T15:30:00Z',
   },
@@ -459,7 +534,18 @@ export const MOCK_LISTINGS: MockListing[] = [
     pincode: '400018',
     latitude: 19.0096,
     longitude: 72.8179,
-    amenities: ['Private Pool', 'Home Theater', 'Smart Home', 'Private Lift', 'Terrace Garden', 'Concierge', '24/7 Security', 'Valet Parking', 'Spa', 'Wine Cellar'],
+    amenities: [
+      'Private Pool',
+      'Home Theater',
+      'Smart Home',
+      'Private Lift',
+      'Terrace Garden',
+      'Concierge',
+      '24/7 Security',
+      'Valet Parking',
+      'Spa',
+      'Wine Cellar',
+    ],
     status: 'ACTIVE',
     rejectionReason: null,
     isVerified: true,
@@ -472,10 +558,30 @@ export const MOCK_LISTINGS: MockListing[] = [
       isVerified: true,
     },
     images: [
-      { id: 'img-022', url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&q=80', caption: 'Living Room', order: 0 },
-      { id: 'img-023', url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80', caption: 'Exterior', order: 1 },
-      { id: 'img-024', url: 'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=1200&q=80', caption: 'Kitchen', order: 2 },
-      { id: 'img-025', url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80', caption: 'View', order: 3 },
+      {
+        id: 'img-022',
+        url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&q=80',
+        caption: 'Living Room',
+        order: 0,
+      },
+      {
+        id: 'img-023',
+        url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80',
+        caption: 'Exterior',
+        order: 1,
+      },
+      {
+        id: 'img-024',
+        url: 'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=1200&q=80',
+        caption: 'Kitchen',
+        order: 2,
+      },
+      {
+        id: 'img-025',
+        url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80',
+        caption: 'View',
+        order: 3,
+      },
     ],
     createdAt: '2024-09-20T09:00:00Z',
   },
@@ -517,9 +623,24 @@ export const MOCK_LISTINGS: MockListing[] = [
       isVerified: true,
     },
     images: [
-      { id: 'img-026', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80', caption: 'Front View', order: 0 },
-      { id: 'img-027', url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=80', caption: 'Garden', order: 1 },
-      { id: 'img-028', url: 'https://images.unsplash.com/photo-1600210491369-e753d80a41f3?w=1200&q=80', caption: 'Living Room', order: 2 },
+      {
+        id: 'img-026',
+        url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',
+        caption: 'Front View',
+        order: 0,
+      },
+      {
+        id: 'img-027',
+        url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=80',
+        caption: 'Garden',
+        order: 1,
+      },
+      {
+        id: 'img-028',
+        url: 'https://images.unsplash.com/photo-1600210491369-e753d80a41f3?w=1200&q=80',
+        caption: 'Living Room',
+        order: 2,
+      },
     ],
     createdAt: '2024-11-10T07:30:00Z',
   },
@@ -547,7 +668,7 @@ export const MOCK_LISTINGS: MockListing[] = [
     state: 'Maharashtra',
     pincode: '411057',
     latitude: 18.5912,
-    longitude: 73.7380,
+    longitude: 73.738,
     amenities: ['Gym', '24/7 Security', 'Power Backup', 'Lift', 'Children Play Area'],
     status: 'ACTIVE',
     rejectionReason: null,
@@ -561,9 +682,24 @@ export const MOCK_LISTINGS: MockListing[] = [
       isVerified: false,
     },
     images: [
-      { id: 'img-029', url: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=1200&q=80', caption: 'Living Room', order: 0 },
-      { id: 'img-030', url: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?w=1200&q=80', caption: 'Bedroom', order: 1 },
-      { id: 'img-031', url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80', caption: 'Hall', order: 2 },
+      {
+        id: 'img-029',
+        url: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=1200&q=80',
+        caption: 'Living Room',
+        order: 0,
+      },
+      {
+        id: 'img-030',
+        url: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?w=1200&q=80',
+        caption: 'Bedroom',
+        order: 1,
+      },
+      {
+        id: 'img-031',
+        url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80',
+        caption: 'Hall',
+        order: 2,
+      },
     ],
     createdAt: '2024-12-08T16:00:00Z',
   },
@@ -592,7 +728,14 @@ export const MOCK_LISTINGS: MockListing[] = [
     pincode: '560035',
     latitude: 12.8972,
     longitude: 77.6789,
-    amenities: ['Gym', 'Swimming Pool', '24/7 Security', 'Power Backup', 'Lift', 'Children Play Area'],
+    amenities: [
+      'Gym',
+      'Swimming Pool',
+      '24/7 Security',
+      'Power Backup',
+      'Lift',
+      'Children Play Area',
+    ],
     status: 'PENDING_REVIEW',
     rejectionReason: null,
     isVerified: false,
@@ -605,8 +748,18 @@ export const MOCK_LISTINGS: MockListing[] = [
       isVerified: false,
     },
     images: [
-      { id: 'img-032', url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80', caption: 'Living Room', order: 0 },
-      { id: 'img-033', url: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&q=80', caption: 'Kitchen', order: 1 },
+      {
+        id: 'img-032',
+        url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80',
+        caption: 'Living Room',
+        order: 0,
+      },
+      {
+        id: 'img-033',
+        url: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&q=80',
+        caption: 'Kitchen',
+        order: 1,
+      },
     ],
     createdAt: '2025-01-10T09:00:00Z',
   },
@@ -648,8 +801,18 @@ export const MOCK_LISTINGS: MockListing[] = [
       isVerified: false,
     },
     images: [
-      { id: 'img-034', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80', caption: 'Front View', order: 0 },
-      { id: 'img-035', url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=80', caption: 'Garden', order: 1 },
+      {
+        id: 'img-034',
+        url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',
+        caption: 'Front View',
+        order: 0,
+      },
+      {
+        id: 'img-035',
+        url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=80',
+        caption: 'Garden',
+        order: 1,
+      },
     ],
     createdAt: '2025-01-12T11:30:00Z',
   },
@@ -677,10 +840,11 @@ export const MOCK_LISTINGS: MockListing[] = [
     state: 'Karnataka',
     pincode: '560100',
     latitude: 12.8399,
-    longitude: 77.6770,
+    longitude: 77.677,
     amenities: ['Gym', '24/7 Security', 'Lift', 'Power Backup'],
     status: 'REJECTED',
-    rejectionReason: 'Images are blurry and do not meet quality standards. Please re-upload clear photos.',
+    rejectionReason:
+      'Images are blurry and do not meet quality standards. Please re-upload clear photos.',
     isVerified: false,
     viewCount: 0,
     seller: {
@@ -691,7 +855,12 @@ export const MOCK_LISTINGS: MockListing[] = [
       isVerified: false,
     },
     images: [
-      { id: 'img-036', url: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=1200&q=80', caption: 'Room', order: 0 },
+      {
+        id: 'img-036',
+        url: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=1200&q=80',
+        caption: 'Room',
+        order: 0,
+      },
     ],
     createdAt: '2025-01-08T14:00:00Z',
   },

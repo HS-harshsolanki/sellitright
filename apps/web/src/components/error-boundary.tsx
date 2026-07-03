@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import React from 'react'
 
 interface ErrorBoundaryState {
   hasError: boolean
@@ -62,7 +62,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
           <button
             onClick={this.handleReset}
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary)]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
+            className="hover:bg-[var(--color-primary)]/90 inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Try again

@@ -1,10 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useState } from 'react'
+
+import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
 import { Button } from '@/components/ui/button'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
@@ -27,94 +29,69 @@ const GoogleIcon = () => (
   </svg>
 )
 
-type LoginStep = 'phone' | 'otp'
+function Spinner() {
+  return (
+    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+    </svg>
+  )
+}
 
-export default function LoginPage() {
-  const router = useRouter()
-  const [step, setStep] = useState<LoginStep>('phone')
-  const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
+function LoginPageInner() {
+  const searchParams = useSearchParams()
+  const next = searchParams.get('next') ?? '/'
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   async function handleGoogleLogin() {
+    if (!isSupabaseConfigured()) {
+      // Dev-only — never shown to end users in production
+      console.warn('[login] Supabase is not configured. Check your .env.local file.')
+      setError('Sign-in is temporarily unavailable. Please try again later.')
+      return
+    }
     setLoading(true)
     setError('')
-    await signIn('google', { callbackUrl: '/' })
-  }
-
-  function handleSendOtp(e: React.FormEvent) {
-    e.preventDefault()
-    if (phone.length !== 10) return
-    setLoading(true)
-    setError('')
-    // In production, this would call an API to send OTP via SMS
-    // For dev, we just move to the OTP step
-    setTimeout(() => {
-      setLoading(false)
-      setStep('otp')
-    }, 800)
-  }
-
-  async function handleVerifyOtp(e: React.FormEvent) {
-    e.preventDefault()
-    if (otp.length !== 6) return
-    setLoading(true)
-    setError('')
-
-    const result = await signIn('phone-otp', {
-      phone,
-      otp,
-      redirect: false,
+    const { error: oauthError } = await createClient().auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        queryParams: {
+          prompt: 'select_account',
+          access_type: 'offline',
+        },
+      },
     })
-
-    setLoading(false)
-
-    if (result?.error) {
-      setError('Invalid OTP. In dev mode, use: 123456')
-    } else {
-      router.push('/')
-      router.refresh()
+    if (oauthError) {
+      console.error('[login] OAuth error:', oauthError.message)
+      setError('Sign-in failed. Please try again.')
+      setLoading(false)
     }
   }
 
+  const callbackError = searchParams.get('error')
+  const showError = error || callbackError
+
   return (
     <>
-      {/* Logo */}
       <div className="mb-8 text-center">
-        <Link href="/" className="inline-block" aria-label="SellItRight home">
-          <span className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
-            Sell<span className="text-[var(--color-primary)]">It</span>Right
-          </span>
-        </Link>
+        <div className="flex justify-center">
+          <ChapterNewLogo size="md" />
+        </div>
         <h1 className="mt-4 text-xl font-semibold text-[var(--color-foreground)]">Welcome back</h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
           Sign in to manage your listings
         </p>
       </div>
 
-      {/* Google sign-in */}
-      <Button
-        type="button"
-        variant="outline"
-        className="h-12 w-full gap-3 border-[var(--color-border)] text-sm font-medium shadow-sm"
-        onClick={handleGoogleLogin}
-        disabled={loading}
-      >
-        <GoogleIcon />
-        Continue with Google
-      </Button>
-
-      {/* Divider */}
-      <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-[var(--color-border)]" />
-        <span className="text-xs text-[var(--color-muted-foreground)]">or</span>
-        <div className="h-px flex-1 bg-[var(--color-border)]" />
-      </div>
-
-      {/* Error message */}
-      {error && (
-        <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+      {showError && (
+        <div
+          className="border-[var(--color-destructive)]/20 bg-[var(--color-destructive)]/5 mb-4 flex items-start gap-2 rounded-lg border px-4 py-3 text-sm text-[var(--color-destructive)]"
+          role="alert"
+          aria-live="polite"
+        >
           <svg
             viewBox="0 0 20 20"
             fill="currentColor"
@@ -127,132 +104,56 @@ export default function LoginPage() {
               clipRule="evenodd"
             />
           </svg>
-          <span>{error}</span>
+          <span>{error || callbackError || 'Sign-in failed. Please try again.'}</span>
         </div>
       )}
 
-      {step === 'phone' ? (
-        /* Phone number input step */
-        <form onSubmit={handleSendOtp} noValidate>
-          <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]">
-            Mobile number
-          </label>
-          <div className="flex h-12 overflow-hidden rounded-lg border border-[var(--color-input)] focus-within:ring-2 focus-within:ring-[var(--color-ring)] focus-within:ring-offset-0">
-            <span className="flex items-center border-r border-[var(--color-input)] bg-[var(--color-muted)] px-3 text-sm font-medium text-[var(--color-muted-foreground)] select-none">
-              +91
-            </span>
-            <input
-              id="phone"
-              type="tel"
-              inputMode="numeric"
-              maxLength={10}
-              placeholder="98765 43210"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-              className="h-full flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-[var(--color-muted-foreground)]"
-              autoComplete="tel-national"
-              required
-            />
-          </div>
+      <Button
+        type="button"
+        variant="outline"
+        className="h-12 w-full gap-3 border-[var(--color-border)] text-sm font-medium shadow-sm"
+        onClick={handleGoogleLogin}
+        disabled={loading}
+      >
+        {loading ? <Spinner /> : <GoogleIcon />}
+        {loading ? 'Redirecting to Google…' : 'Continue with Google'}
+      </Button>
 
-          <Button
-            type="submit"
-            className="mt-4 h-12 w-full text-sm font-semibold"
-            disabled={phone.length !== 10 || loading}
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                </svg>
-                Sending OTP…
-              </span>
-            ) : (
-              'Send OTP'
-            )}
-          </Button>
-        </form>
-      ) : (
-        /* OTP verification step */
-        <div className="animate-in fade-in duration-200">
-          <form onSubmit={handleVerifyOtp} noValidate>
-            <div className="mb-4 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => { setStep('phone'); setOtp(''); setError('') }}
-                className="text-sm text-[var(--color-primary)] hover:underline"
-              >
-                &larr; Change number
-              </button>
-              <span className="text-sm text-[var(--color-muted-foreground)]">+91 {phone}</span>
-            </div>
+      <p className="mt-6 text-center text-xs text-[var(--color-muted-foreground)]">
+        By continuing, you agree to our{' '}
+        <Link
+          href="/terms"
+          className="underline underline-offset-4 hover:text-[var(--color-foreground)]"
+        >
+          Terms
+        </Link>{' '}
+        and{' '}
+        <Link
+          href="/privacy"
+          className="underline underline-offset-4 hover:text-[var(--color-foreground)]"
+        >
+          Privacy Policy
+        </Link>
+        .
+      </p>
 
-            <label htmlFor="otp" className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]">
-              Enter 6-digit OTP
-            </label>
-            <input
-              id="otp"
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="• • • • • •"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-              className="h-12 w-full rounded-lg border border-[var(--color-input)] bg-transparent px-4 text-center text-lg tracking-[0.5em] outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
-              autoComplete="one-time-code"
-              autoFocus
-              required
-            />
-
-            <Button
-              type="submit"
-              className="mt-4 h-12 w-full text-sm font-semibold"
-              disabled={otp.length !== 6 || loading}
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg
-                    className="h-4 w-4 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
-                  Verifying…
-                </span>
-              ) : (
-                'Verify & Sign In'
-              )}
-            </Button>
-
-            <p className="mt-3 text-center text-xs text-[var(--color-muted-foreground)]">
-              Didn&apos;t receive OTP?{' '}
-              <button type="button" className="font-medium text-[var(--color-primary)] hover:underline">
-                Resend
-              </button>
-            </p>
-          </form>
-        </div>
-      )}
-
-      {/* Register link */}
-      <p className="mt-6 text-center text-sm text-[var(--color-muted-foreground)]">
-        New to SellItRight?{' '}
+      <p className="mt-4 text-center text-sm text-[var(--color-muted-foreground)]">
+        Don&apos;t have an account?{' '}
         <Link
           href="/register"
           className="font-medium text-[var(--color-primary)] underline-offset-4 hover:underline"
         >
-          Create account
+          Create one
         </Link>
       </p>
     </>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageInner />
+    </Suspense>
   )
 }

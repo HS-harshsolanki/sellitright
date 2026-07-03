@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+
 import { cn } from '@/lib/utils'
 
 interface ExpandableDescriptionProps {
@@ -9,10 +10,7 @@ interface ExpandableDescriptionProps {
   clampLines?: number
 }
 
-export function ExpandableDescription({
-  text,
-  clampLines = 4,
-}: ExpandableDescriptionProps) {
+export function ExpandableDescription({ text, clampLines = 4 }: ExpandableDescriptionProps) {
   const [expanded, setExpanded] = useState(false)
 
   const clampClass: Record<number, string> = {
@@ -36,7 +34,7 @@ export function ExpandableDescription({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="mt-3 inline-flex items-center gap-1 text-sm font-semibold underline-offset-2 hover:underline text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] rounded"
+        className="mt-3 inline-flex items-center gap-1 rounded text-sm font-semibold text-[var(--color-foreground)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
       >
         {expanded ? 'Show less' : 'Show more'}
       </button>

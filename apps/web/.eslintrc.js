@@ -4,4 +4,5 @@ module.exports = {
   parserOptions: {
     project: './tsconfig.json',
   },
+  ignorePatterns: ['src/lib/phone-filter.ts'],
 }

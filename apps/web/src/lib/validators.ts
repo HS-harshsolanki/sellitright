@@ -13,13 +13,7 @@ export const PropertyTypeEnum = z.enum([
   'PENTHOUSE',
 ])
 
-export const BHKTypeEnum = z.enum([
-  'ONE_BHK',
-  'TWO_BHK',
-  'THREE_BHK',
-  'FOUR_BHK',
-  'FIVE_PLUS_BHK',
-])
+export const BHKTypeEnum = z.enum(['ONE_BHK', 'TWO_BHK', 'THREE_BHK', 'FOUR_BHK', 'FIVE_PLUS_BHK'])
 
 export const FacingEnum = z.enum([
   'NORTH',
@@ -72,13 +66,26 @@ export const listingCreateSchema = z.object({
   city: z.string().min(2).max(100),
   locality: z.string().min(2).max(100),
   state: z.string().min(2).max(100),
-  pincode: z
-    .string()
-    .regex(/^\d{6}$/, 'Pincode must be exactly 6 digits'),
+  pincode: z.string().regex(/^\d{6}$/, 'Pincode must be exactly 6 digits'),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   amenities: z.array(z.string()).default([]),
-  imageUrls: z.array(z.string().url('Each image must be a valid URL')).max(20).default([]),
+  imageUrls: z
+    .array(
+      z
+        .string()
+        .url('Each image must be a valid URL')
+        .refine(
+          (url) => {
+            const base = process.env.NEXT_PUBLIC_SUPABASE_URL
+            if (!base) return url.includes('.supabase.co/storage/') // fallback for dev/test
+            return url.startsWith(`${base}/storage/v1/object/public/photos/`)
+          },
+          { message: 'Image must be uploaded to this platform' },
+        ),
+    )
+    .max(20)
+    .default([]),
 })
 
 export type ListingCreateInput = z.infer<typeof listingCreateSchema>
@@ -105,15 +112,64 @@ export const listingFilterSchema = z.object({
 export type ListingFilterInput = z.infer<typeof listingFilterSchema>
 
 // ---------------------------------------------------------------------------
+// Buyer Interest (Handshake Model)
+// ---------------------------------------------------------------------------
+
+export const InterestPurposeEnum = z.enum(['SELF', 'INVESTMENT'])
+export const InterestTimelineEnum = z.enum([
+  'IMMEDIATELY',
+  'WITHIN_30_DAYS',
+  'ONE_TO_THREE_MONTHS',
+  'EXPLORING',
+])
+export const InterestFundingEnum = z.enum(['CASH_READY', 'LOAN_APPROVED', 'LOAN_IN_PROGRESS'])
+export const InterestStatusEnum = z.enum(['PENDING', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'])
+
+export const buyerInterestSchema = z.object({
+  fullName: z
+    .string({ required_error: 'Full name is required' })
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be under 100 characters')
+    .trim(),
+  purpose: InterestPurposeEnum,
+  timeline: InterestTimelineEnum,
+  funding: InterestFundingEnum,
+  message: z
+    .string()
+    .max(250, 'Message must be under 250 characters')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+})
+
+export type BuyerInterestInput = z.infer<typeof buyerInterestSchema>
+export type InterestPurpose = z.infer<typeof InterestPurposeEnum>
+export type InterestTimeline = z.infer<typeof InterestTimelineEnum>
+export type InterestFunding = z.infer<typeof InterestFundingEnum>
+export type InterestStatus = z.infer<typeof InterestStatusEnum>
+
+export interface BuyerInterestRecord {
+  id: string
+  listingId: string
+  buyerId: string
+  sellerId: string
+  fullName: string
+  purpose: InterestPurpose
+  timeline: InterestTimeline
+  funding: InterestFunding
+  message: string | null
+  status: InterestStatus
+  createdAt: string
+}
+
+// ---------------------------------------------------------------------------
 // Auth / login schema
 // ---------------------------------------------------------------------------
 
 export const loginSchema = z.union([
   z.object({
     type: z.literal('phone'),
-    phone: z
-      .string()
-      .regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
+    phone: z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
     otp: z.string().length(6, 'OTP must be 6 digits').optional(),
   }),
   z.object({
@@ -124,3 +180,49 @@ export const loginSchema = z.union([
 ])
 
 export type LoginInput = z.infer<typeof loginSchema>
+
+// ---------------------------------------------------------------------------
+// Trust & Safety
+// ---------------------------------------------------------------------------
+
+// Buyer reporting a listing
+export const buyerListingReportReasonEnum = z.enum([
+  'ALREADY_SOLD',
+  'WRONG_INFORMATION',
+  'SPAM_LISTING',
+  'OTHER',
+])
+
+// Seller reporting a buyer
+export const sellerBuyerReportReasonEnum = z.enum([
+  'SPAM_REQUESTS',
+  'ABUSIVE_BEHAVIOR',
+  'BROKER_SUSPECTED',
+  'FAKE_DETAILS',
+  'OTHER',
+])
+
+export const buyerReportListingSchema = z.object({
+  reason: buyerListingReportReasonEnum,
+  details: z.string().max(500).trim().optional(),
+})
+
+export const sellerReportBuyerSchema = z.object({
+  targetUserId: z.string().uuid('Invalid user ID'),
+  reason: sellerBuyerReportReasonEnum,
+  details: z.string().max(500).trim().optional(),
+})
+
+export const blockUserSchema = z.object({
+  reason: z.string().max(200).trim().optional(),
+})
+
+export const adminFlagUserSchema = z.object({
+  flag: z.enum(['SPAM', 'BROKER_SUSPECTED', 'NEEDS_REVIEW', 'SUSPENDED', 'CLEARED']),
+  reason: z.string().max(500).trim().optional(),
+})
+
+export type BuyerReportListingInput = z.infer<typeof buyerReportListingSchema>
+export type SellerReportBuyerInput = z.infer<typeof sellerReportBuyerSchema>
+export type BlockUserInput = z.infer<typeof blockUserSchema>
+export type AdminFlagUserInput = z.infer<typeof adminFlagUserSchema>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
 import type { MockListing } from '@/lib/mock-data'
 import type { ListingCreateInput } from '@/lib/validators'
 
@@ -46,6 +47,7 @@ export function useListings(filters: ListingFilters = {}) {
   return useQuery({
     queryKey: ['listings', filters],
     queryFn: () => fetchListings(filters),
+    staleTime: 60_000,
   })
 }
 
@@ -54,6 +56,7 @@ export function useListing(id: string) {
     queryKey: ['listing', id],
     queryFn: () => fetchListing(id),
     enabled: !!id,
+    staleTime: 60_000,
   })
 }
 

@@ -1,11 +1,16 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { useSellFormStore } from '@/stores/sell-form.store'
-import { ImagePlus, Link, Trash2, X } from 'lucide-react'
+import { CheckCircle2, ImagePlus, Link, Loader2, Star, Trash2, Upload, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 
-const MAX_PHOTOS = 5
+import { isSupabaseConfigured } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import { useSellFormStore } from '@/stores/sell-form.store'
+
+const MAX_PHOTOS = 10
+const MAX_FILE_SIZE_MB = 10
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
 
 function isValidUrl(value: string): boolean {
   try {
@@ -16,12 +21,22 @@ function isValidUrl(value: string): boolean {
   }
 }
 
+interface FileUploadState {
+  file: File
+  progress: number | null
+  error: string | null
+}
+
 export function StepPhotos() {
   const { photos, setPhotos } = useSellFormStore()
   const [inputValue, setInputValue] = useState('')
   const [inputError, setInputError] = useState<string | null>(null)
+  const [uploadStates, setUploadStates] = useState<FileUploadState[]>([])
+  const [isDragging, setIsDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const supabaseEnabled = isSupabaseConfigured()
   const canAdd = photos.length < MAX_PHOTOS
 
   function handleAdd() {
@@ -54,30 +69,234 @@ export function StepPhotos() {
     setPhotos(photos.filter((p) => p !== url))
   }
 
+  function handleSetCover(url: string) {
+    setPhotos([url, ...photos.filter((p) => p !== url)])
+  }
+
+  function validateFile(file: File): string | null {
+    if (!ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])) {
+      return `"${file.name}" is not a supported format. Use JPEG, PNG, or WebP.`
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return `"${file.name}" exceeds the ${MAX_FILE_SIZE_MB}MB limit.`
+    }
+    return null
+  }
+
+  async function uploadFile(file: File, index: number): Promise<void> {
+    const updateState = (patch: Partial<FileUploadState>) =>
+      setUploadStates((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)))
+
+    try {
+      updateState({ progress: 0, error: null })
+
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/upload/photo', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const json = (await res.json()) as { url?: string; error?: string }
+
+      if (!res.ok || !json.url) {
+        updateState({ progress: null, error: json.error ?? 'Upload failed.' })
+        return
+      }
+
+      updateState({ progress: 100 })
+      setPhotos([...useSellFormStore.getState().photos, json.url])
+
+      setTimeout(() => {
+        setUploadStates((prev) => prev.filter((_, i) => i !== index))
+      }, 1500)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      updateState({ progress: null, error: `Upload failed: ${message}` })
+    }
+  }
+
+  async function processFiles(files: FileList | File[]) {
+    const fileArray = Array.from(files)
+    const remaining = MAX_PHOTOS - photos.length
+
+    if (remaining <= 0) return
+
+    const toProcess = fileArray.slice(0, remaining)
+    const newStates: FileUploadState[] = toProcess.map((file) => {
+      const error = validateFile(file)
+      return { file, progress: null, error }
+    })
+
+    const startIndex = uploadStates.length
+    setUploadStates((prev) => [...prev, ...newStates])
+
+    await Promise.all(
+      toProcess.map((file, i) => {
+        if (newStates[i]?.error) return Promise.resolve()
+        return uploadFile(file, startIndex + i)
+      }),
+    )
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files.length > 0) {
+      void processFiles(e.target.files)
+      e.target.value = ''
+    }
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    setIsDragging(false)
+    if (e.dataTransfer.files.length > 0) {
+      void processFiles(e.dataTransfer.files)
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  function handleDragLeave() {
+    setIsDragging(false)
+  }
+
+  function dismissUploadError(index: number) {
+    setUploadStates((prev) => prev.filter((_, i) => i !== index))
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
           Add photos of your property
         </h2>
         <p className="text-muted-foreground">
           Listings with great photos get{' '}
-          <span className="font-medium text-foreground">3x more enquiries</span>.
-          Paste image URLs or skip for now — you can add them later.
+          <span className="text-foreground font-medium">3x more enquiries</span>. Upload photos or
+          paste image URLs — you can also skip for now.
         </p>
       </div>
 
+      {/* File upload zone or disabled notice */}
+      {supabaseEnabled ? (
+        <div className="space-y-3">
+          <div
+            role="button"
+            tabIndex={canAdd ? 0 : -1}
+            aria-label="Upload photos by clicking or dragging files here"
+            onClick={() => canAdd && fileInputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                if (canAdd) fileInputRef.current?.click()
+              }
+            }}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={cn(
+              'flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed py-10 text-center transition-colors',
+              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+              isDragging
+                ? 'border-primary bg-primary/5'
+                : 'border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50',
+              !canAdd && 'cursor-not-allowed opacity-50',
+            )}
+          >
+            <div className="bg-muted flex h-11 w-11 items-center justify-center rounded-full">
+              <Upload className="text-muted-foreground h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-foreground text-sm font-medium">
+                {isDragging ? 'Drop files here' : 'Click to upload or drag and drop'}
+              </p>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                JPEG, PNG, WebP — max {MAX_FILE_SIZE_MB}MB per file
+              </p>
+            </div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_TYPES.join(',')}
+            multiple
+            className="sr-only"
+            aria-hidden="true"
+            tabIndex={-1}
+            onChange={handleFileChange}
+            disabled={!canAdd}
+          />
+
+          {/* Per-file upload progress/errors */}
+          {uploadStates.length > 0 && (
+            <ul className="space-y-2">
+              {uploadStates.map((state, i) => (
+                <li
+                  key={`${state.file.name}-${i}`}
+                  className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm"
+                >
+                  <span className="text-foreground truncate">{state.file.name}</span>
+                  {state.error ? (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="text-destructive text-xs">{state.error}</span>
+                      <button
+                        type="button"
+                        onClick={() => dismissUploadError(i)}
+                        aria-label="Dismiss error"
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : state.progress === 100 ? (
+                    <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-green-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Done
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Uploading…
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <div className="border-border bg-muted/30 text-muted-foreground rounded-xl border px-4 py-3 text-sm">
+          File upload requires Supabase Storage. Paste a URL instead.
+        </div>
+      )}
+
       {/* URL input row */}
       <div className="space-y-2">
-        <label htmlFor="photo-url" className="block text-sm font-medium text-foreground">
-          Image URL{' '}
-          <span className="font-normal text-muted-foreground">
-            (Unsplash, Cloudinary, etc.)
-          </span>
+        <label htmlFor="photo-url" className="text-foreground block text-sm font-medium">
+          {supabaseEnabled ? (
+            <>
+              Or paste an image URL{' '}
+              <span className="text-muted-foreground font-normal">
+                (Unsplash, Cloudinary, etc.)
+              </span>
+            </>
+          ) : (
+            <>
+              Image URL{' '}
+              <span className="text-muted-foreground font-normal">
+                (Unsplash, Cloudinary, etc.)
+              </span>
+            </>
+          )}
         </label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Link className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Link className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <input
               id="photo-url"
               ref={inputRef}
@@ -94,8 +313,8 @@ export function StepPhotos() {
               aria-invalid={inputError ? 'true' : undefined}
               aria-describedby={inputError ? 'photo-url-error' : undefined}
               className={cn(
-                'w-full rounded-lg border bg-white py-3 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground',
-                'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
+                'text-foreground placeholder:text-muted-foreground w-full rounded-lg border bg-white py-3 pl-9 pr-4 text-sm',
+                'focus:ring-primary/20 transition-colors focus:outline-none focus:ring-2',
                 inputError
                   ? 'border-destructive focus:border-destructive'
                   : 'border-border focus:border-primary',
@@ -110,10 +329,10 @@ export function StepPhotos() {
             aria-label="Add image URL"
             className={cn(
               'flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-3 text-sm font-semibold transition-all',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
               canAdd
-                ? 'bg-primary text-white hover:bg-primary/90'
-                : 'cursor-not-allowed bg-muted text-muted-foreground',
+                ? 'bg-primary hover:bg-primary/90 text-white'
+                : 'bg-muted text-muted-foreground cursor-not-allowed',
             )}
           >
             <ImagePlus className="h-4 w-4" />
@@ -121,11 +340,11 @@ export function StepPhotos() {
           </button>
         </div>
         {inputError && (
-          <p id="photo-url-error" role="alert" className="text-xs text-destructive">
+          <p id="photo-url-error" role="alert" className="text-destructive text-xs">
             {inputError}
           </p>
         )}
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {photos.length}/{MAX_PHOTOS} photos added — press Enter or click Add
         </p>
       </div>
@@ -133,14 +352,14 @@ export function StepPhotos() {
       {/* Photo grid */}
       {photos.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             The first photo will be the cover image shown in search results.
           </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {photos.map((url, index) => (
               <div
                 key={url}
-                className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-muted"
+                className="border-border bg-muted group relative aspect-[4/3] overflow-hidden rounded-xl border"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -148,7 +367,6 @@ export function StepPhotos() {
                   alt={`Property photo ${index + 1}`}
                   className="h-full w-full object-cover"
                   onError={(e) => {
-                    // Show broken-image placeholder on load failure
                     const target = e.currentTarget
                     target.style.display = 'none'
                     const parent = target.parentElement
@@ -163,10 +381,24 @@ export function StepPhotos() {
                     }
                   }}
                 />
-                {index === 0 && (
-                  <div className="absolute left-2 top-2 rounded-md bg-foreground/80 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                {index === 0 ? (
+                  <div className="bg-foreground/80 absolute left-2 top-2 rounded-md px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
                     Cover
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSetCover(url)}
+                    aria-label={`Set photo ${index + 1} as cover`}
+                    className={cn(
+                      'absolute left-2 top-2 flex items-center gap-1 rounded-md px-2 py-0.5',
+                      'bg-black/60 text-xs font-medium text-white opacity-0 backdrop-blur-sm transition-opacity',
+                      'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white group-hover:opacity-100',
+                    )}
+                  >
+                    <Star className="h-3 w-3" />
+                    Set cover
+                  </button>
                 )}
                 <button
                   type="button"
@@ -175,7 +407,7 @@ export function StepPhotos() {
                   className={cn(
                     'absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full',
                     'bg-destructive/90 text-white opacity-0 backdrop-blur-sm transition-opacity',
-                    'group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
+                    'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white group-hover:opacity-100',
                   )}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -187,15 +419,17 @@ export function StepPhotos() {
       )}
 
       {/* Empty state hint */}
-      {photos.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-border bg-muted/30 py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <X className="h-5 w-5 text-muted-foreground" />
+      {photos.length === 0 && uploadStates.length === 0 && (
+        <div className="border-border bg-muted/30 flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed py-12 text-center">
+          <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+            <X className="text-muted-foreground h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">No photos yet</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Paste a URL above, or skip this step and add photos later.
+            <p className="text-foreground text-sm font-medium">No photos yet</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              {supabaseEnabled
+                ? 'Upload files above, paste a URL, or skip this step and add photos later.'
+                : 'Paste a URL above, or skip this step and add photos later.'}
             </p>
           </div>
         </div>

@@ -1,21 +1,21 @@
 'use client'
 
+import { AnimatePresence, motion } from 'framer-motion'
+import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+
 import { StepDetails } from '@/components/forms/step-details'
 import { StepLocation } from '@/components/forms/step-location'
 import { StepPhotos } from '@/components/forms/step-photos'
 import { StepPricing } from '@/components/forms/step-pricing'
 import { StepPropertyType } from '@/components/forms/step-property-type'
 import { StepReview } from '@/components/forms/step-review'
+import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
+import { useAuth } from '@/lib/supabase/auth-context'
+import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import {
-  SELL_STEPS,
-  STEP_LABELS,
-  type SellStep,
-  useSellFormStore,
-} from '@/stores/sell-form.store'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { SELL_STEPS, STEP_LABELS, type SellStep, useSellFormStore } from '@/stores/sell-form.store'
 
 const pageVariants = {
   enter: (direction: number) => ({
@@ -34,11 +34,79 @@ const pageVariants = {
   }),
 }
 
+function SaveIndicator({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
+  if (status === 'idle') return null
+  return (
+    <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+      {status === 'saving' && (
+        <>
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Saving draft…
+        </>
+      )}
+      {status === 'saved' && (
+        <>
+          <CheckCircle2 className="h-3 w-3 text-green-500" />
+          Draft saved
+        </>
+      )}
+      {status === 'error' && <span className="text-destructive">Draft save failed</span>}
+    </span>
+  )
+}
+
+// Build the draft payload from current store state
+function buildDraftPayload(state: ReturnType<typeof useSellFormStore.getState>) {
+  const { draftId, propertyType, location, details, photos, pricing } = state
+  return {
+    ...(draftId ? { id: draftId } : {}),
+    propertyType: propertyType ?? undefined,
+    bhkType: details.bhkType ?? undefined,
+    builtUpArea: details.builtUpArea ? parseInt(details.builtUpArea, 10) : undefined,
+    carpetArea: details.carpetArea ? parseInt(details.carpetArea, 10) : undefined,
+    floor: details.floor ? parseInt(details.floor, 10) : undefined,
+    totalFloors: details.totalFloors ? parseInt(details.totalFloors, 10) : undefined,
+    facing: details.facing ?? undefined,
+    furnishing: details.furnishing ?? undefined,
+    ageOfProperty: details.ageOfProperty ? parseInt(details.ageOfProperty, 10) : undefined,
+    bathrooms: details.bathrooms,
+    balconies: details.balconies,
+    parking: details.parking ?? undefined,
+    address: location.address || undefined,
+    city: location.city || undefined,
+    locality: location.locality || undefined,
+    state: location.state || undefined,
+    pincode: location.pincode || undefined,
+    amenities: details.amenities,
+    imageUrls: photos,
+    price: pricing.price ? Number(pricing.price.replace(/,/g, '')) : undefined,
+    title: pricing.title || undefined,
+    description: pricing.description || undefined,
+    negotiable: pricing.negotiable,
+  }
+}
+
 export default function SellPage() {
-  const { currentStep, nextStep, prevStep, goToStep, propertyType, location, details, pricing } =
-    useSellFormStore()
+  const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const store = useSellFormStore()
+  const {
+    currentStep,
+    nextStep,
+    prevStep,
+    goToStep,
+    propertyType,
+    location,
+    details,
+    pricing,
+    draftId,
+    saveStatus,
+    setDraftId,
+    setSaveStatus,
+  } = store
 
   const [showErrors, setShowErrors] = useState(false)
+  const [saveErrorIsAuth, setSaveErrorIsAuth] = useState(false)
 
   const currentIndex = SELL_STEPS.indexOf(currentStep)
   const totalSteps = SELL_STEPS.length
@@ -47,18 +115,110 @@ export default function SellPage() {
   const isFirstStep = currentIndex === 0
   const isReviewStep = currentStep === 'review'
 
+  // ── Autosave ─────────────────────────────────────────────────────────────────
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isSaving = useRef(false)
+
+  async function saveDraft() {
+    if (!isSupabaseConfigured()) return
+    if (isSaving.current) return
+
+    const state = useSellFormStore.getState()
+    // Don't autosave once the listing has been submitted for review
+    if (state.submitted) return
+    // Don't autosave until the user has at least picked a property type
+    if (!state.propertyType) return
+
+    isSaving.current = true
+    setSaveStatus('saving')
+
+    try {
+      const payload = buildDraftPayload(state)
+      const res = await fetch('/api/listings/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        const json = (await res.json()) as { id: string }
+        if (!state.draftId && json.id) setDraftId(json.id)
+        setSaveStatus('saved')
+        setSaveErrorIsAuth(false)
+      } else {
+        setSaveErrorIsAuth(res.status === 401)
+        setSaveStatus('error')
+      }
+    } catch {
+      setSaveErrorIsAuth(false)
+      setSaveStatus('error')
+    } finally {
+      isSaving.current = false
+    }
+  }
+
+  // Subscribe to store changes and debounce autosave (1.5s after last change)
+  useEffect(() => {
+    const unsubscribe = useSellFormStore.subscribe(() => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+      autosaveTimer.current = setTimeout(() => {
+        void saveDraft()
+      }, 1500)
+    })
+    return () => {
+      unsubscribe()
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Read ?draftId from URL and pre-load the draft into the store.
+  // Without a draftId, always reset to step 1 so returning users don't land mid-flow.
+  useEffect(() => {
+    const urlDraftId = searchParams.get('draftId')
+
+    if (!urlDraftId) {
+      // Fresh listing — reset to step 1 regardless of persisted state
+      useSellFormStore.getState().reset()
+      return
+    }
+
+    // Only fetch+hydrate if this is a different draft than what's already in the store.
+    // Guarding here prevents re-hydrating (and losing step progress) on back/forward navigation.
+    if (useSellFormStore.getState().draftId === urlDraftId) return
+
+    useSellFormStore.getState().setDraftId(urlDraftId)
+    ;(async () => {
+      try {
+        const resp = await fetch(`/api/listings/draft?id=${urlDraftId}`)
+        const draft = resp.ok ? await resp.json() : null
+        if (draft) useSellFormStore.getState().hydrateFromListing(mapSupabaseListingToMock(draft))
+      } catch (err) {
+        console.error('[sell] draft hydration failed:', err)
+      }
+    })()
+  }, [searchParams])
+
   function canProceed(): boolean {
     switch (currentStep) {
       case 'property-type':
         return propertyType !== null
       case 'location':
-        return Boolean(location.city && location.locality.trim() && location.pincode.length === 6)
+        // address is optional — falls back to "locality, city" at submit time
+        return Boolean(
+          location.city &&
+          location.locality.trim() &&
+          location.pincode.length === 6 &&
+          location.state,
+        )
       case 'details':
-        return Boolean(details.bhkType && details.builtUpArea)
+        // furnishing is required by the API schema
+        return Boolean(details.bhkType && details.builtUpArea && details.furnishing)
       case 'photos':
         return true
       case 'pricing':
-        return Number(pricing.price.replace(/,/g, '')) > 0
+        // Minimum realistic price: ₹1 lakh
+        return Number(pricing.price.replace(/,/g, '')) >= 100_000
       case 'review':
         return false
       default:
@@ -80,7 +240,6 @@ export default function SellPage() {
     prevStep()
   }
 
-  // Build the current step component with showErrors threaded in.
   function renderStep(step: SellStep) {
     switch (step) {
       case 'property-type':
@@ -93,8 +252,10 @@ export default function SellPage() {
         return <StepPhotos />
       case 'pricing':
         return <StepPricing showErrors={showErrors} />
-      case 'review':
-        return <StepReview />
+      case 'review': {
+        const hasPhone = !!(user?.user_metadata?.phone ?? user?.phone)
+        return <StepReview draftId={draftId} hasPhone={hasPhone} />
+      }
     }
   }
 
@@ -113,10 +274,6 @@ export default function SellPage() {
             return (
               <div key={step} className="flex flex-1 items-center">
                 <div className="flex flex-col items-center gap-1">
-                  {/*
-                    Past steps are interactive: clicking navigates back.
-                    Active and future steps are static.
-                  */}
                   {isPast ? (
                     <button
                       type="button"
@@ -128,7 +285,7 @@ export default function SellPage() {
                       className={cn(
                         'flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold',
                         'border-primary bg-primary text-white',
-                        'cursor-pointer transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        'focus-visible:ring-ring cursor-pointer transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                       )}
                     >
                       <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -145,7 +302,7 @@ export default function SellPage() {
                         'flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-all',
                         isActive
                           ? 'border-primary bg-primary text-white'
-                          : 'border-border bg-white text-muted-foreground',
+                          : 'border-border text-muted-foreground bg-white',
                       )}
                     >
                       {idx + 1}
@@ -155,9 +312,9 @@ export default function SellPage() {
                     className={cn(
                       'whitespace-nowrap text-xs',
                       isActive
-                        ? 'font-semibold text-foreground'
+                        ? 'text-foreground font-semibold'
                         : isPast
-                          ? 'cursor-pointer text-muted-foreground hover:text-foreground'
+                          ? 'text-muted-foreground hover:text-foreground cursor-pointer'
                           : 'text-muted-foreground',
                     )}
                   >
@@ -177,10 +334,9 @@ export default function SellPage() {
           })}
         </div>
 
-        {/* Mobile: progress bar + step counter with back tap on label */}
+        {/* Mobile: progress bar + step counter */}
         <div className="sm:hidden">
           <div className="mb-2 flex items-center justify-between text-xs">
-            {/* Tap the label to go back one step (when not on the first step) */}
             {!isFirstStep ? (
               <button
                 type="button"
@@ -188,26 +344,43 @@ export default function SellPage() {
                   setShowErrors(false)
                   goToStep(currentIndex - 1)
                 }}
-                className="flex items-center gap-1 font-medium text-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                className="text-foreground hover:text-primary focus-visible:ring-ring flex items-center gap-1 rounded font-medium focus-visible:outline-none focus-visible:ring-2"
                 aria-label="Go back to previous step"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 {STEP_LABELS[currentStep]}
               </button>
             ) : (
-              <span className="font-medium text-foreground">{STEP_LABELS[currentStep]}</span>
+              <span className="text-foreground font-medium">{STEP_LABELS[currentStep]}</span>
             )}
             <span className="text-muted-foreground">
               Step {currentIndex + 1} of {totalSteps}
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
             <motion.div
-              className="h-full rounded-full bg-primary"
+              className="bg-primary h-full rounded-full"
               animate={{ width: `${progressPct}%` }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
             />
           </div>
+        </div>
+
+        {/* Autosave indicator */}
+        <div className="flex items-center justify-between">
+          <div>
+            {saveStatus === 'error' && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
+                <span className="font-medium">Draft not saved</span>
+                {!user || saveErrorIsAuth ? (
+                  <span className="text-amber-600">— sign in to enable autosave</span>
+                ) : (
+                  <span className="text-amber-600">— will retry automatically</span>
+                )}
+              </div>
+            )}
+          </div>
+          <SaveIndicator status={saveStatus} />
         </div>
       </div>
 
@@ -227,11 +400,11 @@ export default function SellPage() {
         </AnimatePresence>
       </div>
 
-      {/* Navigation — fixed on mobile, static on desktop */}
+      {/* Navigation */}
       {!isReviewStep && (
         <div
           className={cn(
-            'fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 p-4 pb-safe backdrop-blur-sm',
+            'border-border pb-safe fixed bottom-0 left-0 right-0 z-40 border-t bg-white/95 p-4 backdrop-blur-sm',
             'sm:static sm:mt-12 sm:border-none sm:bg-transparent sm:p-0 sm:pb-0 sm:backdrop-blur-none',
           )}
         >
@@ -241,8 +414,8 @@ export default function SellPage() {
                 type="button"
                 onClick={handlePrev}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground',
-                  'transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'border-border text-foreground flex items-center gap-1.5 rounded-xl border px-5 py-3 text-sm font-semibold',
+                  'hover:bg-muted focus-visible:ring-ring transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                 )}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -257,8 +430,8 @@ export default function SellPage() {
               onClick={handleNext}
               className={cn(
                 'flex items-center gap-1.5 rounded-xl px-6 py-3 text-sm font-bold text-white',
-                'transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                'bg-primary shadow-sm hover:bg-primary/90 active:scale-[0.98]',
+                'focus-visible:ring-ring transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                'bg-primary hover:bg-primary/90 shadow-sm active:scale-[0.98]',
               )}
             >
               {nextLabel}
@@ -268,7 +441,7 @@ export default function SellPage() {
         </div>
       )}
 
-      {/* Bottom padding on mobile to account for fixed nav */}
+      {/* Bottom padding on mobile for fixed nav */}
       {!isReviewStep && <div className="h-24 sm:hidden" aria-hidden="true" />}
     </>
   )

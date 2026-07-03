@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { SessionProvider } from 'next-auth/react'
+import { useState } from 'react'
+
 import { ErrorBoundary } from '@/components/error-boundary'
+import { SupabaseAuthProvider } from '@/lib/supabase/auth-context'
 
 interface ProvidersProps {
   children: React.ReactNode
@@ -24,9 +25,9 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <ErrorBoundary>
-      <SessionProvider>
+      <SupabaseAuthProvider>
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      </SessionProvider>
+      </SupabaseAuthProvider>
     </ErrorBoundary>
   )
 }

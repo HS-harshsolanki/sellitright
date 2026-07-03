@@ -1,8 +1,9 @@
 'use client'
 
 import { Search, X } from 'lucide-react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+
 import { cn } from '@/lib/utils'
 
 interface HeaderSearchProps {
@@ -15,6 +16,7 @@ const PLACEHOLDER_DESKTOP = 'Search by city, locality, or project...'
 export function HeaderSearch({ className }: HeaderSearchProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [value, setValue] = useState(searchParams.get('q') ?? '')
   const [placeholder, setPlaceholder] = useState(PLACEHOLDER_MOBILE)
 
@@ -34,6 +36,10 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
     setValue(searchParams.get('q') ?? '')
   }, [searchParams])
 
+  // On the landing page the product hasn't been introduced yet — a search bar
+  // creates cognitive overload before the visitor understands what they're searching.
+  if (pathname === '/') return null
+
   const push = (q: string) => {
     const params = new URLSearchParams(searchParams.toString())
     if (q.trim()) {
@@ -41,7 +47,7 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
     } else {
       params.delete('q')
     }
-    router.push(`/?${params.toString()}`)
+    router.push(`/properties?${params.toString()}`)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,7 +80,8 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
         className={cn(
           'h-10 w-full rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] pl-9 pr-8',
           'text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)]',
-          'transition-[border-color,box-shadow,background-color] focus:border-[var(--color-primary)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]/20',
+          'transition-[border-color,box-shadow,background-color] hover:border-transparent hover:bg-[var(--color-muted)]',
+          'focus:ring-[var(--color-ring)]/20 focus:border-[var(--color-primary)] focus:bg-white focus:outline-none focus:ring-2',
           'sm:h-11',
         )}
       />

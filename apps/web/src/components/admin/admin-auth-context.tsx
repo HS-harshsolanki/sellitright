@@ -1,0 +1,100 @@
+'use client'
+
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+
+interface AdminAuthCtx {
+  isAuthenticated: boolean
+  isValidating: boolean
+  apiFetch: (path: string, opts?: RequestInit) => Promise<Response>
+  logout: () => void
+}
+
+const AdminAuthContext = createContext<AdminAuthCtx | null>(null)
+
+export function useAdminAuth(): AdminAuthCtx {
+  const ctx = useContext(AdminAuthContext)
+  if (!ctx) throw new Error('useAdminAuth must be used within AdminAuthProvider')
+  return ctx
+}
+
+interface ProviderProps {
+  children: React.ReactNode
+  onAuthenticated: (authenticated: boolean) => void
+}
+
+export function AdminAuthProvider({ children, onAuthenticated }: ProviderProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isValidating, setIsValidating] = useState(true)
+
+  // On mount, probe the stats endpoint — the httpOnly cookie is sent automatically.
+  // If it returns 200 the session cookie is valid; otherwise the user needs to log in.
+  useEffect(() => {
+    fetch('/api/admin/stats')
+      .then((res) => {
+        const ok = res.ok
+        setIsAuthenticated(ok)
+        onAuthenticated(ok)
+      })
+      .catch(() => {
+        onAuthenticated(false)
+      })
+      .finally(() => setIsValidating(false))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cookie is sent automatically — no need to attach any auth header.
+  const apiFetch = useCallback((path: string, opts: RequestInit = {}): Promise<Response> => {
+    const headers = new Headers(opts.headers)
+    if (!headers.has('Content-Type') && opts.body) {
+      headers.set('Content-Type', 'application/json')
+    }
+    return fetch(path, { ...opts, headers })
+  }, [])
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' })
+    } catch {
+      // best-effort; clear local state regardless
+    }
+    setIsAuthenticated(false)
+    onAuthenticated(false)
+  }, [onAuthenticated])
+
+  return (
+    <AdminAuthContext.Provider value={{ isAuthenticated, isValidating, apiFetch, logout }}>
+      {children}
+    </AdminAuthContext.Provider>
+  )
+}
+
+// Standalone hook for pages that need to trigger login
+export function useAdminLogin() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function login(key: string, onSuccess: () => void) {
+    const trimmed = key.trim()
+    if (!trimmed) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: trimmed }),
+      })
+      if (res.ok) {
+        // The server set an httpOnly cookie — no key is stored client-side.
+        onSuccess()
+      } else {
+        setError(res.status === 401 ? 'Invalid admin key.' : 'Unable to verify key. Try again.')
+      }
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { login, loading, error }
+}

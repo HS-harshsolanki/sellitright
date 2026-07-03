@@ -2,6 +2,7 @@
 
 import { ChevronDown, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+
 import { cn } from '@/lib/utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ function FilterButton({ label, isActive, isOpen, onToggle, onClear }: FilterButt
       aria-expanded={isOpen}
       aria-haspopup="dialog"
       className={cn(
-        'flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
+        'flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
         isActive
           ? 'border-[var(--color-primary)] bg-gray-50 text-[var(--color-primary)]'
           : 'border-[var(--color-border)] bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50',
@@ -90,8 +91,16 @@ function FilterButton({ label, isActive, isOpen, onToggle, onClear }: FilterButt
           role="button"
           aria-label={`Clear ${label} filter`}
           tabIndex={0}
-          onClick={(e) => { e.stopPropagation(); onClear() }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onClear() } }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClear()
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.stopPropagation()
+              onClear()
+            }
+          }}
           className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-white"
         >
           <X className="h-2.5 w-2.5" aria-hidden="true" />
@@ -115,12 +124,8 @@ interface BudgetPopoverProps {
 }
 
 function BudgetPopover({ current, onApply, onClear }: BudgetPopoverProps) {
-  const [minLakh, setMinLakh] = useState(
-    current?.min != null ? String(current.min / 1_00_000) : '',
-  )
-  const [maxLakh, setMaxLakh] = useState(
-    current?.max != null ? String(current.max / 1_00_000) : '',
-  )
+  const [minLakh, setMinLakh] = useState(current?.min != null ? String(current.min / 1_00_000) : '')
+  const [maxLakh, setMaxLakh] = useState(current?.max != null ? String(current.max / 1_00_000) : '')
 
   const activePreset = BUDGET_PRESETS.find(
     (p) => p.min === (current?.min ?? null) && p.max === (current?.max ?? null),
@@ -167,8 +172,11 @@ function BudgetPopover({ current, onApply, onClear }: BudgetPopoverProps) {
 
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <label className="mb-1 block text-xs text-gray-500">Min (Lakhs)</label>
+          <label htmlFor="budget-min" className="mb-1 block text-xs text-gray-500">
+            Min (Lakhs)
+          </label>
           <input
+            id="budget-min"
             type="number"
             min={0}
             placeholder="e.g. 50"
@@ -179,8 +187,11 @@ function BudgetPopover({ current, onApply, onClear }: BudgetPopoverProps) {
         </div>
         <span className="mt-5 text-gray-400">–</span>
         <div className="flex-1">
-          <label className="mb-1 block text-xs text-gray-500">Max (Lakhs)</label>
+          <label htmlFor="budget-max" className="mb-1 block text-xs text-gray-500">
+            Max (Lakhs)
+          </label>
           <input
+            id="budget-max"
             type="number"
             min={0}
             placeholder="e.g. 100"
@@ -244,8 +255,16 @@ function OptionList({ options, selected, onSelect, onClear, label }: OptionListP
               role="button"
               aria-label={`Remove ${option}`}
               tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); onClear() }}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onClear() } }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onClear()
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation()
+                  onClear()
+                }
+              }}
               className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-white"
             >
               <X className="h-2.5 w-2.5" />
@@ -311,7 +330,7 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
   const updateFilter = (update: Partial<ActiveFilters>) => {
     const next = { ...activeFilters, ...update }
     // Remove undefined/null budget keys
-    if ('budget' in update && (update.budget?.min == null && update.budget?.max == null)) {
+    if ('budget' in update && update.budget?.min == null && update.budget?.max == null) {
       delete next.budget
     }
     setActiveFilters(next)
@@ -336,9 +355,7 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
 
   const activeCount = Object.keys(activeFilters).length
 
-  const budgetLabel = activeFilters.budget
-    ? formatBudgetLabel(activeFilters.budget)
-    : 'Budget'
+  const budgetLabel = activeFilters.budget ? formatBudgetLabel(activeFilters.budget) : 'Budget'
 
   return (
     <div ref={containerRef} className="w-full">
@@ -427,7 +444,7 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
           <button
             type="button"
             onClick={clearAll}
-            className="shrink-0 text-sm font-medium text-gray-500 underline-offset-2 hover:text-gray-800 hover:underline min-h-[44px] px-1"
+            className="min-h-[44px] shrink-0 px-1 text-sm font-medium text-gray-500 underline-offset-2 hover:text-gray-800 hover:underline"
           >
             Clear all
           </button>

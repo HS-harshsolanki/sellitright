@@ -1,8 +1,9 @@
 'use client'
 
+import { motion } from 'framer-motion'
+
 import { cn } from '@/lib/utils'
 import { type PropertyType, useSellFormStore } from '@/stores/sell-form.store'
-import { motion } from 'framer-motion'
 
 interface PropertyOption {
   type: PropertyType
@@ -68,10 +69,12 @@ export function StepPropertyType({ showErrors = false }: StepPropertyTypeProps) 
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
           What type of property are you selling?
         </h2>
-        <p className="text-muted-foreground">Choose the option that best describes your property.</p>
+        <p className="text-muted-foreground">
+          Choose the option that best describes your property.
+        </p>
       </div>
 
       <motion.div
@@ -91,10 +94,10 @@ export function StepPropertyType({ showErrors = false }: StepPropertyTypeProps) 
               aria-pressed={isSelected}
               className={cn(
                 'group flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                 isSelected
                   ? 'border-primary bg-primary/5 shadow-sm'
-                  : 'border-border bg-white hover:border-primary/40 hover:shadow-sm',
+                  : 'border-border hover:border-primary/40 bg-white hover:shadow-sm',
               )}
             >
               <span
@@ -115,7 +118,7 @@ export function StepPropertyType({ showErrors = false }: StepPropertyTypeProps) 
                 >
                   {option.label}
                 </p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{option.description}</p>
+                <p className="text-muted-foreground mt-0.5 text-sm">{option.description}</p>
               </div>
               <div
                 className={cn(
@@ -140,7 +143,7 @@ export function StepPropertyType({ showErrors = false }: StepPropertyTypeProps) 
       </motion.div>
 
       {showErrors && !propertyType && (
-        <p role="alert" className="text-sm font-medium text-destructive">
+        <p role="alert" className="text-destructive text-sm font-medium">
           Please select a property type to continue.
         </p>
       )}

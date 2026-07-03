@@ -4,7 +4,13 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_APP_URL",
+        "NODE_ENV"
+      ]
     },
     "dev": {
       "persistent": true,
@@ -13,10 +19,11 @@
     "typecheck": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "cache": false
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "tsconfig*.json"]
     },
     "lint": {
-      "outputs": []
+      "outputs": [],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", ".eslintrc*", "eslint.config*"]
     },
     "lint:fix": {
       "outputs": [],
@@ -25,7 +32,7 @@
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
-      "cache": false
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts"]
     },
     "db:generate": {
       "cache": false,

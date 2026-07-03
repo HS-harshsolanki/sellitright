@@ -2,6 +2,7 @@
 
 import { Search, X } from 'lucide-react'
 import { useState } from 'react'
+
 import { cn } from '@/lib/utils'
 
 interface SearchBarProps {
@@ -30,10 +31,7 @@ export function SearchBar({ onSearch, defaultValue = '', inline = false }: Searc
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={cn('w-full', !inline && 'mx-auto max-w-xl')}
-    >
+    <form onSubmit={handleSubmit} className={cn('w-full', !inline && 'mx-auto max-w-xl')}>
       <div className="relative">
         <Search
           className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
@@ -45,7 +43,7 @@ export function SearchBar({ onSearch, defaultValue = '', inline = false }: Searc
           onChange={(e) => handleChange(e.target.value)}
           placeholder="City, locality, or project..."
           className={cn(
-            'w-full rounded-full border border-[var(--color-border)] bg-white pl-10 pr-9 text-sm text-gray-900 shadow-sm transition-shadow placeholder:text-gray-400 focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-primary/20',
+            'focus:ring-primary/20 w-full rounded-full border border-[var(--color-border)] bg-white pl-10 pr-9 text-sm text-gray-900 shadow-sm transition-shadow placeholder:text-gray-400 focus:border-[var(--color-primary)] focus:outline-none focus:ring-2',
             inline ? 'h-11' : 'h-12 md:h-14 md:text-base',
           )}
           aria-label="Search properties"

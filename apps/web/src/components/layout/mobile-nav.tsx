@@ -1,37 +1,37 @@
 'use client'
 
+import { Home, Search, PlusSquare, User, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Search, PlusSquare, User } from 'lucide-react'
+
+import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
-
-interface NavTab {
-  href: string
-  label: string
-  icon: React.ElementType
-}
-
-const TABS: NavTab[] = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/', label: 'Search', icon: Search },
-  { href: '/sell', label: 'Sell', icon: PlusSquare },
-  { href: '/login', label: 'Profile', icon: User },
-]
 
 export function MobileNav() {
   const pathname = usePathname()
+  const { user } = useAuth()
+
+  const tabs = [
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
+    { href: '/sell', label: 'Sell', icon: PlusSquare },
+    user
+      ? { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }
+      : { href: '/login', label: 'Profile', icon: User },
+  ]
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-background)]/80 pb-safe-0"
+      className="bg-[var(--color-background)]/95 supports-[backdrop-filter]:bg-[var(--color-background)]/80 pb-safe-0 fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] backdrop-blur md:hidden"
       aria-label="Bottom navigation"
     >
       <ul className="flex h-16 items-stretch" role="list">
-        {TABS.map(({ href, label, icon: Icon }) => {
-          const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+        {tabs.map(({ href, label, icon: Icon, matchHref }) => {
+          const checkHref = matchHref ?? href
+          const isActive = checkHref === '/' ? pathname === '/' : pathname.startsWith(checkHref)
 
           return (
-            <li key={href} className="flex-1">
+            <li key={label} className="flex-1">
               <Link
                 href={href}
                 className={cn(

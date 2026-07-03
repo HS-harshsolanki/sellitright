@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, X, LayoutGrid } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import Image from 'next/image'
+import { useState, useCallback, useRef, useEffect } from 'react'
+
 import type { MockListingImage } from '@/lib/mock-data'
+import { cn } from '@/lib/utils'
 
 interface ListingGalleryProps {
   images: MockListingImage[]
@@ -68,10 +69,43 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
 
   const closeLightbox = useCallback(() => setLightboxOpen(false), [])
 
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (lightboxOpen) {
+      // Auto-focus the dialog so arrow keys work immediately
+      dialogRef.current?.focus()
+    }
+  }, [lightboxOpen])
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowLeft') prev()
     if (e.key === 'ArrowRight') next()
     if (e.key === 'Escape') closeLightbox()
+  }
+
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      closeLightbox()
+      return
+    }
+    if (e.key === 'Tab') {
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusable || focusable.length === 0) return
+      const first = focusable[0]!
+      const last = focusable[focusable.length - 1]!
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    if (e.key === 'ArrowLeft') prev()
+    if (e.key === 'ArrowRight') next()
   }
 
   if (images.length === 0) {
@@ -106,14 +140,16 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
               exit="exit"
               className="absolute inset-0"
             >
-              <Image
-                src={images[activeIndex]!.url}
-                alt={images[activeIndex]!.caption ?? `${title} — photo ${activeIndex + 1}`}
-                fill
-                className="object-cover"
-                sizes="100vw"
-                priority={activeIndex === 0}
-              />
+              {images[activeIndex] && (
+                <Image
+                  src={images[activeIndex].url}
+                  alt={images[activeIndex].caption ?? `${title} — photo ${activeIndex + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="100vw"
+                  priority={activeIndex === 0}
+                />
+              )}
             </motion.div>
           </AnimatePresence>
 
@@ -176,10 +212,9 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
         aria-label={`Image gallery for ${title}`}
       >
         <div className="grid h-[500px] grid-cols-4 grid-rows-2 gap-2 overflow-hidden rounded-xl">
-
           {/* Hero image — spans 2 cols × 2 rows */}
           <button
-            className="relative col-span-2 row-span-2 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-inset"
+            className="relative col-span-2 row-span-2 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]"
             onClick={() => openLightbox(0)}
             aria-label={`View photo 1 of ${images.length} — open fullscreen`}
           >
@@ -213,7 +248,7 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
             return (
               <button
                 key={img.id}
-                className="relative overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-inset"
+                className="relative overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]"
                 onClick={() => openLightbox(pos)}
                 aria-label={`View photo ${pos + 1} of ${images.length} — open fullscreen`}
               >
@@ -256,13 +291,14 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
       <AnimatePresence>
         {lightboxOpen && (
           <motion.div
+            ref={dialogRef}
             variants={lightboxVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
             className="fixed inset-0 z-50 flex flex-col bg-black/95"
             onClick={closeLightbox}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleDialogKeyDown}
             tabIndex={-1}
             role="dialog"
             aria-modal="true"
@@ -283,10 +319,7 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
             </div>
 
             {/* Image area */}
-            <div
-              className="relative flex-1 px-12 py-4"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="relative flex-1 px-12 py-4" onClick={(e) => e.stopPropagation()}>
               <AnimatePresence custom={direction} mode="popLayout">
                 <motion.div
                   key={`lb-${activeIndex}`}
@@ -297,13 +330,15 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
                   exit="exit"
                   className="relative h-full w-full"
                 >
-                  <Image
-                    src={images[activeIndex]!.url}
-                    alt={images[activeIndex]!.caption ?? `${title} — photo ${activeIndex + 1}`}
-                    fill
-                    className="object-contain"
-                    sizes="100vw"
-                  />
+                  {images[activeIndex] && (
+                    <Image
+                      src={images[activeIndex].url}
+                      alt={images[activeIndex].caption ?? `${title} — photo ${activeIndex + 1}`}
+                      fill
+                      className="object-contain"
+                      sizes="100vw"
+                    />
+                  )}
                 </motion.div>
               </AnimatePresence>
 
@@ -311,14 +346,20 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
               {images.length > 1 && (
                 <>
                   <button
-                    onClick={(e) => { e.stopPropagation(); prev() }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      prev()
+                    }}
                     className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     aria-label="Previous image"
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); next() }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      next()
+                    }}
                     className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     aria-label="Next image"
                   >

@@ -1,0 +1,4 @@
+-- This file is superseded by apps/web/supabase/migrations/003_notifications.sql
+-- which is the canonical notifications table definition.
+-- See: apps/web/supabase/migrations/003_notifications.sql
+-- Do not apply this file — apply 003_notifications.sql instead.

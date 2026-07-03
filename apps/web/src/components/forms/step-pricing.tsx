@@ -48,6 +48,7 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
   const pricePerSqFt = getPricePerSqFt(rawPrice, details.builtUpArea)
 
   const priceMissing = showErrors && rawPrice <= 0
+  const priceTooLow = showErrors && rawPrice > 0 && rawPrice < 100_000
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digits = e.target.value.replace(/\D/g, '')
@@ -58,7 +59,7 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
   return (
     <div className="space-y-8">
       <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
           Set your asking price
         </h2>
         <p className="text-muted-foreground">You can always change this later.</p>
@@ -70,7 +71,7 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
           Asking Price (₹) <span className="text-destructive">*</span>
         </label>
         <div className="relative">
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">
+          <span className="text-muted-foreground pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold">
             ₹
           </span>
           <input
@@ -80,30 +81,38 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
             placeholder="0"
             value={pricing.price}
             onChange={handlePriceChange}
-            aria-invalid={priceMissing ? 'true' : undefined}
+            aria-invalid={priceMissing || priceTooLow ? 'true' : undefined}
+            aria-describedby={priceMissing || priceTooLow ? 'price-error' : undefined}
             className={cn(
               inputBase,
               'pl-8 text-xl font-semibold tracking-tight',
-              priceMissing ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary',
+              priceMissing || priceTooLow
+                ? 'border-destructive focus:border-destructive'
+                : 'border-border focus:border-primary',
             )}
           />
         </div>
 
         {priceMissing && (
-          <p role="alert" className="text-xs text-destructive">
+          <p id="price-error" role="alert" className="text-destructive text-xs">
             Please enter your asking price.
+          </p>
+        )}
+        {priceTooLow && (
+          <p id="price-error" role="alert" className="text-destructive text-xs">
+            Minimum listing price is ₹1 Lakh. Please check your entry.
           </p>
         )}
 
         {/* Live conversions */}
         {priceLabel && (
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-lg bg-primary/10 px-4 py-2">
-              <p className="text-base font-bold text-primary">{priceLabel}</p>
+            <div className="bg-primary/10 rounded-lg px-4 py-2">
+              <p className="text-primary text-base font-bold">{priceLabel}</p>
             </div>
             {pricePerSqFt && (
-              <div className="rounded-lg bg-muted px-4 py-2">
-                <p className="text-sm font-medium text-muted-foreground">{pricePerSqFt}</p>
+              <div className="bg-muted rounded-lg px-4 py-2">
+                <p className="text-muted-foreground text-sm font-medium">{pricePerSqFt}</p>
               </div>
             )}
           </div>
@@ -111,10 +120,10 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
       </div>
 
       {/* Negotiable toggle */}
-      <div className="flex items-center justify-between rounded-xl border border-border px-4 py-4">
+      <div className="border-border flex items-center justify-between rounded-xl border px-4 py-4">
         <div>
-          <p className="text-sm font-medium text-foreground">Price Negotiable</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="text-foreground text-sm font-medium">Price Negotiable</p>
+          <p className="text-muted-foreground mt-0.5 text-xs">
             Let buyers know you&apos;re open to offers
           </p>
         </div>
@@ -125,7 +134,7 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
           onClick={() => setPricing({ negotiable: !pricing.negotiable })}
           className={cn(
             'relative h-6 w-11 rounded-full transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
             pricing.negotiable ? 'bg-primary' : 'bg-border',
           )}
         >
@@ -139,10 +148,10 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
       </div>
 
       <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
           Optional — Listing Details
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           A custom title and description help your listing stand out in search.
         </p>
       </div>
@@ -161,7 +170,7 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
           className={cn(inputBase, 'border-border focus:border-primary')}
           maxLength={100}
         />
-        <p className="text-right text-xs text-muted-foreground">{pricing.title.length}/100</p>
+        <p className="text-muted-foreground text-right text-xs">{pricing.title.length}/100</p>
       </div>
 
       {/* Optional description */}
@@ -175,10 +184,10 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
           placeholder="Describe what makes your property special — highlights, neighbourhood, nearby landmarks…"
           value={pricing.description}
           onChange={(e) => setPricing({ description: e.target.value })}
-          className={cn(inputBase, 'resize-none border-border focus:border-primary')}
+          className={cn(inputBase, 'border-border focus:border-primary resize-none')}
           maxLength={1000}
         />
-        <p className="text-right text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-right text-xs">
           {pricing.description.length}/1000
         </p>
       </div>

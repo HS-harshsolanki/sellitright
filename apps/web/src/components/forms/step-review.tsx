@@ -1,9 +1,10 @@
 'use client'
 
+import { AlertCircle, CheckCircle2, Edit2, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+
 import { cn } from '@/lib/utils'
 import { useSellFormStore } from '@/stores/sell-form.store'
-import { CheckCircle2, Edit2, Loader2 } from 'lucide-react'
-import { useState } from 'react'
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   APARTMENT: 'Apartment',
@@ -67,15 +68,15 @@ function SectionHeader({ title, stepIndex }: SectionHeaderProps) {
   const { goToStep } = useSellFormStore()
   return (
     <div className="flex items-center justify-between">
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <h3 className="text-muted-foreground text-sm font-semibold uppercase tracking-wider">
         {title}
       </h3>
       <button
         type="button"
         onClick={() => goToStep(stepIndex)}
         className={cn(
-          'flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary',
-          'hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'text-primary flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium',
+          'hover:bg-primary/5 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
         )}
       >
         <Edit2 className="h-3 w-3" />
@@ -94,7 +95,7 @@ function ReviewRow({ label, value }: ReviewRowProps) {
   return (
     <div className="flex justify-between gap-4 py-2 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium text-foreground">{value || '—'}</span>
+      <span className="text-foreground text-right font-medium">{value || '—'}</span>
     </div>
   )
 }
@@ -127,15 +128,51 @@ function buildAutoDescription(
 
 type SubmitState = 'idle' | 'loading' | 'success' | 'error'
 
-export function StepReview() {
-  const { propertyType, location, details, photos, pricing, goToStep, reset } =
+interface IncompleteField {
+  label: string
+  stepIndex: number
+}
+
+interface StepReviewProps {
+  /** If a draft was autosaved, we patch it to PENDING_REVIEW instead of creating a new record */
+  draftId?: string | null
+  /** Whether the seller has a valid phone number on file. Blocks submission if false. */
+  hasPhone?: boolean
+}
+
+export function StepReview({ draftId, hasPhone = true }: StepReviewProps) {
+  const { propertyType, location, details, photos, pricing, goToStep, reset, setSubmitted } =
     useSellFormStore()
 
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const bhkLabel = details.bhkType ? BHK_LABELS[details.bhkType] ?? '' : ''
-  const propertyLabel = propertyType ? PROPERTY_TYPE_LABELS[propertyType] ?? '' : ''
+  // Build a list of everything that would fail Zod validation at submit time
+  function getIncompleteFields(): IncompleteField[] {
+    const issues: IncompleteField[] = []
+    if (!propertyType) issues.push({ label: 'Property type not selected', stepIndex: 0 })
+    if (!location.city) issues.push({ label: 'City missing', stepIndex: 1 })
+    if (!location.locality.trim()) issues.push({ label: 'Locality / area missing', stepIndex: 1 })
+    if (location.pincode.length !== 6)
+      issues.push({ label: 'Pincode must be 6 digits', stepIndex: 1 })
+    if (!location.state) issues.push({ label: 'State missing', stepIndex: 1 })
+    if (!details.bhkType) issues.push({ label: 'BHK configuration not selected', stepIndex: 2 })
+    if (!details.builtUpArea) issues.push({ label: 'Built-up area missing', stepIndex: 2 })
+    if (!details.furnishing) issues.push({ label: 'Furnishing status not selected', stepIndex: 2 })
+    const rawPrice = Number(pricing.price.replace(/,/g, ''))
+    if (rawPrice < 100_000)
+      issues.push({
+        label: rawPrice <= 0 ? 'Asking price missing' : 'Price below ₹1 Lakh minimum',
+        stepIndex: 4,
+      })
+    return issues
+  }
+
+  const incompleteFields = getIncompleteFields()
+  const isReadyToSubmit = incompleteFields.length === 0
+
+  const bhkLabel = details.bhkType ? (BHK_LABELS[details.bhkType] ?? '') : ''
+  const propertyLabel = propertyType ? (PROPERTY_TYPE_LABELS[propertyType] ?? '') : ''
 
   async function handleSubmit() {
     setSubmitState('loading')
@@ -182,6 +219,8 @@ export function StepReview() {
       pincode: location.pincode,
       amenities: details.amenities,
       imageUrls: photos,
+      // Pass draftId so the API can update the existing row instead of inserting a new one
+      ...(draftId ? { draftId } : {}),
     }
 
     try {
@@ -192,18 +231,32 @@ export function StepReview() {
       })
 
       if (!res.ok) {
-        const data: unknown = await res.json()
-        const msg =
-          data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
-            ? data.error
-            : 'Something went wrong. Please try again.'
-        setErrorMessage(msg)
+        console.error('[step-review] submit failed, status:', res.status)
+        const body = (await res.json().catch(() => ({}))) as { error?: string; action?: string }
+        if (res.status === 401) {
+          setErrorMessage('You are not signed in. Please sign in and try again.')
+        } else if (res.status === 403) {
+          setErrorMessage('Your account is suspended. Please contact support.')
+        } else if (res.status === 422 && body.action === 'profile') {
+          setErrorMessage(
+            'Add a phone number to your profile before submitting. Buyers need it to contact you.',
+          )
+        } else if (res.status === 400) {
+          setErrorMessage(
+            body.error ?? 'One or more fields failed validation. Please review each section.',
+          )
+        } else {
+          setErrorMessage('Something went wrong on our end. Please try again in a moment.')
+        }
         setSubmitState('error')
         return
       }
 
       setSubmitState('success')
-      reset()
+      // Mark as submitted so autosave stops firing (prevents "Draft save failed" on success screen)
+      setSubmitted(true)
+      useSellFormStore.getState().setSaveStatus('idle')
+      // reset() is deferred — called when user navigates away so the success screen stays visible
     } catch {
       setErrorMessage('Network error — please check your connection and try again.')
       setSubmitState('error')
@@ -218,25 +271,59 @@ export function StepReview() {
           <CheckCircle2 className="h-10 w-10 text-green-600" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
-            Listing submitted for review
+          <h2 className="text-foreground text-2xl font-bold tracking-tight">
+            Your listing has been submitted for review.
           </h2>
-          <p className="max-w-sm text-muted-foreground">
-            Our team will review your listing and publish it within{' '}
-            <span className="font-medium text-foreground">24 hours</span>. You&apos;ll receive an
-            SMS confirmation once it goes live.
+          <p className="text-muted-foreground max-w-sm">
+            We&apos;ll notify you once it&apos;s approved.
           </p>
         </div>
-        <a
-          href="/dashboard"
-          className={cn(
-            'rounded-xl bg-primary px-8 py-3 text-sm font-bold text-white shadow-sm',
-            'transition-all hover:bg-primary/90 active:scale-[0.98]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          )}
-        >
-          Go to Dashboard
-        </a>
+
+        {/* What happens next */}
+        <div className="border-border bg-muted/40 w-full max-w-sm rounded-xl border px-5 py-4 text-left">
+          <p className="text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-wider">
+            What happens next
+          </p>
+          <ol className="space-y-2.5">
+            {[
+              'Our team reviews your listing for accuracy',
+              'You get notified once it goes live',
+              'Buyers can contact you directly',
+            ].map((step, i) => (
+              <li key={i} className="text-foreground flex items-start gap-3 text-sm">
+                <span className="bg-primary/10 text-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="flex w-full max-w-sm flex-col gap-3">
+          <a
+            href="/dashboard"
+            onClick={() => reset()}
+            className={cn(
+              'bg-primary rounded-xl px-8 py-3 text-center text-sm font-bold text-white shadow-sm',
+              'hover:bg-primary/90 transition-all active:scale-[0.98]',
+              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+            )}
+          >
+            View my listings
+          </a>
+          <a
+            href="/sell"
+            onClick={() => reset()}
+            className={cn(
+              'border-border text-foreground rounded-xl border px-8 py-3 text-center text-sm font-semibold',
+              'hover:bg-muted transition-all active:scale-[0.98]',
+              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+            )}
+          >
+            Post another property
+          </a>
+        </div>
       </div>
     )
   }
@@ -245,33 +332,33 @@ export function StepReview() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
           Review your listing
         </h2>
         <p className="text-muted-foreground">Check all the details before submitting.</p>
       </div>
 
       {/* Property Type */}
-      <section className="space-y-3 rounded-xl border border-border p-4">
+      <section className="border-border space-y-3 rounded-xl border p-4">
         <SectionHeader title="Property Type" stepIndex={0} />
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-lg">
+          <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg text-lg">
             {propertyType === 'APARTMENT' && '🏢'}
             {propertyType === 'VILLA' && '🏡'}
             {propertyType === 'INDEPENDENT_HOUSE' && '🏠'}
             {propertyType === 'PLOT' && '🟫'}
             {propertyType === 'PENTHOUSE' && '✨'}
           </div>
-          <p className="font-semibold text-foreground">
+          <p className="text-foreground font-semibold">
             {propertyType ? PROPERTY_TYPE_LABELS[propertyType] : '—'}
           </p>
         </div>
       </section>
 
       {/* Location */}
-      <section className="space-y-3 rounded-xl border border-border p-4">
+      <section className="border-border space-y-3 rounded-xl border p-4">
         <SectionHeader title="Location" stepIndex={1} />
-        <div className="divide-y divide-border">
+        <div className="divide-border divide-y">
           <ReviewRow label="City" value={location.city} />
           <ReviewRow label="State" value={location.state} />
           <ReviewRow label="Locality" value={location.locality} />
@@ -281,13 +368,13 @@ export function StepReview() {
       </section>
 
       {/* Photos */}
-      <section className="space-y-3 rounded-xl border border-border p-4">
+      <section className="border-border space-y-3 rounded-xl border p-4">
         <SectionHeader title="Photos" stepIndex={3} />
         {photos.length === 0 ? (
           <button
             type="button"
             onClick={() => goToStep(3)}
-            className="w-full rounded-lg border-2 border-dashed border-border py-4 text-sm text-muted-foreground hover:border-primary/50 hover:text-primary"
+            className="border-border text-muted-foreground hover:border-primary/50 hover:text-primary w-full rounded-lg border-2 border-dashed py-4 text-sm"
           >
             No photos added — tap to add photos
           </button>
@@ -296,7 +383,7 @@ export function StepReview() {
             {photos.slice(0, 6).map((url, index) => (
               <div
                 key={url}
-                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border"
+                className="border-border relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -307,21 +394,21 @@ export function StepReview() {
               </div>
             ))}
             {photos.length > 6 && (
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-sm font-medium text-muted-foreground">
+              <div className="border-border bg-muted text-muted-foreground flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border text-sm font-medium">
                 +{photos.length - 6}
               </div>
             )}
           </div>
         )}
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {photos.length} photo{photos.length !== 1 ? 's' : ''} added
         </p>
       </section>
 
       {/* Details */}
-      <section className="space-y-3 rounded-xl border border-border p-4">
+      <section className="border-border space-y-3 rounded-xl border p-4">
         <SectionHeader title="Property Details" stepIndex={2} />
-        <div className="divide-y divide-border">
+        <div className="divide-border divide-y">
           <ReviewRow
             label="Configuration"
             value={details.bhkType ? BHK_LABELS[details.bhkType] : null}
@@ -348,10 +435,7 @@ export function StepReview() {
                 : details.floor || null
             }
           />
-          <ReviewRow
-            label="Facing"
-            value={details.facing ? FACING_FULL[details.facing] : null}
-          />
+          <ReviewRow label="Facing" value={details.facing ? FACING_FULL[details.facing] : null} />
           <ReviewRow
             label="Furnishing"
             value={details.furnishing ? FURNISHING_LABELS[details.furnishing] : null}
@@ -372,12 +456,12 @@ export function StepReview() {
 
         {details.amenities.length > 0 && (
           <div className="pt-2">
-            <p className="mb-2 text-xs text-muted-foreground">Amenities</p>
+            <p className="text-muted-foreground mb-2 text-xs">Amenities</p>
             <div className="flex flex-wrap gap-1.5">
               {details.amenities.map((a) => (
                 <span
                   key={a}
-                  className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                  className="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-medium"
                 >
                   {a}
                 </span>
@@ -388,10 +472,10 @@ export function StepReview() {
       </section>
 
       {/* Pricing */}
-      <section className="space-y-3 rounded-xl border border-border p-4">
+      <section className="border-border space-y-3 rounded-xl border p-4">
         <SectionHeader title="Pricing" stepIndex={4} />
         <div className="flex items-end gap-3">
-          <p className="text-2xl font-bold text-foreground">
+          <p className="text-foreground text-2xl font-bold">
             {pricing.price ? getLakhCroreLabel(pricing.price) : '—'}
           </p>
           {pricing.negotiable && (
@@ -403,37 +487,73 @@ export function StepReview() {
         {pricing.title && <ReviewRow label="Title" value={pricing.title} />}
         {pricing.description && (
           <div className="pt-1">
-            <p className="text-xs text-muted-foreground">Description</p>
-            <p className="mt-1 line-clamp-3 text-sm text-foreground">{pricing.description}</p>
+            <p className="text-muted-foreground text-xs">Description</p>
+            <p className="text-foreground mt-1 line-clamp-3 text-sm">{pricing.description}</p>
           </div>
         )}
       </section>
 
       {/* Submit CTA */}
       <div className="space-y-3 pt-2">
-        <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+        {/* Missing fields banner — shown before first submit attempt */}
+        {!isReadyToSubmit && (
+          <div
+            role="alert"
+            className="border-destructive/30 bg-destructive/5 space-y-2 rounded-xl border px-4 py-3"
           >
-            <path
-              fillRule="evenodd"
-              d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
-              clipRule="evenodd"
-            />
-          </svg>
+            <p className="text-destructive flex items-center gap-2 text-sm font-semibold">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              Please fix the following before submitting:
+            </p>
+            <ul className="space-y-1">
+              {incompleteFields.map((f) => (
+                <li key={f.label} className="flex items-center justify-between text-xs">
+                  <span className="text-destructive/90">{f.label}</span>
+                  <button
+                    type="button"
+                    onClick={() => goToStep(f.stepIndex)}
+                    className="text-primary ml-4 shrink-0 font-medium underline underline-offset-2 hover:opacity-75"
+                  >
+                    Fix →
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* No-phone warning */}
+        {!hasPhone && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-900">
+                Add a phone number before submitting
+              </p>
+              <p className="mt-0.5 text-xs text-amber-800">
+                Buyers need your phone to contact you after paying ₹49.{' '}
+                <a href="/profile" className="font-medium underline underline-offset-2">
+                  Go to Profile →
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Review notice */}
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
           <p className="text-xs text-amber-800">
             Your listing will be reviewed by our team before going live. This usually takes less
             than 24 hours.
           </p>
         </div>
 
+        {/* API error */}
         {errorMessage && (
           <div
             role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border px-4 py-3 text-sm"
           >
             {errorMessage}
           </div>
@@ -442,12 +562,12 @@ export function StepReview() {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={submitState === 'loading'}
+          disabled={submitState === 'loading' || !hasPhone || !isReadyToSubmit}
           className={cn(
             'flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-white shadow-sm',
-            'transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            submitState === 'loading'
-              ? 'cursor-not-allowed bg-primary/70'
+            'focus-visible:ring-ring transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+            submitState === 'loading' || !hasPhone || !isReadyToSubmit
+              ? 'bg-primary/50 cursor-not-allowed'
               : 'bg-primary hover:bg-primary/90 active:scale-[0.99]',
           )}
         >
@@ -455,9 +575,9 @@ export function StepReview() {
           {submitState === 'loading' ? 'Submitting…' : 'Submit for Review'}
         </button>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-center text-xs">
           By submitting, you agree to our{' '}
-          <a href="/terms" className="underline hover:text-foreground">
+          <a href="/terms" className="hover:text-foreground underline">
             Terms of Service
           </a>
           .

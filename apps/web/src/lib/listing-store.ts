@@ -32,3 +32,11 @@ export function rejectListing(id: string, reason: string): MockListing | null {
   listing.rejectionReason = reason
   return listing
 }
+
+export function deleteListing(id: string): MockListing | null {
+  const listing = store.find((l) => l.id === id)
+  if (!listing) return null
+  listing.status = 'DELETED' satisfies ListingStatus
+  listing.rejectionReason = null
+  return listing
+}
