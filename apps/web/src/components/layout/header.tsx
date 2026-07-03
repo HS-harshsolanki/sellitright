@@ -34,7 +34,10 @@ function useHasListings(userId: string | undefined): boolean {
     }
     // Only hit the API when no cached value exists
     fetch('/api/dashboard/listings?limit=1')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`listings check failed: ${r.status}`)
+        return r.json()
+      })
       .then((data: unknown) => {
         if (data && typeof data === 'object' && 'listings' in data) {
           const d = data as { listings: unknown[] }
@@ -43,7 +46,9 @@ function useHasListings(userId: string | undefined): boolean {
           setHasListings(has)
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('[useHasListings] could not determine listing status:', err)
+      })
   }, [userId])
 
   return hasListings

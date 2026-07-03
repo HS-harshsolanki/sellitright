@@ -47,7 +47,10 @@ export function verifyRazorpaySignature(
  */
 export function verifyWebhookSignature(rawBody: string, signature: string): boolean {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET
-  if (!secret) return false // reject all webhooks when secret not configured
+  if (!secret) {
+    console.error('[razorpay] RAZORPAY_WEBHOOK_SECRET is not set — all webhooks will be rejected')
+    return false
+  }
   if (!/^[0-9a-f]{64}$/.test(signature)) {
     console.warn('[razorpay] invalid webhook signature format — expected 64-char hex')
     return false

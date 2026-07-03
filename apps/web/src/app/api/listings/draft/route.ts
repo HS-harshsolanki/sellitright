@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { FacingEnum, ParkingEnum } from '@/lib/validators'
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,12 +51,12 @@ const draftSchema = z.object({
   carpetArea: z.number().int().positive().optional(),
   floor: z.number().int().min(0).optional(),
   totalFloors: z.number().int().positive().optional(),
-  facing: z.string().optional(),
+  facing: FacingEnum.optional(),
   furnishing: z.enum(FURNISHING_TYPES).optional(),
   ageOfProperty: z.number().int().min(0).optional(),
   bathrooms: z.number().int().min(1).optional(),
   balconies: z.number().int().min(0).optional(),
-  parking: z.string().optional(),
+  parking: ParkingEnum.optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   locality: z.string().optional(),

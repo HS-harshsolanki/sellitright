@@ -388,8 +388,8 @@ export default async function LandingPage() {
             </h2>
           </Reveal>
           <Stagger className="mt-12 divide-y divide-[var(--color-border)]" stagger={0.09} y={12}>
-            {FAQ_ITEMS.map(({ question, answer }, idx) => (
-              <FAQItem key={idx} question={question} answer={answer} />
+            {FAQ_ITEMS.map(({ question, answer }) => (
+              <FAQItem key={question} question={question} answer={answer} />
             ))}
           </Stagger>
         </div>

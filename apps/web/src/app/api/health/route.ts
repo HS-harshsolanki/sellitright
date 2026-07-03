@@ -42,17 +42,13 @@ export async function GET() {
       ? 'down'
       : 'degraded'
 
-  const body: HealthStatus = {
-    status,
-    timestamp: new Date().toISOString(),
-    checks,
-    version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local',
-  }
+  const timestamp = new Date().toISOString()
 
-  return NextResponse.json(body, {
-    status: allOk ? 200 : 503,
-    headers: {
-      'Cache-Control': 'no-store',
+  return NextResponse.json(
+    { status, timestamp },
+    {
+      status: allOk ? 200 : 503,
+      headers: { 'Cache-Control': 'no-store' },
     },
-  })
+  )
 }

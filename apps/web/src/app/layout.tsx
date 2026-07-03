@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://chapternew.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://chapternew.com'),
   title: {
     default: 'ChapterNew — Find Your Next Place in Life',
     template: '%s | ChapterNew',
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
     siteName: 'ChapterNew',
-    url: 'https://chapternew.com',
+    url: process.env.NEXT_PUBLIC_APP_URL ?? 'https://chapternew.com',
   },
   twitter: {
     card: 'summary_large_image',

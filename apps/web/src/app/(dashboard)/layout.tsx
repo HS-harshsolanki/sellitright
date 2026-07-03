@@ -62,7 +62,7 @@ function SidebarNavInner({ pendingBuyerCount }: SidebarNavProps) {
             'matchTab' in item
               ? pathname === '/dashboard' && activeTab === item.matchTab
               : 'matchPath' in item
-                ? pathname.startsWith(item.matchPath as string)
+                ? item.matchPath !== undefined && pathname.startsWith(item.matchPath)
                 : item.href === '/dashboard'
                   ? (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) &&
                     !pathname.startsWith('/dashboard/requests') &&
@@ -202,7 +202,7 @@ function MobileBottomNavInner() {
           'matchTab' in item
             ? pathname === '/dashboard' && activeTab === item.matchTab
             : 'matchPath' in item
-              ? pathname.startsWith(item.matchPath as string)
+              ? item.matchPath !== undefined && pathname.startsWith(item.matchPath)
               : 'matchDash' in item
                 ? (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) &&
                   !pathname.startsWith('/dashboard/requests') &&
@@ -255,10 +255,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   useEffect(() => {
     fetch('/api/dashboard/interests?status=PENDING&page=1')
       .then((r) => (r.ok ? r.json() : null))
-      .then((json: { total?: number } | null) => {
-        if (json?.total !== undefined) setPendingBuyerCount(json.total)
+      .then((json: unknown) => {
+        if (
+          json !== null &&
+          typeof json === 'object' &&
+          'total' in json &&
+          typeof (json as Record<string, unknown>).total === 'number'
+        ) {
+          setPendingBuyerCount((json as { total: number }).total)
+        }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('[dashboard] failed to fetch pending buyer count:', err)
+      })
   }, [])
 
   return (

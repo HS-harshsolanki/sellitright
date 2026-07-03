@@ -140,6 +140,12 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (insertError || !pendingPayment) {
+    if (insertError?.code === '23505') {
+      return NextResponse.json(
+        { error: 'A payment is already in progress for this interest.', alreadyPending: true },
+        { status: 409 },
+      )
+    }
     logger.error('[create-order] failed to insert payment row', { error: insertError?.message })
     return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import type { Session, User } from '@supabase/supabase-js'
+import type { AuthError, Session, User } from '@supabase/supabase-js'
 import { createContext, useContext, useEffect, useState } from 'react'
 
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
@@ -9,6 +9,7 @@ interface AuthContextValue {
   user: User | null
   session: Session | null
   loading: boolean
+  authError: AuthError | null
   signOut: () => Promise<void>
 }
 
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   session: null,
   loading: false,
+  authError: null,
   signOut: async () => {},
 })
 
@@ -23,6 +25,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(isSupabaseConfigured())
+  const [authError, setAuthError] = useState<AuthError | null>(null)
 
   useEffect(() => {
     // Skip if Supabase is not configured (placeholder env vars)
@@ -30,7 +33,8 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
     const supabase = createClient()
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) setAuthError(error)
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
@@ -54,7 +58,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, authError, signOut }}>
       {children}
     </AuthContext.Provider>
   )

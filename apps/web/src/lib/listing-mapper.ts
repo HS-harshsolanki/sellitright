@@ -1,52 +1,52 @@
 import type { MockListing } from '@/lib/mock-data'
+import type { Database } from '@/lib/supabase/database.types'
 
-/**
- * Maps a Supabase listings row (snake_case, flat image_urls array)
- * to the MockListing shape used throughout the UI.
- *
- * The `seller` block is synthetic — Supabase auth.users is not joined here.
- * We fill in what we can from the row; phone/name come from a separate profile
- * table if available, otherwise defaults are used.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function mapSupabaseListingToMock(row: Record<string, any>): MockListing {
+export type SupabaseListingRow = Database['public']['Tables']['listings']['Row']
+
+// Partial rows from SELECT with column subsets are cast to the full row type.
+// The mapper handles all nullable/undefined fields with ?? fallbacks.
+export function mapSupabaseListingToMock(
+  row: SupabaseListingRow | Partial<SupabaseListingRow>,
+): MockListing {
   const imageUrls: string[] = Array.isArray(row.image_urls) ? row.image_urls : []
 
   return {
-    id: row.id as string,
-    title: row.title as string,
-    description: row.description as string,
+    id: row.id ?? '',
+    title: row.title ?? '',
+    description: row.description ?? '',
     price: Number(row.price),
     propertyType: row.property_type as MockListing['propertyType'],
     bhkType: row.bhk_type as MockListing['bhkType'],
-    builtUpArea: row.built_up_area as number,
-    carpetArea: row.carpet_area as number | null,
-    floor: row.floor as number | null,
-    totalFloors: row.total_floors as number | null,
+    builtUpArea: row.built_up_area ?? 0,
+    carpetArea: row.carpet_area ?? null,
+    floor: row.floor ?? null,
+    totalFloors: row.total_floors ?? null,
     facing: (row.facing as MockListing['facing']) ?? null,
     furnishing: row.furnishing as MockListing['furnishing'],
-    ageOfProperty: row.age_of_property as number | null,
-    bathrooms: row.bathrooms as number,
-    balconies: row.balconies as number | null,
+    ageOfProperty: row.age_of_property ?? null,
+    bathrooms: row.bathrooms ?? 0,
+    balconies: row.balconies ?? null,
     parking: (row.parking as MockListing['parking']) ?? null,
-    address: row.address as string,
-    city: row.city as string,
-    locality: row.locality as string,
-    state: row.state as string,
-    pincode: row.pincode as string,
-    latitude: row.latitude as number | null,
-    longitude: row.longitude as number | null,
+    address: row.address ?? '',
+    city: row.city ?? '',
+    locality: row.locality ?? '',
+    state: row.state ?? '',
+    pincode: row.pincode ?? '',
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
     amenities: Array.isArray(row.amenities) ? (row.amenities as string[]) : [],
     status: row.status as MockListing['status'],
     rejectionReason: (row.rejection_reason as string | null) ?? null,
     isVerified: Boolean(row.is_verified),
     viewCount: Number(row.view_count ?? 0),
     seller: {
-      id: row.seller_id as string,
-      name: (row.seller_name as string | null) ?? 'Owner',
-      phone: (row.seller_phone as string | null) ?? '',
-      avatarUrl: (row.seller_avatar as string | null) ?? null,
-      isVerified: Boolean(row.seller_verified ?? false),
+      id: row.seller_id ?? '',
+      name: (row as unknown as { seller_name?: string | null }).seller_name ?? 'Owner',
+      phone: (row as unknown as { seller_phone?: string | null }).seller_phone ?? '',
+      avatarUrl: (row as unknown as { seller_avatar?: string | null }).seller_avatar ?? null,
+      isVerified: Boolean(
+        (row as unknown as { seller_verified?: boolean }).seller_verified ?? false,
+      ),
     },
     images: imageUrls.map((url, index) => ({
       id: `${row.id}-img-${index}`,
@@ -54,6 +54,6 @@ export function mapSupabaseListingToMock(row: Record<string, any>): MockListing 
       caption: null,
       order: index,
     })),
-    createdAt: row.created_at as string,
+    createdAt: row.created_at ?? new Date().toISOString(),
   }
 }

@@ -14,7 +14,7 @@ const RATE_LIMIT_WINDOW_MS = 60_000
 const RATE_LIMIT_MAX = 20
 const _rateLimitStore = new Map<string, { count: number; resetAt: number }>()
 
-function isRateLimited(ip: string): boolean {
+export function isRateLimited(ip: string): boolean {
   const now = Date.now()
   const entry = _rateLimitStore.get(ip)
   if (!entry || now > entry.resetAt) {

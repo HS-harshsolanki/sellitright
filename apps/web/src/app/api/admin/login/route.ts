@@ -3,12 +3,18 @@ import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { COOKIE_NAME, SESSION_TTL_MS, makeSessionToken } from '@/lib/admin-session'
+import { isRateLimited } from '@/lib/admin-auth'
 
 const ADMIN_KEY = process.env.ADMIN_SECRET_KEY ?? ''
 
 export async function POST(request: NextRequest) {
   if (!ADMIN_KEY) {
     return NextResponse.json({ error: 'Admin not configured.' }, { status: 503 })
+  }
+
+  const ip = (request.headers.get('x-forwarded-for')?.split(',')[0] ?? '').trim() || 'unknown'
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429 })
   }
 
   let body: unknown

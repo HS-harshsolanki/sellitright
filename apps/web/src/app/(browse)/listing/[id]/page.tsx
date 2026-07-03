@@ -263,7 +263,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
             <div className="flex shrink-0 items-center gap-1">
               <ShareSaveButtons
                 title={listing.title}
-                url={`${process.env.NEXT_PUBLIC_APP_URL}/listing/${listing.id}`}
+                url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://chapternew.com'}/listing/${listing.id}`}
               />
             </div>
           </div>

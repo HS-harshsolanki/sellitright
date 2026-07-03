@@ -38,7 +38,6 @@ const nextConfig: NextConfig = {
       'framer-motion',
     ],
   },
-  output: 'standalone',
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },

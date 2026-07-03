@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 import { StepDetails } from '@/components/forms/step-details'
 import { StepLocation } from '@/components/forms/step-location'
@@ -87,6 +88,7 @@ function buildDraftPayload(state: ReturnType<typeof useSellFormStore.getState>) 
 
 export default function SellPage() {
   const { user } = useAuth()
+  const searchParams = useSearchParams()
   const store = useSellFormStore()
   const {
     currentStep,
@@ -173,8 +175,7 @@ export default function SellPage() {
   // Read ?draftId from URL and pre-load the draft into the store.
   // Without a draftId, always reset to step 1 so returning users don't land mid-flow.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const urlDraftId = params.get('draftId')
+    const urlDraftId = searchParams.get('draftId')
 
     if (!urlDraftId) {
       // Fresh listing — reset to step 1 regardless of persisted state
@@ -187,15 +188,16 @@ export default function SellPage() {
     if (useSellFormStore.getState().draftId === urlDraftId) return
 
     useSellFormStore.getState().setDraftId(urlDraftId)
-
-    void fetch(`/api/listings/draft?id=${urlDraftId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .then((draft: Record<string, any> | null) => {
-        if (!draft) return
-        useSellFormStore.getState().hydrateFromListing(mapSupabaseListingToMock(draft))
-      })
-  }, [])
+    ;(async () => {
+      try {
+        const resp = await fetch(`/api/listings/draft?id=${urlDraftId}`)
+        const draft = resp.ok ? await resp.json() : null
+        if (draft) useSellFormStore.getState().hydrateFromListing(mapSupabaseListingToMock(draft))
+      } catch (err) {
+        console.error('[sell] draft hydration failed:', err)
+      }
+    })()
+  }, [searchParams])
 
   function canProceed(): boolean {
     switch (currentStep) {
