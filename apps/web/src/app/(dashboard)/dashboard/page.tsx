@@ -22,6 +22,7 @@ import {
   BedDouble,
   Bath,
   Maximize2,
+  MessageSquare,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -744,6 +745,19 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
               {item.buyerEmail}
             </a>
           )}
+        </div>
+      )}
+
+      {/* Message button — available once interest is accepted */}
+      {item.status === 'ACCEPTED' && (
+        <div className="mt-3">
+          <Link
+            href={`/messages/${item.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+          >
+            <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
+            Message buyer
+          </Link>
         </div>
       )}
 

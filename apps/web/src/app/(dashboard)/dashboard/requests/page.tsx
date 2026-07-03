@@ -203,6 +203,13 @@ function RequestCard({ item, onWithdraw, withdrawingId, onUnlocked }: RequestCar
       <div className="border-t border-[var(--color-border)] px-4 py-3">
         {displayStatus === 'CONTACT_UNLOCKED' && (
           <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/messages/${item.id}`}
+              className="flex items-center gap-1.5 rounded-lg bg-[var(--color-foreground)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
+              Message
+            </Link>
             {item.sellerPhone && (
               <a
                 href={`https://wa.me/${toWhatsAppNumber(item.sellerPhone)}`}
@@ -210,7 +217,6 @@ function RequestCard({ item, onWithdraw, withdrawingId, onUnlocked }: RequestCar
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 rounded-lg bg-[#25D366] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
               >
-                <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
                 WhatsApp
               </a>
             )}
