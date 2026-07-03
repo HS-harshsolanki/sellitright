@@ -80,7 +80,8 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
         className={cn(
           'h-10 w-full rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] pl-9 pr-8',
           'text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)]',
-          'focus:ring-[var(--color-ring)]/20 transition-[border-color,box-shadow,background-color] focus:border-[var(--color-primary)] focus:bg-white focus:outline-none focus:ring-2',
+          'transition-[border-color,box-shadow,background-color] hover:border-transparent hover:bg-[var(--color-muted)]',
+          'focus:ring-[var(--color-ring)]/20 focus:border-[var(--color-primary)] focus:bg-white focus:outline-none focus:ring-2',
           'sm:h-11',
         )}
       />

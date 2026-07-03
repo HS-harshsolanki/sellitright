@@ -2,7 +2,7 @@ app = "chapternew"
 primary_region = "sin"
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "apps/web/Dockerfile"
   # NEXT_PUBLIC_* vars are passed via --build-arg in deploy.yml.
   # Do NOT add [build.args] here — empty strings would bake silently into the image.
 

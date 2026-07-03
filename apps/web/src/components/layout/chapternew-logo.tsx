@@ -12,7 +12,7 @@ interface ChapterNewLogoProps {
 
 // logo-horizontal.png 1024×288 → ratio 3.56:1
 const HORIZONTAL = { sm: { w: 120, h: 34 }, md: { w: 152, h: 43 }, lg: { w: 200, h: 56 } }
-const ICON = { sm: 28, md: 36, lg: 48 }
+const ICON = { sm: 63, md: 36, lg: 48 }
 
 export function ChapterNewLogo({
   className,

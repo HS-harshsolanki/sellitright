@@ -52,7 +52,7 @@ function useHasListings(userId: string | undefined): boolean {
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 
 function Logo() {
-  return <ChapterNewLogo size="sm" />
+  return <ChapterNewLogo size="sm" iconOnly />
 }
 
 function SearchFallback() {
@@ -420,12 +420,12 @@ export function Header() {
             <Link
               href="/properties"
               className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium text-[var(--color-muted-foreground)]',
-                'transition-colors duration-150 hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
+                'rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-muted-foreground)]',
+                'transition-colors duration-150 hover:border-transparent hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
               )}
             >
-              Browse
+              Find a Home
             </Link>
             <Link
               href="/sell"

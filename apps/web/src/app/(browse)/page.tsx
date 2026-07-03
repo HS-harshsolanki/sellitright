@@ -130,33 +130,36 @@ export default async function LandingPage() {
     <main className="overflow-x-hidden">
       {/* ══════════════════════════════════════════════════════════════════════
           Section 1 — Hero
+          min-h subtracts the sticky header height (h-14 = 3.5rem / sm:h-16 = 4rem)
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-labelledby="hero-heading"
-        className="px-4 pb-20 pt-24 sm:px-6 md:pb-28 md:pt-32"
+        className="flex min-h-[calc(100vh-3.5rem)] flex-col justify-center px-6 py-20 sm:min-h-[calc(100vh-4rem)] sm:px-10 lg:px-16"
       >
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto w-full max-w-4xl">
           <Reveal y={40}>
             <h1
               id="hero-heading"
-              className="text-5xl font-semibold leading-tight tracking-tight text-[var(--color-foreground)] sm:text-6xl md:text-7xl"
+              className="text-[clamp(2.75rem,7vw,5.5rem)] font-semibold leading-[1.05] tracking-tight text-[var(--color-foreground)]"
             >
-              Find your next place in life.
+              Find your next
+              <br />
+              place in <span style={{ color: '#F86039' }}>life.</span>
             </h1>
           </Reveal>
 
           <Reveal delay={0.1} y={20}>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-[var(--color-muted-foreground)]">
+            <p className="mt-6 max-w-lg text-xl leading-relaxed text-[var(--color-muted-foreground)] sm:text-2xl">
               ChapterNew connects verified owners directly with serious buyers — no middlemen, no
               number leaks, no surprises.
             </p>
           </Reveal>
 
           <Reveal delay={0.18} y={24}>
-            <form action="/properties" method="get" className="mt-8 flex max-w-md gap-2">
+            <form action="/properties" method="get" className="mt-10 flex max-w-lg gap-2">
               <div className="relative flex-1">
                 <Search
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted-foreground)]"
+                  className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted-foreground)]"
                   aria-hidden="true"
                 />
                 <input
@@ -165,19 +168,19 @@ export default async function LandingPage() {
                   required
                   placeholder="Search by city — Mumbai, Pune, Delhi..."
                   aria-label="Search by city"
-                  className="focus:ring-[var(--color-foreground)]/10 h-11 w-full rounded-xl border border-[var(--color-border)] bg-white pl-9 pr-4 text-sm text-[var(--color-foreground)] transition-[border-color,box-shadow] placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-foreground)] focus:outline-none focus:ring-2"
+                  className="focus:ring-[var(--color-foreground)]/10 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white pl-10 pr-4 text-sm text-[var(--color-foreground)] transition-[border-color,box-shadow,background-color] placeholder:text-[var(--color-muted-foreground)] hover:border-transparent hover:bg-[var(--color-muted)] hover:placeholder:text-[var(--color-foreground)] focus:border-[var(--color-foreground)] focus:bg-white focus:outline-none focus:ring-2"
                 />
               </div>
               <button
                 type="submit"
-                className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-[var(--color-foreground)] px-5 text-sm font-semibold text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-foreground)]"
+                className="inline-flex h-12 items-center gap-1.5 rounded-xl bg-[var(--color-foreground)] px-6 text-sm font-semibold text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-foreground)]"
               >
                 Search
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </form>
 
-            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
               <Link
                 href="/properties"
                 className="text-sm font-medium text-[var(--color-foreground)] underline-offset-4 hover:underline"
@@ -195,12 +198,12 @@ export default async function LandingPage() {
               </Link>
             </div>
 
-            <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">
+            <p className="mt-4 text-sm text-[var(--color-muted-foreground)]">
               No broker fees &nbsp;·&nbsp; No unsolicited contact &nbsp;·&nbsp; Free to list
             </p>
           </Reveal>
 
-          <div className="mt-16 flex justify-start">
+          <div className="mt-20 flex justify-start">
             <ScrollChevron />
           </div>
         </div>
@@ -211,36 +214,36 @@ export default async function LandingPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-labelledby="problem-heading"
-        className="bg-[var(--color-muted)] px-4 py-20 sm:px-6 md:py-28"
+        className="flex min-h-screen flex-col justify-center bg-[var(--color-muted)] px-6 py-24 sm:px-10 lg:px-16"
       >
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto w-full max-w-4xl">
           <Reveal x={-24} y={0}>
             <h2
               id="problem-heading"
-              className="max-w-xl text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+              className="max-w-2xl text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-tight tracking-tight text-[var(--color-foreground)]"
             >
-              Most portals work against you.
+              Most portals work
+              <br />
+              against <span style={{ color: '#F86039' }}>you.</span>
             </h2>
-            <p className="mt-4 max-w-md text-base leading-relaxed text-[var(--color-muted-foreground)]">
+            <p className="mt-5 max-w-lg text-lg leading-relaxed text-[var(--color-muted-foreground)]">
               They profit from your number, your time, and your inability to verify what you&apos;re
               looking at.
             </p>
           </Reveal>
 
-          <Stagger className="mt-12 divide-y divide-[var(--color-border)]" stagger={0.1} y={24}>
+          <Stagger className="mt-14 divide-y divide-[var(--color-border)]" stagger={0.1} y={24}>
             {PAIN_POINTS.map(({ num, title, description }) => (
-              <div key={num} className="flex gap-6 py-6 sm:gap-10">
+              <div key={num} className="flex gap-8 py-8 sm:gap-12">
                 <span
-                  className="mt-0.5 shrink-0 text-sm font-normal tabular-nums text-[var(--color-muted-foreground)]"
+                  className="mt-1 w-8 shrink-0 text-sm font-normal tabular-nums text-[var(--color-muted-foreground)]"
                   aria-hidden="true"
                 >
                   {num}
                 </span>
                 <div>
-                  <h3 className="text-base font-semibold text-[var(--color-foreground)]">
-                    {title}
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+                  <h3 className="text-lg font-semibold text-[var(--color-foreground)]">{title}</h3>
+                  <p className="mt-2 text-base leading-relaxed text-[var(--color-muted-foreground)]">
                     {description}
                   </p>
                 </div>
@@ -255,45 +258,47 @@ export default async function LandingPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-labelledby="handshake-heading"
-        className="bg-[var(--color-primary)] px-4 py-24 sm:px-6 md:py-36"
+        className="flex min-h-screen flex-col justify-center bg-[var(--color-primary)] px-6 py-24 sm:px-10 lg:px-16"
       >
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto w-full max-w-3xl">
           <FadeIn>
             <h2
               id="handshake-heading"
-              className="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
+              className="text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-tight tracking-tight text-white"
             >
-              A process that respects both sides.
+              A process that respects
+              <br />
+              both <span style={{ color: '#F86039' }}>sides.</span>
             </h2>
-            <p className="mt-3 max-w-lg text-base leading-relaxed text-white/60">
+            <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/60">
               Every step is designed so neither party needs to trust a stranger — the system does
               the work.
             </p>
           </FadeIn>
 
-          {/* Numbered step timeline — step dot + connector line */}
-          <ol className="relative mt-14 space-y-0" aria-label="How ChapterNew works">
+          {/* Numbered step timeline */}
+          <ol className="relative mt-16 space-y-0" aria-label="How ChapterNew works">
             {HANDSHAKE_STEPS.map(({ step, actor, label, description }, idx) => (
               <Reveal key={step} delay={idx * 0.09} y={16}>
-                <li className="relative flex gap-6 pb-10 last:pb-0">
-                  {/* Connector line (hidden on last item) */}
+                <li className="relative flex gap-8 pb-12 last:pb-0">
+                  {/* Connector line — starts below the circle */}
                   {idx < HANDSHAKE_STEPS.length - 1 && (
                     <div
-                      className="absolute left-4 top-9 h-full w-px bg-white/15"
+                      className="absolute bottom-0 left-[19px] top-10 w-px bg-white/15"
                       aria-hidden="true"
                     />
                   )}
-                  {/* Step dot */}
-                  <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xs font-bold tabular-nums text-white/70">
+                  {/* Step dot — solid bg so line cannot bleed through */}
+                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[var(--color-primary)] text-xs font-bold tabular-nums text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]">
                     {step}
                   </div>
                   {/* Content */}
-                  <div className="pb-1 pt-1">
-                    <span className="mb-2 inline-block rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                  <div className="pt-1.5">
+                    <span className="mb-2.5 inline-block rounded-md bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-white/60">
                       {actor}
                     </span>
-                    <h3 className="text-base font-semibold text-white sm:text-lg">{label}</h3>
-                    <p className="mt-1.5 max-w-md text-sm leading-relaxed text-white/55">
+                    <h3 className="text-lg font-semibold text-white sm:text-xl">{label}</h3>
+                    <p className="mt-2 max-w-lg text-base leading-relaxed text-white/55">
                       {description}
                     </p>
                   </div>
@@ -303,16 +308,16 @@ export default async function LandingPage() {
           </ol>
 
           <Reveal delay={0.5} y={16}>
-            <div className="mt-10 flex flex-col items-start gap-3 border-t border-white/10 pt-10 sm:flex-row sm:items-center sm:gap-4">
+            <div className="mt-14 flex flex-col items-start gap-4 border-t border-white/10 pt-14 sm:flex-row sm:items-center">
               <Link
                 href="/sell"
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
               >
                 List Your Property <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href="/properties"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/25 px-6 py-3 text-sm font-semibold text-white/80 transition-all hover:border-white/50 hover:text-white"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/25 px-7 py-3.5 text-sm font-semibold text-white/80 transition-all hover:border-white/50 hover:text-white"
               >
                 Browse Homes <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
@@ -324,34 +329,39 @@ export default async function LandingPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           Section 4 — Trust
       ══════════════════════════════════════════════════════════════════════ */}
-      <section aria-labelledby="trust-heading" className="px-4 py-20 sm:px-6 md:py-28">
-        <div className="mx-auto max-w-4xl">
+      <section
+        aria-labelledby="trust-heading"
+        className="flex min-h-screen flex-col justify-center px-6 py-24 sm:px-10 lg:px-16"
+      >
+        <div className="mx-auto w-full max-w-4xl">
           <Reveal x={-24} y={0}>
             <h2
               id="trust-heading"
-              className="max-w-xl text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+              className="max-w-2xl text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-tight tracking-tight text-[var(--color-foreground)]"
             >
-              What we verify before anything goes live.
+              What we verify before
+              <br />
+              anything goes <span style={{ color: '#F86039' }}>live.</span>
             </h2>
-            <p className="mt-3 max-w-md text-base leading-relaxed text-[var(--color-muted-foreground)]">
+            <p className="mt-5 max-w-lg text-lg leading-relaxed text-[var(--color-muted-foreground)]">
               Every listing passes the same checks. No exceptions for premium listings.
             </p>
           </Reveal>
 
-          <Stagger className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2" stagger={0.08} y={20}>
+          <Stagger className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2" stagger={0.08} y={20}>
             {TRUST_PILLARS.map(({ icon: Icon, title, description }) => (
               <div
                 key={title}
-                className="flex gap-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)] p-6"
+                className="flex gap-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)] p-7"
               >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white">
                   <Icon className="h-5 w-5 text-[var(--color-foreground)]" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold leading-snug text-[var(--color-foreground)] sm:text-base">
+                  <h3 className="text-base font-semibold leading-snug text-[var(--color-foreground)] sm:text-lg">
                     {title}
                   </h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
                     {description}
                   </p>
                 </div>
@@ -366,18 +376,18 @@ export default async function LandingPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-labelledby="faq-heading"
-        className="bg-[var(--color-muted)] px-4 py-20 sm:px-6 md:py-24"
+        className="flex min-h-screen flex-col justify-center bg-[var(--color-muted)] px-6 py-24 sm:px-10 lg:px-16"
       >
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto w-full max-w-4xl">
           <Reveal y={20}>
             <h2
               id="faq-heading"
-              className="text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+              className="text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-tight tracking-tight text-[var(--color-foreground)]"
             >
-              Common questions.
+              Common <span style={{ color: '#F86039' }}>questions.</span>
             </h2>
           </Reveal>
-          <Stagger className="mt-10 divide-y divide-[var(--color-border)]" stagger={0.09} y={12}>
+          <Stagger className="mt-12 divide-y divide-[var(--color-border)]" stagger={0.09} y={12}>
             {FAQ_ITEMS.map(({ question, answer }, idx) => (
               <FAQItem key={idx} question={question} answer={answer} />
             ))}
@@ -386,32 +396,37 @@ export default async function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          Section 6 — Cities (replaces Featured Homes)
+          Section 6 — Cities
       ══════════════════════════════════════════════════════════════════════ */}
-      <section aria-labelledby="cities-heading" className="px-4 py-20 sm:px-6 md:py-28">
-        <div className="mx-auto max-w-4xl">
+      <section
+        aria-labelledby="cities-heading"
+        className="flex min-h-screen flex-col justify-center px-6 py-24 sm:px-10 lg:px-16"
+      >
+        <div className="mx-auto w-full max-w-4xl">
           <FadeIn>
             <h2
               id="cities-heading"
-              className="text-3xl font-semibold tracking-tight text-[var(--color-foreground)] sm:text-4xl"
+              className="text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-tight tracking-tight text-[var(--color-foreground)]"
             >
-              Browse by city.
+              Browse by <span style={{ color: '#F86039' }}>city.</span>
             </h2>
-            <p className="mt-3 text-base leading-relaxed text-[var(--color-muted-foreground)]">
+            <p className="mt-5 text-lg leading-relaxed text-[var(--color-muted-foreground)]">
               Owner-listed properties across India&apos;s major residential markets.
             </p>
           </FadeIn>
 
-          <Stagger className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3" stagger={0.06} y={20}>
+          <Stagger className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3" stagger={0.06} y={20}>
             {CITIES_GRID.map((city) => (
               <Link
                 key={city.name}
                 href={city.href}
-                className="group flex items-center justify-between rounded-xl border border-[var(--color-border)] p-6 transition-colors duration-150 hover:border-[var(--color-primary)]"
+                className="group flex items-center justify-between rounded-2xl border border-[var(--color-border)] p-7 transition-colors duration-150 hover:border-[var(--color-primary)]"
               >
                 <div>
-                  <p className="text-lg font-medium text-[var(--color-foreground)]">{city.name}</p>
-                  <p className="text-sm text-[var(--color-muted-foreground)]">{city.state}</p>
+                  <p className="text-xl font-medium text-[var(--color-foreground)]">{city.name}</p>
+                  <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
+                    {city.state}
+                  </p>
                 </div>
                 <ArrowRight
                   className="h-4 w-4 text-[var(--color-muted-foreground)] transition-colors duration-150 group-hover:text-[var(--color-foreground)]"
@@ -428,47 +443,47 @@ export default async function LandingPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       <section
         aria-label="Get started"
-        className="bg-[var(--color-primary)] px-4 py-24 sm:px-6 md:py-32"
+        className="flex min-h-screen flex-col justify-center bg-[var(--color-primary)] px-6 py-24 sm:px-10 lg:px-16"
       >
-        <div className="mx-auto max-w-4xl">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:[&>*]:contents">
+        <div className="mx-auto w-full max-w-4xl">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Reveal x={-24} y={0}>
-              <div className="flex flex-col gap-4 rounded-2xl border border-white/10 p-8">
+              <div className="flex flex-col gap-6 rounded-2xl border border-white/10 p-10">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
                     For buyers
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                    Looking for a home?
+                  <h2 className="mt-3 text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight text-white">
+                    Looking for a <span style={{ color: '#F86039' }}>home?</span>
                   </h2>
-                  <p className="mt-3 text-base leading-relaxed text-white/55">
+                  <p className="mt-4 text-lg leading-relaxed text-white/55">
                     Search verified owner listings in your city. No broker calls.
                   </p>
                 </div>
                 <Link
                   href="/properties"
-                  className="mt-auto inline-flex items-center gap-2 self-start rounded-xl border border-white/25 px-6 py-3 text-sm font-semibold text-white transition-all hover:border-white/50 hover:bg-white/5"
+                  className="mt-auto inline-flex items-center gap-2 self-start rounded-xl border border-white/25 px-7 py-3.5 text-sm font-semibold text-white transition-all hover:border-white/50 hover:bg-white/5"
                 >
                   Find a Home <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </div>
             </Reveal>
             <Reveal x={24} y={0} delay={0.06}>
-              <div className="flex flex-col gap-4 rounded-2xl bg-white/10 p-8">
+              <div className="flex flex-col gap-6 rounded-2xl bg-white/10 p-10">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
                     For sellers
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                    Selling your property?
+                  <h2 className="mt-3 text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight text-white">
+                    Selling your <span style={{ color: '#F86039' }}>property?</span>
                   </h2>
-                  <p className="mt-3 text-base leading-relaxed text-white/55">
+                  <p className="mt-4 text-lg leading-relaxed text-white/55">
                     List in 5 minutes. We verify it. Buyers come to you.
                   </p>
                 </div>
                 <Link
                   href="/sell"
-                  className="mt-auto inline-flex items-center gap-2 self-start rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
+                  className="mt-auto inline-flex items-center gap-2 self-start rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
                 >
                   List Your Property <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
@@ -477,7 +492,7 @@ export default async function LandingPage() {
           </div>
 
           <FadeIn delay={0.2}>
-            <p className="mt-12 text-center text-sm text-white/40">
+            <p className="mt-14 text-center text-sm text-white/40">
               Questions? Email us at{' '}
               <a
                 href="mailto:support@chapternew.com"
