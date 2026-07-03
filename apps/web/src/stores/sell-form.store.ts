@@ -82,6 +82,8 @@ interface SellFormState {
   draftId: string | null
   /** Last autosave status — shown in the UI */
   saveStatus: SaveStatus
+  /** True once listing has been submitted — stops autosave from firing */
+  submitted: boolean
 
   // Actions
   setStep: (step: SellStep) => void
@@ -95,6 +97,7 @@ interface SellFormState {
   setPricing: (data: Partial<PricingData>) => void
   setDraftId: (id: string) => void
   setSaveStatus: (status: SaveStatus) => void
+  setSubmitted: (value: boolean) => void
   reset: () => void
   hydrateFromListing: (listing: MockListing) => void
 }
@@ -140,6 +143,7 @@ export const useSellFormStore = create<SellFormState>()(
       pricing: DEFAULT_PRICING,
       draftId: null,
       saveStatus: 'idle',
+      submitted: false,
 
       setStep: (step) => set({ currentStep: step }),
 
@@ -180,6 +184,8 @@ export const useSellFormStore = create<SellFormState>()(
 
       setSaveStatus: (status) => set({ saveStatus: status }),
 
+      setSubmitted: (value) => set({ submitted: value }),
+
       reset: () =>
         set({
           currentStep: 'property-type',
@@ -190,6 +196,7 @@ export const useSellFormStore = create<SellFormState>()(
           pricing: DEFAULT_PRICING,
           draftId: null,
           saveStatus: 'idle',
+          submitted: false,
         }),
 
       hydrateFromListing: (listing) =>
