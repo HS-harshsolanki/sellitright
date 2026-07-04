@@ -148,16 +148,25 @@ export function ContactSeller({
           /* Contact already unlocked — show details immediately */
           <ContactRevealedCard sellerPhone={localPhone} sellerEmail={localEmail} />
         ) : interestStatus === 'ACCEPTED' && interestId ? (
-          /* Seller accepted — prompt buyer to pay and unlock contact */
-          <UnlockContactSection
-            interestId={interestId}
-            listingTitle={listingTitle}
-            onUnlocked={(phone, email) => {
-              setLocalPhone(phone)
-              setLocalEmail(email)
-              setLocalUnlocked(true)
-            }}
-          />
+          /* Seller accepted — prompt buyer to pay and unlock contact, also offer chat */
+          <div className="space-y-3">
+            <UnlockContactSection
+              interestId={interestId}
+              listingTitle={listingTitle}
+              onUnlocked={(phone, email) => {
+                setLocalPhone(phone)
+                setLocalEmail(email)
+                setLocalUnlocked(true)
+              }}
+            />
+            <Link
+              href={`/messages/${interestId}`}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] text-sm font-semibold text-[var(--color-foreground)] transition hover:bg-[var(--color-border)]"
+            >
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
+              Message owner
+            </Link>
+          </div>
         ) : interestStatus === 'DECLINED' ? (
           /* Seller declined the request */
           <div className="bg-[var(--color-muted)]/30 rounded-xl border border-[var(--color-border)] p-4">

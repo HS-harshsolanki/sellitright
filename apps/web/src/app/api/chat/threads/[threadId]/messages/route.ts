@@ -153,8 +153,22 @@ export async function POST(
     return NextResponse.json({ error: 'This conversation is read-only.' }, { status: 403 })
   }
 
-  // Phone number filter
-  if (containsPhoneNumber(trimmed)) {
+  // Phone number filter — check current message AND sliding window of last 10
+  // messages from this sender concatenated, to catch numbers split across msgs.
+  const { data: recentMsgs } = await chatTable(admin, 'chat_messages')
+    .select('content')
+    .eq('thread_id', threadId)
+    .eq('sender_id', user.id)
+    .eq('is_deleted', false)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  const recentContents = ((recentMsgs as Array<{ content: string }> | null) ?? [])
+    .map((m) => m.content)
+    .reverse()
+  const windowText = [...recentContents, trimmed].join(' ')
+
+  if (containsPhoneNumber(trimmed) || containsPhoneNumber(windowText)) {
     // Log violation
     const { data: priorViolations } = await chatTable(admin, 'chat_violations')
       .select('id', { count: 'exact', head: true })

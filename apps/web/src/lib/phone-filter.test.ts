@@ -38,6 +38,11 @@ describe('containsPhoneNumber — should detect', () => {
     ['7878787878', 'another valid number (starts with 7)'],
     ['6000000000', 'starts with 6'],
     ['+91-6000000000', 'starts with 6, +91 prefix'],
+    [
+      'niiine eightt seeven siix fiveee fourr niiine eightt seeven zeroo',
+      'repeated-char misspelling evasion',
+    ],
+    ['niiine aaath saaat paanch chaar tiin doo ek sifar shunya', 'repeated-char Hindi misspelling'],
   ]
 
   for (const [text, label] of POSITIVE) {

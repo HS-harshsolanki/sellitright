@@ -104,17 +104,6 @@ const HINDI_WORD_DIGIT_MAP: Record<string, string> = {
   nao: '9',
 }
 
-// Combined ordered by length (longest first) to avoid partial matches
-const ALL_WORD_DIGIT_ENTRIES = Object.entries({ ...WORD_DIGIT_MAP, ...HINDI_WORD_DIGIT_MAP }).sort(
-  (a, b) => b[0].length - a[0].length,
-)
-
-// Pre-built regex that matches any word-digit token
-const WORD_DIGIT_REGEX = new RegExp(
-  '\\b(' + ALL_WORD_DIGIT_ENTRIES.map(([w]) => w).join('|') + ')\\b',
-  'gi',
-)
-
 // ---------------------------------------------------------------------------
 // 2. Unicode digit normalizers
 // ---------------------------------------------------------------------------
@@ -266,17 +255,27 @@ function collapseSeparators(text: string): string {
 // 7. Word-digit substitution
 // ---------------------------------------------------------------------------
 
-function replaceWordDigits(text: string): string {
-  return text.replace(WORD_DIGIT_REGEX, (_match, word) => {
-    const key = word.toLowerCase()
-    return WORD_DIGIT_ENTRIES_LOOKUP[key] ?? word
-  })
-}
-
-// Build a fast lookup from the combined map
+// Fast lookup from the combined map — declared before the functions that use it
 const WORD_DIGIT_ENTRIES_LOOKUP: Record<string, string> = {
   ...WORD_DIGIT_MAP,
   ...HINDI_WORD_DIGIT_MAP,
+}
+
+function replaceWordDigits(text: string): string {
+  return text.replace(/\b([a-zA-Z]+)\b/gi, (token) => {
+    const lower = token.toLowerCase()
+    // 1. Exact match
+    if (WORD_DIGIT_ENTRIES_LOOKUP[lower]) return WORD_DIGIT_ENTRIES_LOOKUP[lower]
+    // 2. Collapse 3+ consecutive identical letters → 2, then try lookup
+    //    e.g. "fiveee" → "fivee", still no match
+    const col3 = lower.replace(/([a-z])\1{2,}/g, '$1$1')
+    if (col3 !== lower && WORD_DIGIT_ENTRIES_LOOKUP[col3]) return WORD_DIGIT_ENTRIES_LOOKUP[col3]
+    // 3. Collapse all consecutive identical letters → 1, then try lookup
+    //    e.g. "thrreee" → "thre" still no; but "fiveee" → "five" ✓, "seeven" → "seven" ✓
+    const col1 = lower.replace(/([a-z])\1+/g, '$1')
+    if (col1 !== lower && WORD_DIGIT_ENTRIES_LOOKUP[col1]) return WORD_DIGIT_ENTRIES_LOOKUP[col1]
+    return token
+  })
 }
 
 // ---------------------------------------------------------------------------
