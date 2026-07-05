@@ -37,7 +37,7 @@ function hashOtp(otp: string, phone: string, userId: string): string {
 
 // POST /api/phone/send-otp
 // Body: { phone: string }
-// Sends a 6-digit OTP via WhatsApp to the given Indian mobile number.
+// Sends a 6-digit OTP via SMS (MSG91) to the given Indian mobile number.
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const {

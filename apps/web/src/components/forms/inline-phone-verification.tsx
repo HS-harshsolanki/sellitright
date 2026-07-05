@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, Loader2, Phone } from 'lucide-react'
 import { useState } from 'react'
 
 import { INDIAN_MOBILE_RE, normalizePhone } from '@/lib/phone'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 type FlowState = 'idle' | 'sending' | 'otp_sent' | 'verified'
@@ -66,6 +67,12 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
       if (!res.ok) {
         setError(data.error ?? 'Wrong OTP. Please try again.')
       } else {
+        // Refresh session so the updated phone_verified metadata is available immediately
+        try {
+          await createClient().auth.refreshSession()
+        } catch {
+          // non-critical — metadata refresh is best-effort
+        }
         setFlowState('verified')
         onVerified(data.phone ?? normalized)
       }
@@ -107,7 +114,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
             {/* h3 for correct heading hierarchy under the page h2 */}
             <h3 className="text-sm font-semibold text-amber-900">Verify your phone to publish</h3>
             <p className="mt-0.5 text-xs text-amber-700">
-              We&apos;ll send a quick OTP on WhatsApp — buyers need a way to reach you.
+              We&apos;ll send a 6-digit OTP via SMS — buyers need a way to reach you.
             </p>
           </div>
         </div>
@@ -168,7 +175,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
                 <span>Sending…</span>
               </span>
             ) : (
-              'Send OTP on WhatsApp'
+              'Send OTP via SMS'
             )}
           </button>
         </div>
@@ -191,7 +198,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
       <p id="otp-hint" className="mb-3 text-xs text-amber-800">
-        OTP sent to WhatsApp on{' '}
+        OTP sent via SMS to{' '}
         <span className="font-semibold tracking-wide">+91 {maskPhone(normalized)}</span>
       </p>
 

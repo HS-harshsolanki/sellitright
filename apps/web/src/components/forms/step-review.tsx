@@ -3,6 +3,7 @@
 import { AlertCircle, CheckCircle2, Edit2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 
+import { InlinePhoneVerification } from '@/components/forms/inline-phone-verification'
 import { cn } from '@/lib/utils'
 import { useSellFormStore } from '@/stores/sell-form.store'
 
@@ -136,11 +137,13 @@ interface IncompleteField {
 interface StepReviewProps {
   /** If a draft was autosaved, we patch it to PENDING_REVIEW instead of creating a new record */
   draftId?: string | null
-  /** Whether the seller has a valid phone number on file. Blocks submission if false. */
+  /** Whether the seller has a verified phone number on file. Blocks submission if false. */
   hasPhone?: boolean
+  /** Called after inline OTP verification completes so the parent can update its state */
+  onPhoneVerified?: () => void
 }
 
-export function StepReview({ draftId, hasPhone = true }: StepReviewProps) {
+export function StepReview({ draftId, hasPhone = true, onPhoneVerified }: StepReviewProps) {
   const { propertyType, location, details, photos, pricing, goToStep, reset, setSubmitted } =
     useSellFormStore()
 
@@ -239,7 +242,8 @@ export function StepReview({ draftId, hasPhone = true }: StepReviewProps) {
           setErrorMessage('Your account is suspended. Please contact support.')
         } else if (res.status === 422 && body.action === 'profile') {
           setErrorMessage(
-            'Add a phone number to your profile before submitting. Buyers need it to contact you.',
+            body.error ??
+              'Verify your phone number before submitting. Use the verification box above.',
           )
         } else if (res.status === 400) {
           setErrorMessage(
@@ -522,22 +526,13 @@ export function StepReview({ draftId, hasPhone = true }: StepReviewProps) {
           </div>
         )}
 
-        {/* No-phone warning */}
+        {/* No-phone — inline verification widget */}
         {!hasPhone && (
-          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-900">
-                Add a phone number before submitting
-              </p>
-              <p className="mt-0.5 text-xs text-amber-800">
-                Buyers need your phone to contact you after paying ₹49.{' '}
-                <a href="/profile" className="font-medium underline underline-offset-2">
-                  Go to Profile →
-                </a>
-              </p>
-            </div>
-          </div>
+          <InlinePhoneVerification
+            onVerified={() => {
+              onPhoneVerified?.()
+            }}
+          />
         )}
 
         {/* Review notice */}

@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 import { StepDetails } from '@/components/forms/step-details'
@@ -107,6 +107,8 @@ export default function SellPage() {
 
   const [showErrors, setShowErrors] = useState(false)
   const [saveErrorIsAuth, setSaveErrorIsAuth] = useState(false)
+  // phoneVerified tracks live verification state — updated when InlinePhoneVerification succeeds
+  const [phoneVerified, setPhoneVerified] = useState<boolean | null>(null)
 
   const currentIndex = SELL_STEPS.indexOf(currentStep)
   const totalSteps = SELL_STEPS.length
@@ -253,8 +255,18 @@ export default function SellPage() {
       case 'pricing':
         return <StepPricing showErrors={showErrors} />
       case 'review': {
-        const hasPhone = !!(user?.user_metadata?.phone ?? user?.phone)
-        return <StepReview draftId={draftId} hasPhone={hasPhone} />
+        // Use live phoneVerified state if available; fall back to user metadata on first render
+        const hasPhone =
+          phoneVerified !== null
+            ? phoneVerified
+            : !!(user?.user_metadata?.phone_verified && (user?.user_metadata?.phone ?? user?.phone))
+        return (
+          <StepReview
+            draftId={draftId}
+            hasPhone={hasPhone}
+            onPhoneVerified={() => setPhoneVerified(true)}
+          />
+        )
       }
     }
   }
