@@ -555,8 +555,15 @@ export function GlobalMessagesBubble() {
               </span>
             )}
           </span>
-          <span className="flex-1 text-left text-sm font-semibold text-[var(--color-foreground)]">
+          <span className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-sm font-semibold text-[var(--color-foreground)]">
             Messaging
+            {myOffenseCount > 0 && (
+              <WarningBadge
+                count={myOffenseCount}
+                tooltip={phoneBlockText(myOffenseCount)}
+                size="sm"
+              />
+            )}
           </span>
           {open && !activeThread && (
             <Link
