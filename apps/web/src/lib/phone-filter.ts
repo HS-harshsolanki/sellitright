@@ -467,7 +467,17 @@ export function redactPhoneNumbers(text: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 13. Test harness (remove in production; kept here for quick local checks)
+// 13. Window-based cross-message detection
+//     Checks whether the new message, combined with recent sent messages,
+//     forms a phone number when concatenated — catches numbers split across msgs.
+
+export function containsPhoneNumberInWindow(recentMessages: string[], newMessage: string): boolean {
+  const windowText = [...recentMessages, newMessage].join(' ')
+  return containsPhoneNumber(windowText)
+}
+
+// ---------------------------------------------------------------------------
+// 14. Test harness (remove in production; kept here for quick local checks)
 // ---------------------------------------------------------------------------
 
 // Uncomment to run: npx tsx src/lib/phone-filter.ts
