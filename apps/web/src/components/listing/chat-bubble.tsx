@@ -15,12 +15,21 @@ import {
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { RequestContactModal } from '@/components/listing/request-contact-modal'
+import { WarningBadge } from '@/components/ui/warning-badge'
 import type { ChatMessage, DisplayMessage } from '@/lib/chat-types'
 import { isPhoneWarning } from '@/lib/chat-types'
-import { RequestContactModal } from '@/components/listing/request-contact-modal'
 import { containsPhoneNumber, containsPhoneNumberInWindow } from '@/lib/phone-filter'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
+
+function phoneBlockText(offenseNumber: number): string {
+  if (offenseNumber >= 3)
+    return 'Your account has been automatically restricted after 3 phone-sharing attempts. Only an admin can restore access.'
+  if (offenseNumber === 2)
+    return `Warning ${offenseNumber}/3: Sharing phone numbers violates our Terms. One more attempt will automatically block your account.`
+  return `Warning ${offenseNumber}/3: Phone numbers can't be shared here. Use the Call or WhatsApp buttons after unlocking contact.`
+}
 
 // ── Date/time helpers (mirrors messages/[interestId]/page.tsx) ──────────────
 
@@ -192,14 +201,37 @@ function MessageList({
             {dayMsgs.map((msg, idx) => {
               // ── Phone-block inline warning card ──────────────────────────
               if (isPhoneWarning(msg)) {
+                const isFinal = msg.offenseNumber >= 3
                 return (
                   <div key={msg.id} className="my-2 flex justify-center">
-                    <div className="flex max-w-[85%] items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-                      <AlertTriangle
-                        className="h-3.5 w-3.5 shrink-0 text-amber-500"
-                        aria-hidden="true"
-                      />
-                      <p className="text-xs text-amber-800">{msg.warningText}</p>
+                    <div
+                      className={`flex w-full flex-col gap-1.5 rounded-xl border px-2.5 py-2 ${isFinal ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}
+                    >
+                      <div className="flex items-start gap-1.5">
+                        <AlertTriangle
+                          className={`mt-0.5 h-3 w-3 shrink-0 ${isFinal ? 'text-red-500' : 'text-amber-500'}`}
+                          aria-hidden="true"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <p
+                              className={`text-[10px] font-semibold ${isFinal ? 'text-red-800' : 'text-amber-800'}`}
+                            >
+                              {isFinal ? 'Account Restricted' : 'Phone blocked'}
+                            </p>
+                            <span
+                              className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${isFinal ? 'bg-red-200 text-red-900' : 'bg-amber-200 text-amber-900'}`}
+                            >
+                              {isFinal ? 'BLOCKED' : `${msg.offenseNumber}/3`}
+                            </span>
+                          </div>
+                          <p
+                            className={`mt-0.5 text-[10px] leading-snug ${isFinal ? 'text-red-700' : 'text-amber-700'}`}
+                          >
+                            {msg.warningText}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )
@@ -295,6 +327,7 @@ export function ChatBubble({
   const [phoneWarning, setPhoneWarning] = useState<string | null>(null)
   // Once a phone block fires the input is locked for the rest of this browser session
   const [sessionBlocked, setSessionBlocked] = useState(false)
+  const [myOffenseCount, setMyOffenseCount] = useState(0)
   const [unreadCount, setUnreadCount] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const [localInterestStatus, setLocalInterestStatus] = useState(interestStatus)
@@ -355,6 +388,8 @@ export function ChatBubble({
           messages: ChatMessage[]
           role: string
           threadStatus: string
+          priorOffenseCount: number
+          isPhoneBlocked: boolean
         }
         // On poll: preserve existing LocalPhoneWarning entries, replace server messages
         setMessages((prev) => {
@@ -364,6 +399,9 @@ export function ChatBubble({
         setThreadStatus((data.threadStatus as 'active' | 'locked' | 'disabled') ?? 'active')
         prevMessageCountRef.current = data.messages.length
         setUnreadCount(0)
+        // Always refresh DB-backed offense count on every fetch
+        setMyOffenseCount(data.priorOffenseCount ?? 0)
+        if (data.isPhoneBlocked) setSessionBlocked(true)
         // Seed recentSentRef from history — only real ChatMessages, never warnings
         if (myUserId) {
           recentSentRef.current = data.messages
@@ -457,6 +495,7 @@ export function ChatBubble({
       createdAt: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, warning])
+    setMyOffenseCount(offenseNumber)
     if (offenseNumber >= 3) setSessionBlocked(true)
     setInput('')
     setPhoneWarning(null)
@@ -647,19 +686,26 @@ export function ChatBubble({
           threadStatus === 'active' &&
           (sessionBlocked ? (
             // ── Session-locked state — input removed from DOM entirely ──
-            <div className="shrink-0 border-t border-amber-200 bg-amber-50 px-4 py-3">
+            <div
+              className={`shrink-0 border-t px-4 py-3 ${myOffenseCount >= 3 ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}
+            >
               <div className="flex items-start gap-2.5">
                 <AlertTriangle
-                  className="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+                  className={`mt-0.5 h-4 w-4 shrink-0 ${myOffenseCount >= 3 ? 'text-red-500' : 'text-amber-500'}`}
                   aria-hidden="true"
                 />
                 <div>
-                  <p className="text-xs font-semibold text-amber-800">
-                    Chat locked for this session
+                  <p
+                    className={`text-xs font-semibold ${myOffenseCount >= 3 ? 'text-red-800' : 'text-amber-800'}`}
+                  >
+                    {myOffenseCount >= 3 ? 'Account restricted' : 'Chat locked for this session'}
                   </p>
-                  <p className="mt-0.5 text-xs text-amber-700">
-                    Phone number detected. Use the Call or WhatsApp buttons to connect after
-                    unlocking contact. Refresh the page to reset.
+                  <p
+                    className={`mt-0.5 text-xs ${myOffenseCount >= 3 ? 'text-red-700' : 'text-amber-700'}`}
+                  >
+                    {myOffenseCount >= 3
+                      ? 'Automatically restricted after 3 attempts. Contact support.'
+                      : 'Phone number detected. Use the Call or WhatsApp buttons. Refresh the page to reset.'}
                   </p>
                 </div>
               </div>
@@ -692,9 +738,14 @@ export function ChatBubble({
         >
           {/* Panel header */}
           <div className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4">
-            <span className="text-sm font-semibold text-[var(--color-foreground)]">
-              {panelTitle}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-semibold text-[var(--color-foreground)]">
+                {panelTitle}
+              </span>
+              {!isOwner && myOffenseCount > 0 && (
+                <WarningBadge count={myOffenseCount} tooltip={phoneBlockText(myOffenseCount)} />
+              )}
+            </div>
             <div className="flex items-center gap-1">
               {localInterestStatus === 'ACCEPTED' && interestId && (
                 <Link

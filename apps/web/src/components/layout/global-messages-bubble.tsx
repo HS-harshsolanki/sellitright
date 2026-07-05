@@ -298,6 +298,7 @@ export function GlobalMessagesBubble() {
         error?: string
         code?: string
         offenseNumber?: number
+        chatCleared?: boolean
       }
       if (!res.ok) {
         if (data.code === 'PHONE_NUMBER_BLOCKED' || data.code === 'PHONE_SEND_BLOCKED') {
@@ -308,6 +309,11 @@ export function GlobalMessagesBubble() {
           )
         } else {
           setSendError(data.error ?? 'Failed to send.')
+          if (data.chatCleared) {
+            setMessages([])
+            setInput('')
+            if (textareaRef.current) textareaRef.current.style.height = 'auto'
+          }
         }
         return
       }
