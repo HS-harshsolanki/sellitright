@@ -520,7 +520,12 @@ export function GlobalMessagesBubble() {
           )}
         </button>
         {open && (
-          <div className="flex flex-col items-center justify-center gap-4 p-5 text-center max-sm:flex-1 sm:h-[200px]">
+          <div
+            className="flex flex-col items-center justify-center gap-4 p-5 text-center max-sm:flex-1"
+            style={{
+              height: typeof window !== 'undefined' && window.innerWidth < 640 ? undefined : 200,
+            }}
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-muted)]">
               <MessageSquare className="h-5 w-5 text-[var(--color-muted-foreground)]" />
             </div>
@@ -629,11 +634,16 @@ export function GlobalMessagesBubble() {
         {/* ── Panel content — below the header when open ─────────────────── */}
         {open && (
           <div
-            className={cn(
-              'flex flex-col',
-              'max-sm:flex-1',
-              activeThread ? 'sm:h-[420px]' : 'sm:h-[380px]',
-            )}
+            className="flex flex-col max-sm:flex-1"
+            // On desktop, fixed height; on mobile, flex-1 fills the fullscreen container
+            style={{
+              height:
+                typeof window !== 'undefined' && window.innerWidth < 640
+                  ? undefined
+                  : activeThread
+                    ? 420
+                    : 380,
+            }}
           >
             {/* ── Thread list ──────────────────────────────────────────── */}
             {!activeThread && (

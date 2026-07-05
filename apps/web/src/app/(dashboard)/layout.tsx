@@ -5,6 +5,7 @@ import {
   Bell,
   ClipboardList,
   LayoutGrid,
+  MessageSquare,
   Plus,
   Search,
   User,
@@ -179,10 +180,10 @@ const MOBILE_ITEMS = [
   },
   { href: '/sell', label: 'Post', icon: <Plus className="h-5 w-5" /> },
   {
-    href: '/dashboard?tab=buyers',
-    label: 'Buyers',
-    icon: <Users className="h-5 w-5" />,
-    matchTab: 'buyers',
+    href: '/messages',
+    label: 'Messages',
+    icon: <MessageSquare className="h-5 w-5" />,
+    matchPath: '/messages',
   },
   { href: '/profile', label: 'Profile', icon: <User className="h-5 w-5" /> },
 ]
