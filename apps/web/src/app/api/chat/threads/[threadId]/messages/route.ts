@@ -1,24 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import type { ChatMessage } from '@/lib/chat-types'
 import { logger } from '@/lib/logger'
-import { containsPhoneNumber, safeContentPreview } from '@/lib/phone-filter'
+import {
+  containsPhoneNumber,
+  containsPhoneNumberInWindow,
+  safeContentPreview,
+} from '@/lib/phone-filter'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+
+export type { ChatMessage }
+
+const RATE_LIMIT = 20
+const RATE_WINDOW_MS = 60_000
+
+interface RateEntry {
+  count: number
+  windowStart: number
+}
+
+const rateLimitMap = new Map<string, RateEntry>()
+
+function checkRateLimit(userId: string, threadId: string): boolean {
+  const key = `${userId}:${threadId}`
+  const now = Date.now()
+  const entry = rateLimitMap.get(key)
+
+  if (!entry || now - entry.windowStart >= RATE_WINDOW_MS) {
+    rateLimitMap.set(key, { count: 1, windowStart: now })
+    if (rateLimitMap.size > 10_000) {
+      for (const [k, v] of rateLimitMap) {
+        if (now - v.windowStart >= RATE_WINDOW_MS) rateLimitMap.delete(k)
+      }
+    }
+    return true
+  }
+
+  if (entry.count >= RATE_LIMIT) return false
+  entry.count++
+  return true
+}
 
 function chatTable(client: ReturnType<typeof createServiceClient>, table: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (client as any).from(table)
 }
 
-export interface ChatMessage {
-  id: string
-  senderId: string
-  content: string
-  isDeleted: boolean
-  createdAt: string
-}
-
 // GET /api/chat/threads/[threadId]/messages
-// Returns messages for a thread. Marks unread as read.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ threadId: string }> },
@@ -37,7 +65,6 @@ export async function GET(
   const admin = createServiceClient()
   if (!admin) return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
 
-  // Verify the user is a participant
   const { data: thread, error: threadError } = await chatTable(admin, 'chat_threads')
     .select('id, buyer_id, seller_id, status')
     .eq('id', threadId)
@@ -63,11 +90,46 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to load messages.' }, { status: 500 })
   }
 
-  // Reset unread count for this user
   const unreadField = isBuyer ? 'buyer_unread' : 'seller_unread'
   await chatTable(admin, 'chat_threads')
     .update({ [unreadField]: 0 })
     .eq('id', threadId)
+
+  const otherPartyId = isBuyer ? thread.seller_id : thread.buyer_id
+  const [
+    otherPartyProfile,
+    violationCountResult,
+    phoneBlockResult,
+    otherPartyViolationResult,
+    otherPartyBlockResult,
+  ] = await Promise.all([
+    admin.from('profiles').select('full_name').eq('id', otherPartyId).maybeSingle(),
+    chatTable(admin, 'chat_violations')
+      .select('id', { count: 'exact', head: true })
+      .eq('sender_id', user.id),
+    chatTable(admin, 'phone_block_flags')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle(),
+    chatTable(admin, 'chat_violations')
+      .select('id', { count: 'exact', head: true })
+      .eq('sender_id', otherPartyId),
+    chatTable(admin, 'phone_block_flags')
+      .select('id')
+      .eq('user_id', otherPartyId)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  const otherPartyName =
+    (otherPartyProfile.data as { full_name: string | null } | null)?.full_name ?? null
+  const priorOffenseCount = violationCountResult.count ?? 0
+  const isPhoneBlocked = !!phoneBlockResult.data
+  const otherPartyOffenseCount = otherPartyViolationResult.count ?? 0
+  const otherPartyIsPhoneBlocked = !!otherPartyBlockResult.data
 
   const result: ChatMessage[] = (
     messages as Array<{
@@ -89,11 +151,15 @@ export async function GET(
     messages: result,
     threadStatus: thread.status,
     role: isBuyer ? 'buyer' : 'seller',
+    otherPartyName,
+    priorOffenseCount,
+    isPhoneBlocked,
+    otherPartyOffenseCount,
+    otherPartyIsPhoneBlocked,
   })
 }
 
 // POST /api/chat/threads/[threadId]/messages
-// Send a message. Server-side phone number filter applied before storage.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ threadId: string }> },
@@ -107,6 +173,13 @@ export async function POST(
 
   if (!user) {
     return NextResponse.json({ error: 'Sign in to send messages.' }, { status: 401 })
+  }
+
+  if (!checkRateLimit(user.id, threadId)) {
+    return NextResponse.json(
+      { error: 'Too many messages. Please wait a moment before sending again.' },
+      { status: 429 },
+    )
   }
 
   let body: unknown
@@ -129,7 +202,6 @@ export async function POST(
   const admin = createServiceClient()
   if (!admin) return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
 
-  // Verify participant and thread state
   const { data: thread, error: threadError } = await chatTable(admin, 'chat_threads')
     .select('id, buyer_id, seller_id, status')
     .eq('id', threadId)
@@ -153,34 +225,56 @@ export async function POST(
     return NextResponse.json({ error: 'This conversation is read-only.' }, { status: 403 })
   }
 
-  // Phone number filter — check current message AND sliding window of last 10
-  // messages from this sender concatenated, to catch numbers split across msgs.
-  const { data: recentMsgs } = await chatTable(admin, 'chat_messages')
+  const { data: phoneBlockRow } = await chatTable(admin, 'phone_block_flags')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle()
+
+  if (phoneBlockRow) {
+    const { count: blockOffenseCount } = await chatTable(admin, 'chat_violations')
+      .select('id', { count: 'exact', head: true })
+      .eq('sender_id', user.id)
+    return NextResponse.json(
+      {
+        error:
+          'Your account has been restricted from sharing contact information. Please contact support.',
+        code: 'PHONE_SEND_BLOCKED',
+        offenseNumber: blockOffenseCount ?? 3,
+      },
+      { status: 403 },
+    )
+  }
+
+  const { data: recentRaw } = await chatTable(admin, 'chat_messages')
     .select('content')
     .eq('thread_id', threadId)
     .eq('sender_id', user.id)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false })
-    .limit(10)
+    .limit(8)
 
-  const recentContents = ((recentMsgs as Array<{ content: string }> | null) ?? [])
+  const recentMessages: string[] = ((recentRaw as Array<{ content: string }> | null) ?? [])
     .map((m) => m.content)
     .reverse()
-  const windowText = [...recentContents, trimmed].join(' ')
 
-  if (containsPhoneNumber(trimmed) || containsPhoneNumber(windowText)) {
-    // Log violation
-    const { data: priorViolations } = await chatTable(admin, 'chat_violations')
+  const isBlocked =
+    containsPhoneNumber(trimmed) || containsPhoneNumberInWindow(recentMessages, trimmed)
+
+  if (isBlocked) {
+    const { count: priorCount } = await chatTable(admin, 'chat_violations')
       .select('id', { count: 'exact', head: true })
-      .eq('thread_id', threadId)
       .eq('sender_id', user.id)
 
-    const offenseNumber = ((priorViolations as null | { count: number })?.count ?? 0) + 1
+    const offenseNumber = (priorCount ?? 0) + 1
+    const contentPreview = safeContentPreview(trimmed)
 
+    // Record violation with exact (redacted) content so admin can review
     await chatTable(admin, 'chat_violations').insert({
       thread_id: threadId,
       sender_id: user.id,
-      content_preview: safeContentPreview(trimmed),
+      content_preview: contentPreview,
       offense_number: offenseNumber,
     })
 
@@ -190,28 +284,95 @@ export async function POST(
       offense: offenseNumber,
     })
 
-    // 3rd offense: auto-report to admin
+    // ── Wipe the entire thread immediately ──────────────────────────────────
+    // Soft-delete every message so neither party can see what was sent.
+    // The violation record in chat_violations preserves the evidence for admin.
+    await chatTable(admin, 'chat_messages').update({ is_deleted: true }).eq('thread_id', threadId)
+
+    // Clear unread counts — messages are gone, badges should reset
+    await chatTable(admin, 'chat_threads')
+      .update({ buyer_unread: 0, seller_unread: 0 })
+      .eq('id', threadId)
+
+    // ── Notify the sender ────────────────────────────────────────────────────
+    const offenseLabel =
+      offenseNumber >= 3
+        ? `This is violation #${offenseNumber}. Your account has been auto-flagged for admin review.`
+        : `This is violation #${offenseNumber}/3. A 3rd attempt will flag your account.`
+
+    await admin.from('notifications').insert({
+      user_id: user.id,
+      title: 'Chat cleared — phone number detected',
+      message: `Your message contained a phone number. The entire conversation has been cleared. ${offenseLabel}`,
+      type: 'PhoneViolationWarning',
+      entity_type: 'chat_thread',
+      entity_id: threadId,
+    })
+
+    // ── Notify the other party (neutral — don't reveal who triggered it) ────
+    const otherPartyId = isBuyer ? thread.seller_id : thread.buyer_id
+    await admin.from('notifications').insert({
+      user_id: otherPartyId,
+      title: 'Conversation cleared',
+      message:
+        'A phone number was detected in this conversation. The chat has been cleared to protect platform integrity.',
+      type: 'PhoneViolationWarning',
+      entity_type: 'chat_thread',
+      entity_id: threadId,
+    })
+
+    // ── Auto-report to admin on every offense ───────────────────────────────
+    // Admin sees every incident immediately with the exact (redacted) content.
+    await admin.from('reports').insert({
+      reporter_id: otherPartyId,
+      reporter_role: isBuyer ? 'seller' : 'buyer',
+      target_user_id: user.id,
+      reason: 'SHARING_CONTACT',
+      details: `[Auto] Offense #${offenseNumber} in thread ${threadId} — attempted message: "${contentPreview}"`,
+      status: 'OPEN',
+    })
+
+    // ── 3rd offense: auto-block the sender ──────────────────────────────────
     if (offenseNumber >= 3) {
-      const recipientId = isBuyer ? thread.seller_id : thread.buyer_id
-      await admin.from('reports').insert({
-        reporter_id: recipientId,
-        reporter_role: isBuyer ? 'seller' : 'buyer',
-        target_user_id: user.id,
-        reason: 'SHARING_CONTACT',
-        details: `Auto-reported after ${offenseNumber} phone-sharing attempts in chat thread ${threadId}`,
-        status: 'OPEN',
-      })
+      const { data: existingBlock } = await chatTable(admin, 'phone_block_flags')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+
+      if (!existingBlock) {
+        await chatTable(admin, 'phone_block_flags').insert({
+          user_id: user.id,
+          is_active: true,
+          reason: `Auto-blocked after ${offenseNumber} phone-sharing attempts`,
+          created_by: 'auto',
+        })
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            'Your account has been automatically restricted after 3 phone-sharing attempts. Only an admin can restore access. Please contact support.',
+          code: 'PHONE_SEND_BLOCKED',
+          offenseNumber,
+          chatCleared: true,
+        },
+        { status: 403 },
+      )
     }
 
     const warningMsg =
-      offenseNumber >= 2
-        ? 'Sharing contact details bypasses our platform and violates our Terms. Continued violations may result in account suspension.'
-        : "Phone numbers can't be shared here. Use the Call or WhatsApp buttons to connect after unlocking contact."
+      offenseNumber === 2
+        ? `Warning ${offenseNumber}/3: Phone number detected — conversation cleared. One more attempt will automatically restrict your account.`
+        : `Warning ${offenseNumber}/3: Phone numbers can't be shared here. Use the Call or WhatsApp buttons after unlocking contact. The conversation has been cleared.`
 
-    return NextResponse.json({ error: warningMsg, code: 'PHONE_NUMBER_BLOCKED' }, { status: 422 })
+    return NextResponse.json(
+      { error: warningMsg, code: 'PHONE_NUMBER_BLOCKED', offenseNumber, chatCleared: true },
+      { status: 422 },
+    )
   }
 
-  // Insert message
   const { data: msgRaw, error: insertError } = await chatTable(admin, 'chat_messages')
     .insert({
       thread_id: threadId,
@@ -229,13 +390,11 @@ export async function POST(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const msg = msgRaw as any
 
-  // Update last_message_at on the thread
   const unreadField = isBuyer ? 'seller_unread' : 'buyer_unread'
   await chatTable(admin, 'chat_threads')
     .update({ last_message_at: msg.created_at })
     .eq('id', threadId)
 
-  // Increment unread count for other party with a second update
   const { data: currentThread } = await chatTable(admin, 'chat_threads')
     .select(`${unreadField}`)
     .eq('id', threadId)
@@ -246,7 +405,6 @@ export async function POST(
     .update({ [unreadField]: currentUnread + 1 })
     .eq('id', threadId)
 
-  // Notify the other party
   const recipientId = isBuyer ? thread.seller_id : thread.buyer_id
   const senderProfile = await admin
     .from('profiles')

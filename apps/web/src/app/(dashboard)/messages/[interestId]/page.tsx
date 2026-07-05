@@ -120,10 +120,21 @@ export default function ChatThreadPage() {
         body: JSON.stringify({ content: input.trim() }),
       })
 
-      const json = (await res.json()) as { message?: ChatMessage; error?: string }
+      const json = (await res.json()) as {
+        message?: ChatMessage
+        error?: string
+        code?: string
+        chatCleared?: boolean
+      }
 
       if (!res.ok) {
         setSendError(json.error ?? 'Failed to send message.')
+        // Server wiped the chat on phone detection — clear local messages immediately
+        if (json.chatCleared) {
+          setMessages([])
+          setInput('')
+          if (textareaRef.current) textareaRef.current.style.height = 'auto'
+        }
         return
       }
 

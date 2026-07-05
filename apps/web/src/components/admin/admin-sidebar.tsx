@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   X,
+  ShieldAlert,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -111,6 +112,7 @@ export function AdminSidebar() {
   const { logout, apiFetch } = useAdminAuth()
   const [pendingCount, setPendingCount] = useState(0)
   const [openReports, setOpenReports] = useState(0)
+  const [unreviewedViolations, setUnreviewedViolations] = useState(0)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
@@ -127,6 +129,16 @@ export function AdminSidebar() {
         }
       })
       .catch(() => {})
+
+    apiFetch('/api/admin/phone-violations?tab=unreviewed&limit=1&page=1')
+      .then((r) => r.json())
+      .then((d: unknown) => {
+        if (d && typeof d === 'object') {
+          const data = d as { total?: number }
+          setUnreviewedViolations(data.total ?? 0)
+        }
+      })
+      .catch(() => {})
   }, [apiFetch])
 
   const navItems: NavItem[] = [
@@ -135,6 +147,12 @@ export function AdminSidebar() {
     { label: 'Reports', href: '/admin/reports', icon: AlertTriangle, badge: openReports },
     { label: 'Payments', href: '/admin/payments', icon: CreditCard },
     { label: 'Users', href: '/admin/users', icon: Users },
+    {
+      label: 'Phone Violations',
+      href: '/admin/phone-violations',
+      icon: ShieldAlert,
+      badge: unreviewedViolations,
+    },
     { label: 'Audit Log', href: '/admin/audit-log', icon: ScrollText },
   ]
 
