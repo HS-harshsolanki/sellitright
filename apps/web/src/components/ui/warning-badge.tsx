@@ -30,9 +30,7 @@ export function WarningBadge({ count, tooltip, size = 'sm' }: WarningBadgeProps)
   }, [visible])
 
   const isFinal = count >= 3
-  const iconSize = size === 'md' ? 'h-3 w-3' : 'h-2.5 w-2.5'
-  const textSize = size === 'md' ? 'text-[11px]' : 'text-[10px]'
-  const label = isFinal ? 'Blocked' : `${count}/3`
+  const iconSize = size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'
 
   return (
     <>
@@ -43,11 +41,10 @@ export function WarningBadge({ count, tooltip, size = 'sm' }: WarningBadgeProps)
         onMouseLeave={() => setVisible(false)}
         onFocus={() => setVisible(true)}
         onBlur={() => setVisible(false)}
-        className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] ${textSize} ${isFinal ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}
-        aria-label={`Warning ${label}: ${tooltip}`}
+        className={`inline-flex shrink-0 items-center justify-center rounded-full p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] ${isFinal ? 'text-red-600' : 'text-amber-500'}`}
+        aria-label={`Warning ${count}/3: ${tooltip}`}
       >
-        <AlertTriangle className={`${iconSize} shrink-0`} aria-hidden="true" />
-        <span>{label}</span>
+        <AlertTriangle className={iconSize} aria-hidden="true" />
       </button>
 
       {visible &&
