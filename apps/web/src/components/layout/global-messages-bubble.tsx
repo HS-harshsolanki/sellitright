@@ -612,7 +612,7 @@ export function GlobalMessagesBubble() {
 
         {/* ── Panel content — below the header when open ─────────────────── */}
         {open && (
-          <div className="flex flex-1 flex-col" style={{ height: activeThread ? 420 : 380 }}>
+          <div className="flex flex-col" style={{ height: activeThread ? 420 : 380 }}>
             {/* ── Thread list ──────────────────────────────────────────── */}
             {!activeThread && (
               <>
