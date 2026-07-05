@@ -473,7 +473,15 @@ export function GlobalMessagesBubble() {
   // Logged-out users see the pill with a sign-in prompt
   if (!user) {
     return (
-      <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
+      <div
+        className={cn(
+          'fixed z-50 flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl',
+          'bottom-0 right-6 w-64 rounded-tl-2xl rounded-tr-2xl border-b-0',
+          'max-sm:bottom-16 max-sm:right-3 max-sm:w-[calc(100%-1.5rem)]',
+          open &&
+            'max-sm:inset-0 max-sm:bottom-0 max-sm:right-0 max-sm:w-full max-sm:rounded-none max-sm:border max-sm:border-b',
+        )}
+      >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -494,10 +502,16 @@ export function GlobalMessagesBubble() {
             Messaging
           </span>
           {open ? (
-            <ChevronDown
-              className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
-              aria-hidden="true"
-            />
+            <>
+              <ChevronDown
+                className="hidden h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] sm:block"
+                aria-hidden="true"
+              />
+              <X
+                className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] sm:hidden"
+                aria-hidden="true"
+              />
+            </>
           ) : (
             <ChevronUp
               className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
@@ -506,7 +520,7 @@ export function GlobalMessagesBubble() {
           )}
         </button>
         {open && (
-          <div className="flex flex-col items-center gap-4 p-5 text-center" style={{ height: 200 }}>
+          <div className="flex flex-col items-center justify-center gap-4 p-5 text-center max-sm:flex-1 sm:h-[200px]">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-muted)]">
               <MessageSquare className="h-5 w-5 text-[var(--color-muted-foreground)]" />
             </div>
@@ -539,7 +553,18 @@ export function GlobalMessagesBubble() {
 
   return (
     <>
-      <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
+      <div
+        className={cn(
+          'fixed z-50 flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl',
+          // Desktop: corner panel sitting right above bottom edge
+          'bottom-0 right-6 w-64 rounded-tl-2xl rounded-tr-2xl border-b-0',
+          // Mobile collapsed: sit above the mobile nav bar (h-16)
+          'max-sm:bottom-16 max-sm:right-3 max-sm:w-[calc(100%-1.5rem)]',
+          // Mobile when open: fullscreen overlay (covers the mobile nav too)
+          open &&
+            'max-sm:inset-0 max-sm:bottom-0 max-sm:right-0 max-sm:w-full max-sm:rounded-none max-sm:border max-sm:border-b',
+        )}
+      >
         {/* ── Pill / header — ALWAYS FIRST so it sits at the top when open ── */}
         <button
           type="button"
@@ -582,10 +607,17 @@ export function GlobalMessagesBubble() {
             </Link>
           )}
           {open ? (
-            <ChevronDown
-              className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
-              aria-hidden="true"
-            />
+            <>
+              {/* Desktop: chevron down. Mobile: X close. */}
+              <ChevronDown
+                className="hidden h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] sm:block"
+                aria-hidden="true"
+              />
+              <X
+                className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] sm:hidden"
+                aria-hidden="true"
+              />
+            </>
           ) : (
             <ChevronUp
               className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
@@ -596,7 +628,13 @@ export function GlobalMessagesBubble() {
 
         {/* ── Panel content — below the header when open ─────────────────── */}
         {open && (
-          <div className="flex flex-col" style={{ height: activeThread ? 420 : 380 }}>
+          <div
+            className={cn(
+              'flex flex-col',
+              'max-sm:flex-1',
+              activeThread ? 'sm:h-[420px]' : 'sm:h-[380px]',
+            )}
+          >
             {/* ── Thread list ──────────────────────────────────────────── */}
             {!activeThread && (
               <>
