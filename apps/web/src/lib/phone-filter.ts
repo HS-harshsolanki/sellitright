@@ -29,11 +29,6 @@
  * 19  Zero-width / invisible chars     9​8​7​6​5​4​3​2​1​0 (ZWJ between digits)
  * 20  Asterisk/hash masking            9876*43210  |  9876#43210
  * 21  Emoji/symbol padding between     9⭐8⭐7⭐6⭐5⭐4⭐3⭐2⭐1⭐0
- * 22  Keycap emoji digits              9️⃣8️⃣7️⃣6️⃣5️⃣4️⃣3️⃣2️⃣1️⃣0️⃣
- * 23  WhatsApp / Telegram URLs         wa.me/9876543210  |  t.me/+919876543210
- * 24  UPI ID with phone                9876543210@paytm  |  9876543210@upi
- * 25  Cross-message split (server)     "seven" / "three" / "five"… across turns
- * 26  Multiplier words                 "double eight" → "88", "triple five" → "555"
  * ─────────────────────────────────────────────────────────────────────────────
  *
  * FALSE POSITIVE MITIGATIONS
@@ -70,31 +65,20 @@
 const WORD_DIGIT_MAP: Record<string, string> = {
   zero: '0',
   oh: '0', // "oh" is common spoken replacement
-  nil: '0',
-  null: '0',
-  naught: '0',
   one: '1',
-  won: '1',
   two: '2',
   to: '2',
   too: '2',
   three: '3',
-  tree: '3',
   four: '4',
   for: '4',
-  fore: '4',
   five: '5',
-  fife: '5',
   six: '6',
-  siks: '6',
   seven: '7',
-  saven: '7',
   eight: '8',
   ate: '8',
-  ait: '8',
   nine: '9',
   nein: '9',
-  nyne: '9',
 }
 
 /** Hindi word → single ASCII digit (common Hinglish chat usage) */
@@ -118,43 +102,6 @@ const HINDI_WORD_DIGIT_MAP: Record<string, string> = {
   aath: '8',
   nau: '9',
   nao: '9',
-}
-
-// Combined ordered by length (longest first) to avoid partial matches
-const ALL_WORD_DIGIT_ENTRIES = Object.entries({ ...WORD_DIGIT_MAP, ...HINDI_WORD_DIGIT_MAP }).sort(
-  (a, b) => b[0].length - a[0].length,
-)
-
-// Pre-built regex that matches any word-digit token
-const WORD_DIGIT_REGEX = new RegExp(
-  '\\b(' + ALL_WORD_DIGIT_ENTRIES.map(([w]) => w).join('|') + ')\\b',
-  'gi',
-)
-
-// ---------------------------------------------------------------------------
-// 1b. Direct URL / UPI patterns — checked BEFORE any normalization
-//     because they contain recognizable structural markers
-// ---------------------------------------------------------------------------
-
-/**
- * wa.me/9876543210, wa.me/+919876543210, web.whatsapp.com/…
- * t.me/username9876543210, t.me/+919876543210
- */
-const WHATSAPP_URL_RE = /(?:wa\.me|web\.whatsapp\.com)\/\+?(?:91)?([6-9]\d{9})/i
-const TELEGRAM_URL_RE = /t\.me\/[^\s]*\+?(?:91)?([6-9]\d{9})/i
-
-/**
- * UPI IDs that embed a phone number: 9876543210@paytm, 9876543210@upi, etc.
- * Also catches 9876543210@gpay, 9876543210@ybl, 9876543210@oksbi
- */
-const UPI_RE = /(?<![0-9])([6-9]\d{9})@[a-zA-Z]/
-
-/**
- * Returns true if the raw (pre-normalization) text contains a WhatsApp URL,
- * Telegram URL, or UPI ID with a valid Indian mobile number.
- */
-function containsDirectContactPattern(text: string): boolean {
-  return WHATSAPP_URL_RE.test(text) || TELEGRAM_URL_RE.test(text) || UPI_RE.test(text)
 }
 
 // ---------------------------------------------------------------------------
@@ -185,19 +132,6 @@ function normalizeUnicodeDigits(text: string): string {
       // Tamil ௦-௯
       .replace(/[௦-௯]/g, (c) => String(c.charCodeAt(0) - 0x0be6))
   )
-}
-
-// ---------------------------------------------------------------------------
-// 2b. Keycap emoji digit normalizer
-//     0️⃣ = U+0030 + U+FE0F + U+20E3  (digit + variation selector + combining enclosing keycap)
-// ---------------------------------------------------------------------------
-
-/**
- * Replaces keycap emoji sequences (0️⃣–9️⃣) with their ASCII digit equivalents.
- * Each sequence is: <ascii digit> <U+FE0F> <U+20E3>
- */
-function normalizeKeycapEmojis(text: string): string {
-  return text.replace(/([0-9])️⃣/g, '$1')
 }
 
 // ---------------------------------------------------------------------------
@@ -306,8 +240,7 @@ function collapseSeparators(text: string): string {
   // Pass 2: bridge short noise words between digit groups
   // e.g. "98765 and then 43210" → "9876543210"
   // Allow 1-3 consecutive bridge words (e.g. "and then", "then")
-  const BRIDGE_WORD =
-    '(?:and|or|then|at|to|pe|par|mein|ka|is|my|me|call|ping|reach|contact|no|num|number|hai)'
+  const BRIDGE_WORD = '(?:and|or|then|at|to|pe|par|mein|ka)'
   const BRIDGE_RE = new RegExp(`(\\d+)\\s+(?:${BRIDGE_WORD}\\s+){1,3}(\\d+)`, 'gi')
   for (let i = 0; i < 4; i++) {
     const next = prev.replace(BRIDGE_RE, (_m, d1, d2) => d1 + d2)
@@ -319,80 +252,30 @@ function collapseSeparators(text: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 6b. Multiplier word expansion
-// ---------------------------------------------------------------------------
-
-/**
- * Expands multiplier phrases before word-digit substitution so that
- * "double eight" → "88" and "triple five" → "555".
- * Also handles Hindi/Urdu equivalents: "do baar nine" → "99".
- *
- * New pattern covered (from real screenshot):
- *   "double eight" + "51" + "six five 0" + "1- 7- 0*"
- *   → "8851650170" — valid 10-digit number
- */
-const MULTIPLIER_MAP: Record<string, number> = {
-  double: 2,
-  twice: 2,
-  triple: 3,
-  thrice: 3,
-  // Hinglish
-  'do baar': 2,
-  'teen baar': 3,
-  'do bar': 2,
-  'teen bar': 3,
-  dono: 2,
-}
-
-// Build regex — longest keys first to avoid partial matches
-const MULTIPLIER_KEYS = Object.keys(MULTIPLIER_MAP).sort((a, b) => b.length - a.length)
-const MULTIPLIER_RE = new RegExp(
-  '\\b(' + MULTIPLIER_KEYS.map((k) => k.replace(/\s+/g, '\\s+')).join('|') + ')\\s+',
-  'gi',
-)
-
-/**
- * Replaces "double <word-or-digit>" with the digit repeated.
- * Runs BEFORE replaceWordDigits so words are still intact for the match.
- * Example: "double eight" → "88", "triple 5" → "555"
- */
-function expandMultipliers(text: string): string {
-  // Match multiplier + optional space + digit-word or bare digit
-  const allWordPattern = ALL_WORD_DIGIT_ENTRIES.map(([w]) => w).join('|')
-  const expandRe = new RegExp(
-    '\\b(' +
-      MULTIPLIER_KEYS.map((k) => k.replace(/\s+/g, '\\s+')).join('|') +
-      ')\\s+(' +
-      allWordPattern +
-      '|[0-9])\\b',
-    'gi',
-  )
-  return text.replace(expandRe, (_match, multiplier, digitWord) => {
-    const count = MULTIPLIER_MAP[multiplier.toLowerCase().replace(/\s+/g, ' ')] ?? 1
-    // Resolve the digit word to an actual digit
-    const digit =
-      WORD_DIGIT_ENTRIES_LOOKUP[digitWord.toLowerCase()] ??
-      (/^[0-9]$/.test(digitWord) ? digitWord : null)
-    if (!digit) return _match
-    return digit.repeat(count)
-  })
-}
-
-// ---------------------------------------------------------------------------
 // 7. Word-digit substitution
 // ---------------------------------------------------------------------------
 
-function replaceWordDigits(text: string): string {
-  return text.replace(WORD_DIGIT_REGEX, (_match, word) => {
-    const key = word.toLowerCase()
-    return WORD_DIGIT_ENTRIES_LOOKUP[key] ?? word
-  })
-}
-
-// Build a fast lookup from the combined map
+// Fast lookup from the combined map — declared before the functions that use it
 const WORD_DIGIT_ENTRIES_LOOKUP: Record<string, string> = {
   ...WORD_DIGIT_MAP,
   ...HINDI_WORD_DIGIT_MAP,
+}
+
+function replaceWordDigits(text: string): string {
+  return text.replace(/\b([a-zA-Z]+)\b/gi, (token) => {
+    const lower = token.toLowerCase()
+    // 1. Exact match
+    if (WORD_DIGIT_ENTRIES_LOOKUP[lower]) return WORD_DIGIT_ENTRIES_LOOKUP[lower]
+    // 2. Collapse 3+ consecutive identical letters → 2, then try lookup
+    //    e.g. "fiveee" → "fivee", still no match
+    const col3 = lower.replace(/([a-z])\1{2,}/g, '$1$1')
+    if (col3 !== lower && WORD_DIGIT_ENTRIES_LOOKUP[col3]) return WORD_DIGIT_ENTRIES_LOOKUP[col3]
+    // 3. Collapse all consecutive identical letters → 1, then try lookup
+    //    e.g. "thrreee" → "thre" still no; but "fiveee" → "five" ✓, "seeven" → "seven" ✓
+    const col1 = lower.replace(/([a-z])\1+/g, '$1')
+    if (col1 !== lower && WORD_DIGIT_ENTRIES_LOOKUP[col1]) return WORD_DIGIT_ENTRIES_LOOKUP[col1]
+    return token
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -464,10 +347,8 @@ export interface PhoneFilterOptions {
  * regardless of evasion technique used.
  *
  * Steps (in order):
- *   0. Check direct structural patterns: WhatsApp/Telegram URLs, UPI IDs.
  *   1. Apply caller-supplied skipPatterns to blank out known-safe numbers.
  *   2. Strip invisible / zero-width characters.
- *   2b. Normalize keycap emoji digits (0️⃣–9️⃣ → 0–9).
  *   3. Normalize Unicode digit scripts → ASCII digits.
  *   4. Replace English / Hindi word-digits ("nine" → "9", "nau" → "9").
  *   5. Apply leet substitutions inside mostly-digit tokens.
@@ -480,9 +361,6 @@ export interface PhoneFilterOptions {
 export function containsPhoneNumber(text: string, options: PhoneFilterOptions = {}): boolean {
   const { checkReversed = true, skipPatterns = [] } = options
 
-  // Step 0: Direct structural patterns — WhatsApp URLs, Telegram URLs, UPI IDs
-  if (containsDirectContactPattern(text)) return true
-
   // Step 1: Blank out caller-supplied safe patterns
   let working = text
   for (const pat of skipPatterns) {
@@ -493,18 +371,11 @@ export function containsPhoneNumber(text: string, options: PhoneFilterOptions = 
   // e.g. "9​8​7​6​5​4​3​2​1​0" with ZWJ between digits → "9876543210"
   working = stripInvisible(working)
 
-  // Step 2b: Normalize keycap emoji digits: 9️⃣8️⃣7️⃣… → 987…
-  working = normalizeKeycapEmojis(working)
-
   // Step 3: Normalize Unicode digit scripts to ASCII
   // Devanagari ९८७६५४३२१० → 9876543210
   // Full-width ９８７６５４３２１０ → 9876543210
   // Eastern Arabic-Indic ٩٨٧٦٥٤٣٢١٠ → 9876543210
   working = normalizeUnicodeDigits(working)
-
-  // Step 3b: Expand multiplier phrases before word-digit substitution
-  // "double eight" → "88", "triple five" → "555"
-  working = expandMultipliers(working)
 
   // Step 4: Replace written-out word-digits (English + common Hindi/Hinglish)
   // "nine eight seven six…" → "9876…"
@@ -555,34 +426,6 @@ export function containsPhoneNumber(text: string, options: PhoneFilterOptions = 
   return false
 }
 
-/**
- * containsPhoneNumberInWindow
- *
- * Cross-message phone detection: concatenates a sliding window of recent
- * messages from the SAME sender and runs the full filter on the combined text.
- *
- * Use case: a sender splits "9876543210" across individual messages as
- * "nine", "eight", "seven", "six", "five", "four", "three", "two", "one", "zero"
- * — each message alone passes the filter, but the window catches them together.
- *
- * @param recentMessages  Last N messages from this sender (oldest → newest),
- *                        NOT including the new message being sent.
- * @param newMessage      The message the user is about to send.
- * @param windowSize      How many prior messages to include. Default 8.
- */
-export function containsPhoneNumberInWindow(
-  recentMessages: string[],
-  newMessage: string,
-  windowSize = 8,
-): boolean {
-  // Build the concatenated window: most recent N prior messages + new message.
-  // Join with a space so separators don't accidentally bridge across messages
-  // that are genuinely unrelated — but use a separator the collapseSeparators
-  // pass won't bridge (a word, "msg"), so only digit-flanked separators merge.
-  const window = [...recentMessages.slice(-windowSize), newMessage].join(' ')
-  return containsPhoneNumber(window)
-}
-
 // ---------------------------------------------------------------------------
 // 12. Utility: redact phone numbers for logging / display
 // ---------------------------------------------------------------------------
@@ -624,7 +467,29 @@ export function redactPhoneNumbers(text: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 13. Test harness (remove in production; kept here for quick local checks)
+// 13. Cross-message window detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Concatenates a sliding window of recent messages from the same sender and
+ * runs the full filter on the combined text. Catches phone numbers split
+ * across multiple messages (e.g. "nine", "eight", … as separate sends).
+ *
+ * @param recentMessages  Last N messages from this sender (oldest → newest).
+ * @param newMessage      The message the user is about to send.
+ * @param windowSize      How many prior messages to include. Default 8.
+ */
+export function containsPhoneNumberInWindow(
+  recentMessages: string[],
+  newMessage: string,
+  windowSize = 8,
+): boolean {
+  const window = [...recentMessages.slice(-windowSize), newMessage].join(' ')
+  return containsPhoneNumber(window)
+}
+
+// ---------------------------------------------------------------------------
+// 14. Test harness (remove in production; kept here for quick local checks)
 // ---------------------------------------------------------------------------
 
 // Uncomment to run: npx tsx src/lib/phone-filter.ts
