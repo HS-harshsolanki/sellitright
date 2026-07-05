@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
-import { MOCK_LISTINGS } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { createClient } from '@/lib/supabase/server'
 import { listingFilterSchema } from '@/lib/validators'
@@ -79,50 +78,13 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      // Log error and fall through to mock fallback
+      // Supabase query error — return empty rather than fake data
       console.error('[api/listings] Supabase query error:', error?.message)
+      return NextResponse.json({ listings: [], total: 0, page, totalPages: 1 }, { status: 500 })
     }
 
-    // ── Mock fallback ──────────────────────────────────────────────────────
-    let filtered = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE')
-
-    if (city) {
-      const q = city.toLowerCase()
-      filtered = filtered.filter(
-        (l) =>
-          l.city.toLowerCase().includes(q) ||
-          l.locality.toLowerCase().includes(q) ||
-          l.title.toLowerCase().includes(q),
-      )
-    }
-    if (locality)
-      filtered = filtered.filter((l) => l.locality.toLowerCase().includes(locality.toLowerCase()))
-    if (bhkType) filtered = filtered.filter((l) => l.bhkType === bhkType)
-    if (furnishing) filtered = filtered.filter((l) => l.furnishing === furnishing)
-    if (propertyType) filtered = filtered.filter((l) => l.propertyType === propertyType)
-    if (minPrice !== undefined) filtered = filtered.filter((l) => l.price >= minPrice)
-    if (maxPrice !== undefined) filtered = filtered.filter((l) => l.price <= maxPrice)
-
-    if (sort === 'price_asc') filtered.sort((a, b) => a.price - b.price)
-    else if (sort === 'price_desc') filtered.sort((a, b) => b.price - a.price)
-    else if (sort === 'newest')
-      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    else filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-
-    const total = filtered.length
-    const totalPages = Math.max(1, Math.ceil(total / limit))
-    const listings = filtered.slice((page - 1) * limit, page * limit)
-
-    return NextResponse.json(
-      {
-        listings,
-        total,
-        page,
-        totalPages,
-        ...(process.env.NODE_ENV === 'development' && { _mockFallback: true }),
-      },
-      { headers: { 'Cache-Control': 'public, max-age=3600' } },
-    )
+    // Supabase not configured
+    return NextResponse.json({ listings: [], total: 0, page, totalPages: 1 })
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(

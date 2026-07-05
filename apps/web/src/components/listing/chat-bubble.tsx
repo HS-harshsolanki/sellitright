@@ -22,9 +22,6 @@ import { containsPhoneNumber, containsPhoneNumberInWindow } from '@/lib/phone-fi
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
 
-const PHONE_BLOCK_TEXT =
-  "Phone numbers can't be shared here. Use the Call or WhatsApp buttons after unlocking contact."
-
 // ── Date/time helpers (mirrors messages/[interestId]/page.tsx) ──────────────
 
 function formatTime(iso: string): string {

@@ -462,7 +462,67 @@ export function GlobalMessagesBubble() {
     void loadThreads()
   }
 
-  if (authLoading || !user || isListingPage) return null
+  if (authLoading || isListingPage) return null
+
+  // Logged-out users see the pill with a sign-in prompt
+  if (!user) {
+    return (
+      <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label={open ? 'Close messaging' : 'Messaging'}
+          className={cn(
+            'flex h-11 w-full shrink-0 items-center gap-2.5 px-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]',
+            open
+              ? 'border-b border-[var(--color-border)] bg-[var(--color-muted)]'
+              : 'bg-[var(--color-background)] hover:bg-[var(--color-muted)]',
+          )}
+        >
+          <MessageSquare
+            className="h-4 w-4 shrink-0 text-[var(--color-foreground)]"
+            aria-hidden="true"
+          />
+          <span className="flex-1 text-left text-sm font-semibold text-[var(--color-foreground)]">
+            Messaging
+          </span>
+          {open ? (
+            <ChevronDown
+              className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+              aria-hidden="true"
+            />
+          ) : (
+            <ChevronUp
+              className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+              aria-hidden="true"
+            />
+          )}
+        </button>
+        {open && (
+          <div className="flex flex-col items-center gap-4 p-5 text-center" style={{ height: 200 }}>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-muted)]">
+              <MessageSquare className="h-5 w-5 text-[var(--color-muted-foreground)]" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-foreground)]">
+                Sign in to message
+              </p>
+              <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                Message sellers directly once you&apos;re signed in.
+              </p>
+            </div>
+            <Link
+              href="/login"
+              className="flex h-9 w-full items-center justify-center rounded-xl bg-[var(--color-foreground)] text-sm font-semibold text-[var(--color-background)] transition hover:opacity-90"
+            >
+              Sign in
+            </Link>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const groups = groupByDay(messages)
 
