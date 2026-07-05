@@ -1,13 +1,15 @@
 'use client'
 
 import { AlertCircle, CheckCircle2, Loader2, Phone } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { INDIAN_MOBILE_RE, normalizePhone } from '@/lib/phone'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 type FlowState = 'idle' | 'sending' | 'otp_sent' | 'verified'
+
+const RESEND_COOLDOWN = 30
 
 interface InlinePhoneVerificationProps {
   onVerified: (phone: string) => void
@@ -23,27 +25,38 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
   const [otp, setOtp] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [devOtp, setDevOtp] = useState<string | null>(null)
 
   const normalized = normalizePhone(inlinePhone)
   const phoneValid = INDIAN_MOBILE_RE.test(normalized)
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendCooldown])
+
   async function handleSendOtp() {
-    if (!phoneValid) return
+    if (!phoneValid || resendCooldown > 0) return
     setIsLoading(true)
     setFlowState('sending')
     setError(null)
+    setDevOtp(null)
     try {
       const res = await fetch('/api/phone/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: normalized }),
       })
-      const data = (await res.json()) as { error?: string; message?: string }
+      const data = (await res.json()) as { error?: string; message?: string; devOtp?: string }
       if (!res.ok) {
         setError(data.error ?? 'Failed to send OTP. Try again.')
         setFlowState('idle')
       } else {
         setFlowState('otp_sent')
+        setResendCooldown(RESEND_COOLDOWN)
+        if (data.devOtp) setDevOtp(data.devOtp)
       }
     } catch {
       setError('Network error. Check your connection and try again.')
@@ -197,10 +210,17 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
   // ── OTP entry state ────────────────────────────────────────────────────────
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
-      <p id="otp-hint" className="mb-3 text-xs text-amber-800">
+      <p id="otp-hint" className="mb-1 text-xs text-amber-800">
         OTP sent via SMS to{' '}
         <span className="font-semibold tracking-wide">+91 {maskPhone(normalized)}</span>
       </p>
+      {devOtp ? (
+        <p className="mb-3 rounded bg-amber-100 px-2 py-1 font-mono text-xs font-bold text-amber-900">
+          [Dev] OTP: {devOtp}
+        </p>
+      ) : (
+        <div className="mb-3" />
+      )}
 
       {/* sr-only live region for verifying state */}
       <span className="sr-only" aria-live="polite" aria-atomic="true">
@@ -274,18 +294,17 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
         </p>
       )}
 
-      {/* py-2 + -mx-1 gives adequate touch target for text link */}
       <button
         type="button"
         onClick={() => void handleSendOtp()}
-        disabled={isLoading}
+        disabled={isLoading || resendCooldown > 0}
         className={cn(
           'mt-2.5 block px-1 py-2 text-xs text-amber-700 underline underline-offset-2',
-          'hover:text-amber-900 disabled:opacity-50',
+          'hover:text-amber-900 disabled:no-underline disabled:opacity-50',
           'rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1',
         )}
       >
-        Resend OTP
+        {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
       </button>
     </div>
   )

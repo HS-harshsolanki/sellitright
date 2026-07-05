@@ -103,8 +103,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to initiate verification.' }, { status: 500 })
   }
 
+  let devOtp: string | undefined
   try {
-    await sendSmsOtp(phone, otp)
+    const result = await sendSmsOtp(phone, otp)
+    devOtp = result.devOtp
   } catch (err) {
     logger.error('[send-otp] SMS send failed', {
       error: err instanceof Error ? err.message : String(err),
@@ -120,5 +122,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     message: `OTP sent via SMS to +91 ${phone.slice(0, 5)}XXXXX`,
     expiresInMinutes: OTP_TTL_MINUTES,
+    // Only set in development — lets devs verify without real SMS
+    ...(devOtp ? { devOtp } : {}),
   })
 }
