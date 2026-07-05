@@ -119,6 +119,7 @@ export function GlobalMessagesBubble() {
   const [reportSubmitting, setReportSubmitting] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
   const [reportSuccess, setReportSuccess] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -250,6 +251,13 @@ export function GlobalMessagesBubble() {
       setTimeout(() => searchRef.current?.focus(), 80)
     }
   }, [open, activeThread])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // ── Phone detection helpers ──────────────────────────────────────────────
   function checkPhoneInWindow(val: string): boolean {
@@ -468,20 +476,18 @@ export function GlobalMessagesBubble() {
     void loadThreads()
   }
 
-  if (authLoading || isListingPage) return null
+  if (isListingPage) return null
 
   // Logged-out users see the pill with a sign-in prompt
   if (!user) {
+    const containerClass =
+      isMobile && open
+        ? 'fixed inset-0 z-50 flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-background)]'
+        : isMobile
+          ? 'fixed bottom-16 right-3 z-50 flex w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl'
+          : 'fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl'
     return (
-      <div
-        className={cn(
-          'fixed z-50 flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl',
-          'bottom-0 right-6 w-64 rounded-tl-2xl rounded-tr-2xl border-b-0',
-          'max-sm:bottom-16 max-sm:right-3 max-sm:w-[calc(100%-1.5rem)]',
-          open &&
-            'max-sm:inset-0 max-sm:bottom-0 max-sm:right-0 max-sm:w-full max-sm:rounded-none max-sm:border max-sm:border-b',
-        )}
-      >
+      <div className={containerClass}>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -521,10 +527,8 @@ export function GlobalMessagesBubble() {
         </button>
         {open && (
           <div
-            className="flex flex-col items-center justify-center gap-4 p-5 text-center max-sm:flex-1"
-            style={{
-              height: typeof window !== 'undefined' && window.innerWidth < 640 ? undefined : 200,
-            }}
+            className="flex flex-col items-center justify-center gap-4 p-5 text-center"
+            style={{ height: isMobile ? undefined : 200 }}
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-muted)]">
               <MessageSquare className="h-5 w-5 text-[var(--color-muted-foreground)]" />
@@ -556,20 +560,16 @@ export function GlobalMessagesBubble() {
   // When expanded: panel content appears above the pill inside the same container.
   // The container has rounded top corners always; the pill just sits at the bottom.
 
+  const containerClass =
+    isMobile && open
+      ? 'fixed inset-0 z-50 flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-background)]'
+      : isMobile
+        ? 'fixed bottom-16 right-3 z-50 flex w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl'
+        : 'fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl'
+
   return (
     <>
-      <div
-        className={cn(
-          'fixed z-50 flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl',
-          // Desktop: corner panel sitting right above bottom edge
-          'bottom-0 right-6 w-64 rounded-tl-2xl rounded-tr-2xl border-b-0',
-          // Mobile collapsed: sit above the mobile nav bar (h-16)
-          'max-sm:bottom-16 max-sm:right-3 max-sm:w-[calc(100%-1.5rem)]',
-          // Mobile when open: fullscreen overlay (covers the mobile nav too)
-          open &&
-            'max-sm:inset-0 max-sm:bottom-0 max-sm:right-0 max-sm:w-full max-sm:rounded-none max-sm:border max-sm:border-b',
-        )}
-      >
+      <div className={containerClass}>
         {/* ── Pill / header — ALWAYS FIRST so it sits at the top when open ── */}
         <button
           type="button"
@@ -634,16 +634,8 @@ export function GlobalMessagesBubble() {
         {/* ── Panel content — below the header when open ─────────────────── */}
         {open && (
           <div
-            className="flex flex-col max-sm:flex-1"
-            // On desktop, fixed height; on mobile, flex-1 fills the fullscreen container
-            style={{
-              height:
-                typeof window !== 'undefined' && window.innerWidth < 640
-                  ? undefined
-                  : activeThread
-                    ? 420
-                    : 380,
-            }}
+            className="flex flex-1 flex-col"
+            style={{ height: isMobile ? undefined : activeThread ? 420 : 380 }}
           >
             {/* ── Thread list ──────────────────────────────────────────── */}
             {!activeThread && (
