@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import type { ChatThreadItem, ThreadsResponse } from '@/app/api/chat/threads/route'
 import {
   Dialog,
   DialogContent,
@@ -28,10 +29,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-
+import { WarningBadge } from '@/components/ui/warning-badge'
 import type { ChatMessage, DisplayMessage } from '@/lib/chat-types'
 import { isPhoneWarning } from '@/lib/chat-types'
-import type { ChatThreadItem, ThreadsResponse } from '@/app/api/chat/threads/route'
 import { containsPhoneNumber, containsPhoneNumberInWindow } from '@/lib/phone-filter'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
@@ -734,14 +734,29 @@ export function GlobalMessagesBubble() {
                     <ArrowLeft className="h-4 w-4" />
                   </button>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[var(--color-foreground)]">
-                      {activeThread.otherPartyName ??
-                        (activeThread.role === 'buyer' ? 'Seller' : 'Buyer')}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-sm font-semibold text-[var(--color-foreground)]">
+                        {activeThread.otherPartyName ??
+                          (activeThread.role === 'buyer' ? 'Seller' : 'Buyer')}
+                      </p>
+                      {activeThread.role === 'seller' && otherPartyOffenseCount > 0 && (
+                        <WarningBadge
+                          count={otherPartyOffenseCount}
+                          tooltip="This buyer has phone-sharing violations"
+                        />
+                      )}
+                    </div>
                     <p className="truncate text-[10px] leading-none text-[var(--color-muted-foreground)]">
                       {activeThread.listingTitle ?? 'Property'}
                     </p>
                   </div>
+                  {activeThread.role === 'buyer' && myOffenseCount > 0 && (
+                    <WarningBadge
+                      count={myOffenseCount}
+                      tooltip={phoneBlockText(myOffenseCount)}
+                      size="md"
+                    />
+                  )}
                   {activeThread.role === 'seller' && (
                     <div className="relative" ref={menuRef}>
                       <button
