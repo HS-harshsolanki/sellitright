@@ -11,12 +11,15 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com",
+      // Firebase SDK + reCAPTCHA scripts served from gstatic.com
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com https://www.gstatic.com https://www.google.com",
+      // Firebase Auth API + reCAPTCHA verification endpoints
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com",
       "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://images.unsplash.com",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self'",
-      'frame-src https://api.razorpay.com https://checkout.razorpay.com',
+      // Firebase reCAPTCHA renders an invisible iframe from firebaseapp.com + google.com
+      'frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.google.com https://recaptcha.google.com',
       "frame-ancestors 'self'",
       "object-src 'none'",
       "base-uri 'self'",
@@ -27,6 +30,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compiler: { removeConsole: { exclude: ['error'] } },
+  // firebase-admin uses Node.js built-ins — must not be bundled by webpack
+  serverExternalPackages: ['firebase-admin'],
   experimental: {
     optimizePackageImports: [
       'lucide-react',

@@ -1,13 +1,14 @@
 'use client'
 
 import { AlertCircle, CheckCircle2, Loader2, Phone } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
+import { firebaseAuth, isFirebaseConfigured } from '@/lib/firebase/client'
 import { INDIAN_MOBILE_RE, normalizePhone } from '@/lib/phone'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
-type FlowState = 'idle' | 'sending' | 'otp_sent' | 'verified'
+import type { ConfirmationResult, RecaptchaVerifier as RV } from 'firebase/auth'
 
 const RESEND_COOLDOWN = 30
 
@@ -20,13 +21,18 @@ function maskPhone(normalized: string): string {
 }
 
 export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationProps) {
+  type FlowState = 'idle' | 'sending' | 'otp_sent' | 'verified'
+
   const [flowState, setFlowState] = useState<FlowState>('idle')
   const [inlinePhone, setInlinePhone] = useState('')
   const [otp, setOtp] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
-  const [devOtp, setDevOtp] = useState<string | null>(null)
+
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null)
+  const verifierRef = useRef<RV | null>(null)
+  const confirmationRef = useRef<ConfirmationResult | null>(null)
 
   const normalized = normalizePhone(inlinePhone)
   const phoneValid = INDIAN_MOBILE_RE.test(normalized)
@@ -37,30 +43,74 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
     return () => clearTimeout(t)
   }, [resendCooldown])
 
+  useEffect(() => {
+    return () => {
+      verifierRef.current?.clear()
+      verifierRef.current = null
+    }
+  }, [])
+
+  async function initVerifier(): Promise<RV> {
+    const { RecaptchaVerifier } = await import('firebase/auth')
+    if (verifierRef.current) {
+      verifierRef.current.clear()
+      verifierRef.current = null
+    }
+    if (recaptchaContainerRef.current) {
+      recaptchaContainerRef.current.innerHTML = ''
+    }
+    const verifier = new RecaptchaVerifier(firebaseAuth, recaptchaContainerRef.current!, {
+      size: 'invisible',
+    })
+    verifierRef.current = verifier
+    return verifier
+  }
+
   async function handleSendOtp() {
     if (!phoneValid || resendCooldown > 0) return
     setIsLoading(true)
     setFlowState('sending')
     setError(null)
-    setDevOtp(null)
+
     try {
-      const res = await fetch('/api/phone/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normalized }),
-      })
-      const data = (await res.json()) as { error?: string; message?: string; devOtp?: string }
-      if (!res.ok) {
-        setError(data.error ?? 'Failed to send OTP. Try again.')
-        setFlowState('idle')
-      } else {
-        setFlowState('otp_sent')
-        setResendCooldown(RESEND_COOLDOWN)
-        if (data.devOtp) setDevOtp(data.devOtp)
+      if (!isFirebaseConfigured()) {
+        // Firebase not yet configured — fall back to MSG91 route
+        const res = await fetch('/api/phone/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: normalized }),
+        })
+        const data = (await res.json()) as { error?: string; devOtp?: string }
+        if (!res.ok) {
+          setError(data.error ?? 'Failed to send OTP. Try again.')
+          setFlowState('idle')
+        } else {
+          setFlowState('otp_sent')
+          setResendCooldown(RESEND_COOLDOWN)
+        }
+        return
       }
-    } catch {
-      setError('Network error. Check your connection and try again.')
+
+      const { linkWithPhoneNumber } = await import('firebase/auth')
+      const verifier = await initVerifier()
+      const confirmation = await linkWithPhoneNumber(
+        firebaseAuth.currentUser!,
+        `+91${normalized}`,
+        verifier,
+      )
+      confirmationRef.current = confirmation
+      setFlowState('otp_sent')
+      setResendCooldown(RESEND_COOLDOWN)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('provider-already-linked') || msg.includes('credential-already-in-use')) {
+        await markVerifiedInSupabase(normalized)
+        return
+      }
+      setError('Failed to send OTP. Please check your number and try again.')
       setFlowState('idle')
+      verifierRef.current?.clear()
+      verifierRef.current = null
     } finally {
       setIsLoading(false)
     }
@@ -70,36 +120,85 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
     if (otp.length !== 6) return
     setIsLoading(true)
     setError(null)
+
     try {
-      const res = await fetch('/api/phone/verify-otp', {
+      if (!isFirebaseConfigured() || !confirmationRef.current) {
+        // Fallback to MSG91 verify
+        const res = await fetch('/api/phone/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: normalized, otp }),
+        })
+        const data = (await res.json()) as { error?: string; phone?: string }
+        if (!res.ok) {
+          setError(data.error ?? 'Wrong OTP. Please try again.')
+        } else {
+          await finalizeVerification(data.phone ?? normalized)
+        }
+        return
+      }
+
+      const result = await confirmationRef.current.confirm(otp)
+      const idToken = await result.user.getIdToken()
+      const res = await fetch('/api/phone/firebase-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normalized, otp }),
+        body: JSON.stringify({ idToken }),
       })
-      const data = (await res.json()) as { error?: string; message?: string; phone?: string }
+      const data = (await res.json()) as { error?: string; phone?: string }
       if (!res.ok) {
-        setError(data.error ?? 'Wrong OTP. Please try again.')
+        setError(data.error ?? 'Verification failed. Please try again.')
       } else {
-        // Refresh session so the updated phone_verified metadata is available immediately
-        try {
-          await createClient().auth.refreshSession()
-        } catch {
-          // non-critical — metadata refresh is best-effort
-        }
-        setFlowState('verified')
-        onVerified(data.phone ?? normalized)
+        await finalizeVerification(data.phone ?? normalized)
       }
-    } catch {
-      setError('Network error. Check your connection and try again.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('invalid-verification-code') || msg.includes('code-expired')) {
+        setError('Incorrect or expired OTP. Please try again.')
+      } else {
+        setError('Verification failed. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  // ── Verified state ─────────────────────────────────────────────────────────
+  async function markVerifiedInSupabase(phone: string) {
+    const { getIdToken } = await import('firebase/auth')
+    try {
+      const idToken = await getIdToken(firebaseAuth.currentUser!)
+      const res = await fetch('/api/phone/firebase-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      })
+      const data = (await res.json()) as { error?: string; phone?: string }
+      if (res.ok) {
+        await finalizeVerification(data.phone ?? phone)
+      } else {
+        setError(data.error ?? 'Verification failed.')
+        setFlowState('idle')
+      }
+    } catch {
+      setError('Verification failed. Please try again.')
+      setFlowState('idle')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function finalizeVerification(phone: string) {
+    try {
+      await createClient().auth.refreshSession()
+    } catch {
+      // best-effort
+    }
+    setFlowState('verified')
+    onVerified(phone)
+  }
+
   if (flowState === 'verified') {
     return (
-      // role="status" announces the success message to screen readers when it mounts
       <div
         role="status"
         aria-live="polite"
@@ -111,20 +210,20 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
     )
   }
 
-  // ── Idle / Sending states ──────────────────────────────────────────────────
   if (flowState === 'idle' || flowState === 'sending') {
     const isSending = flowState === 'sending'
     return (
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
-        {/* sr-only live region announces loading state to screen readers */}
         <span className="sr-only" aria-live="polite" aria-atomic="true">
           {isSending ? 'Sending OTP, please wait.' : ''}
         </span>
 
+        {/* Invisible reCAPTCHA anchor — no visible UI */}
+        <div ref={recaptchaContainerRef} />
+
         <div className="mb-3 flex items-start gap-2.5">
           <Phone className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
           <div>
-            {/* h3 for correct heading hierarchy under the page h2 */}
             <h3 className="text-sm font-semibold text-amber-900">Verify your phone to publish</h3>
             <p className="mt-0.5 text-xs text-amber-700">
               We&apos;ll send a 6-digit OTP via SMS — buyers need a way to reach you.
@@ -133,7 +232,6 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
         </div>
 
         <div className="flex gap-2">
-          {/* Visible label for the phone input */}
           <label htmlFor="inline-phone" className="sr-only">
             Indian mobile number (10 digits)
           </label>
@@ -154,12 +252,10 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
                 setError(null)
               }}
               placeholder="98765 43210"
-              // amber-600 placeholder passes contrast AA for UI components (~3.5:1 on white)
               className="h-11 flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-amber-600 disabled:opacity-50"
               autoComplete="tel"
               inputMode="numeric"
               disabled={isSending}
-              aria-label="Indian mobile number, 10 digits"
               aria-describedby={error ? 'phone-send-error' : undefined}
               aria-invalid={error ? 'true' : undefined}
             />
@@ -168,13 +264,11 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
             type="button"
             onClick={() => void handleSendOtp()}
             disabled={isSending || !phoneValid}
-            // py-3 = 12px top+bottom = 44px total height (touch target)
             className={cn(
               'shrink-0 rounded-lg px-3 py-3 text-xs font-semibold text-white transition-opacity',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2',
               isSending || !phoneValid
-                ? // amber-200 bg + amber-700 text gives ~4:1 contrast for disabled appearance
-                  'cursor-not-allowed bg-amber-200 text-amber-700'
+                ? 'cursor-not-allowed bg-amber-200 text-amber-700'
                 : 'bg-amber-600 hover:bg-amber-700 active:bg-amber-800',
             )}
             aria-disabled={isSending || !phoneValid}
@@ -188,7 +282,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
                 <span>Sending…</span>
               </span>
             ) : (
-              'Send OTP via SMS'
+              'Send OTP'
             )}
           </button>
         </div>
@@ -207,27 +301,19 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
     )
   }
 
-  // ── OTP entry state ────────────────────────────────────────────────────────
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
-      <p id="otp-hint" className="mb-1 text-xs text-amber-800">
+      <div ref={recaptchaContainerRef} />
+
+      <p id="otp-hint" className="mb-3 text-xs text-amber-800">
         OTP sent via SMS to{' '}
         <span className="font-semibold tracking-wide">+91 {maskPhone(normalized)}</span>
       </p>
-      {devOtp ? (
-        <p className="mb-3 rounded bg-amber-100 px-2 py-1 font-mono text-xs font-bold text-amber-900">
-          [Dev] OTP: {devOtp}
-        </p>
-      ) : (
-        <div className="mb-3" />
-      )}
 
-      {/* sr-only live region for verifying state */}
       <span className="sr-only" aria-live="polite" aria-atomic="true">
         {isLoading ? 'Verifying OTP, please wait.' : ''}
       </span>
 
-      {/* Visible label for OTP input */}
       <label htmlFor="inline-otp" className="sr-only">
         6-digit OTP
       </label>
@@ -258,7 +344,6 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
           type="button"
           onClick={() => void handleVerifyOtp()}
           disabled={isLoading || otp.length !== 6}
-          // py-3 = 44px touch target
           className={cn(
             'shrink-0 rounded-lg px-4 py-3 text-xs font-semibold text-white transition-opacity',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2',
@@ -274,7 +359,6 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
                 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
                 aria-hidden="true"
               />
-              {/* sr-only label so the button always has an accessible name */}
               <span className="sr-only">Verifying…</span>
             </span>
           ) : (

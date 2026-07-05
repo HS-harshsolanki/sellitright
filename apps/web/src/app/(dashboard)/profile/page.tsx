@@ -14,9 +14,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { firebaseAuth, isFirebaseConfigured } from '@/lib/firebase/client'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+
+import type { ConfirmationResult, RecaptchaVerifier as RV } from 'firebase/auth'
 
 function Spinner({ className }: { className?: string }) {
   return (
@@ -55,6 +58,9 @@ export default function ProfilePage() {
   const router = useRouter()
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null)
+  const verifierRef = useRef<RV | null>(null)
+  const confirmationRef = useRef<ConfirmationResult | null>(null)
 
   const [displayName, setDisplayName] = useState('')
   const [saving, setSaving] = useState(false)
@@ -127,6 +133,22 @@ export default function ProfilePage() {
     }, 1000)
   }
 
+  async function initVerifier(): Promise<RV> {
+    const { RecaptchaVerifier } = await import('firebase/auth')
+    if (verifierRef.current) {
+      verifierRef.current.clear()
+      verifierRef.current = null
+    }
+    if (recaptchaContainerRef.current) {
+      recaptchaContainerRef.current.innerHTML = ''
+    }
+    const verifier = new RecaptchaVerifier(firebaseAuth, recaptchaContainerRef.current!, {
+      size: 'invisible',
+    })
+    verifierRef.current = verifier
+    return verifier
+  }
+
   async function handleSendOtp() {
     setPhoneError('')
     const normalized = normalizePhone(phoneInput)
@@ -136,22 +158,65 @@ export default function ProfilePage() {
     }
     setFlowState('sending')
     try {
-      const res = await fetch('/api/phone/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normalized }),
-      })
-      const data = (await res.json()) as { error?: string }
-      if (!res.ok) {
-        setPhoneError(data.error ?? 'Failed to send OTP. Please try again.')
-        setFlowState('idle')
+      if (!isFirebaseConfigured()) {
+        // Fallback: MSG91 route when Firebase keys not yet set
+        const res = await fetch('/api/phone/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: normalized }),
+        })
+        const data = (await res.json()) as { error?: string }
+        if (!res.ok) {
+          setPhoneError(data.error ?? 'Failed to send OTP. Please try again.')
+          setFlowState('idle')
+          return
+        }
+        setFlowState('otp-sent')
+        startCooldown(30)
         return
       }
+
+      const { linkWithPhoneNumber } = await import('firebase/auth')
+      const verifier = await initVerifier()
+      const confirmation = await linkWithPhoneNumber(
+        firebaseAuth.currentUser!,
+        `+91${normalized}`,
+        verifier,
+      )
+      confirmationRef.current = confirmation
       setFlowState('otp-sent')
       startCooldown(30)
-    } catch {
-      setPhoneError('Network error — please check your connection.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('provider-already-linked') || msg.includes('credential-already-in-use')) {
+        // Already linked — just update Supabase metadata
+        const { getIdToken } = await import('firebase/auth')
+        try {
+          const idToken = await getIdToken(firebaseAuth.currentUser!)
+          const res = await fetch('/api/phone/firebase-verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+          })
+          if (res.ok) {
+            await createClient().auth.refreshSession()
+            setFlowState('verified')
+            setOtpInput('')
+          } else {
+            const data = (await res.json()) as { error?: string }
+            setPhoneError(data.error ?? 'Verification failed.')
+            setFlowState('idle')
+          }
+        } catch {
+          setPhoneError('Verification failed. Please try again.')
+          setFlowState('idle')
+        }
+        return
+      }
+      setPhoneError('Failed to send OTP. Please check your number and try again.')
       setFlowState('idle')
+      verifierRef.current?.clear()
+      verifierRef.current = null
     }
   }
 
@@ -165,10 +230,31 @@ export default function ProfilePage() {
     }
     setFlowState('verifying')
     try {
-      const res = await fetch('/api/phone/verify-otp', {
+      if (!isFirebaseConfigured() || !confirmationRef.current) {
+        // Fallback: MSG91 verify
+        const res = await fetch('/api/phone/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: normalized, otp: digits }),
+        })
+        const data = (await res.json()) as { error?: string }
+        if (!res.ok) {
+          setPhoneError(data.error ?? 'Verification failed. Please try again.')
+          setFlowState('otp-sent')
+          return
+        }
+        await createClient().auth.refreshSession()
+        setFlowState('verified')
+        setOtpInput('')
+        return
+      }
+
+      const result = await confirmationRef.current.confirm(digits)
+      const idToken = await result.user.getIdToken()
+      const res = await fetch('/api/phone/firebase-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normalized, otp: digits }),
+        body: JSON.stringify({ idToken }),
       })
       const data = (await res.json()) as { error?: string }
       if (!res.ok) {
@@ -179,8 +265,13 @@ export default function ProfilePage() {
       await createClient().auth.refreshSession()
       setFlowState('verified')
       setOtpInput('')
-    } catch {
-      setPhoneError('Network error — please check your connection.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('invalid-verification-code') || msg.includes('code-expired')) {
+        setPhoneError('Incorrect or expired OTP. Please try again.')
+      } else {
+        setPhoneError('Network error — please check your connection.')
+      }
       setFlowState('otp-sent')
     }
   }
@@ -241,6 +332,9 @@ export default function ProfilePage() {
           Manage your account details
         </p>
       </div>
+
+      {/* Invisible reCAPTCHA anchor for Firebase phone auth */}
+      <div ref={recaptchaContainerRef} />
 
       {flowState !== 'verified' && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
