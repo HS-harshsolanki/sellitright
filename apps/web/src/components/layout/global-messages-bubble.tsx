@@ -119,7 +119,6 @@ export function GlobalMessagesBubble() {
   const [reportSubmitting, setReportSubmitting] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
   const [reportSuccess, setReportSuccess] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -251,13 +250,6 @@ export function GlobalMessagesBubble() {
       setTimeout(() => searchRef.current?.focus(), 80)
     }
   }, [open, activeThread])
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   // ── Phone detection helpers ──────────────────────────────────────────────
   function checkPhoneInWindow(val: string): boolean {
@@ -480,14 +472,8 @@ export function GlobalMessagesBubble() {
 
   // Logged-out users see the pill with a sign-in prompt
   if (!user) {
-    const containerClass =
-      isMobile && open
-        ? 'fixed inset-0 z-50 flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-background)]'
-        : isMobile
-          ? 'fixed bottom-16 right-3 z-50 flex w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl'
-          : 'fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl'
     return (
-      <div className={containerClass}>
+      <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -528,7 +514,7 @@ export function GlobalMessagesBubble() {
         {open && (
           <div
             className="flex flex-col items-center justify-center gap-4 p-5 text-center"
-            style={{ height: isMobile ? undefined : 200 }}
+            style={{ height: 200 }}
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-muted)]">
               <MessageSquare className="h-5 w-5 text-[var(--color-muted-foreground)]" />
@@ -560,16 +546,9 @@ export function GlobalMessagesBubble() {
   // When expanded: panel content appears above the pill inside the same container.
   // The container has rounded top corners always; the pill just sits at the bottom.
 
-  const containerClass =
-    isMobile && open
-      ? 'fixed inset-0 z-50 flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-background)]'
-      : isMobile
-        ? 'fixed bottom-16 right-3 z-50 flex w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl'
-        : 'fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl'
-
   return (
     <>
-      <div className={containerClass}>
+      <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
         {/* ── Pill / header — ALWAYS FIRST so it sits at the top when open ── */}
         <button
           type="button"
@@ -633,10 +612,7 @@ export function GlobalMessagesBubble() {
 
         {/* ── Panel content — below the header when open ─────────────────── */}
         {open && (
-          <div
-            className="flex flex-1 flex-col"
-            style={{ height: isMobile ? undefined : activeThread ? 420 : 380 }}
-          >
+          <div className="flex flex-1 flex-col" style={{ height: activeThread ? 420 : 380 }}>
             {/* ── Thread list ──────────────────────────────────────────── */}
             {!activeThread && (
               <>
