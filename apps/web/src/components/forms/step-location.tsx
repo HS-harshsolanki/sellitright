@@ -213,21 +213,6 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             </p>
           )}
         </div>
-
-        {/* Google Maps placeholder */}
-        <div className="space-y-1.5">
-          <p className={labelClass}>Pin on Map</p>
-          <button
-            type="button"
-            className={cn(
-              'border-border text-muted-foreground flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 text-sm font-medium',
-              'hover:border-primary/50 hover:text-primary transition-colors',
-            )}
-          >
-            <MapPin className="h-4 w-4" />
-            Add Google Maps pin (coming soon)
-          </button>
-        </div>
       </div>
     </div>
   )
