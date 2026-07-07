@@ -24,7 +24,8 @@ function normalizePhone(raw: string): string {
 }
 
 function hashOtp(otp: string, phone: string, userId: string): string {
-  const secret = process.env.OTP_HMAC_SECRET ?? 'dev-otp-secret'
+  const secret = process.env.OTP_HMAC_SECRET
+  if (!secret) throw new Error('[otp] OTP_HMAC_SECRET is not configured')
   return crypto.createHmac('sha256', secret).update(`${otp}:${phone}:${userId}`).digest('hex')
 }
 
