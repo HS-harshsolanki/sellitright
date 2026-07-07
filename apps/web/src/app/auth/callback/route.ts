@@ -1,6 +1,6 @@
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-
-import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -8,30 +8,56 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/'
 
   if (code) {
-    const supabase = await createClient()
+    // Validate redirect path before building the response
+    let safePath = '/'
+    try {
+      const decoded = decodeURIComponent(next)
+      if (
+        decoded.startsWith('/') &&
+        !decoded.startsWith('//') &&
+        !decoded.includes('://') &&
+        !decoded.includes('@') &&
+        !decoded.includes('\n') &&
+        !decoded.includes('\r') &&
+        decoded !== '/login' &&
+        decoded !== '/register'
+      ) {
+        safePath = decoded
+      }
+    } catch {
+      // malformed encoding — keep '/'
+    }
+
+    // Build the redirect response first, then write session cookies directly onto it.
+    // NextResponse.redirect() creates a new response object — if we call
+    // exchangeCodeForSession via the shared cookieStore and then return a separate
+    // NextResponse.redirect(), the Set-Cookie headers are dropped and the browser
+    // never receives the session. Writing cookies onto the response object itself
+    // ensures they are included in the redirect response.
+    const response = NextResponse.redirect(`${origin}${safePath}`)
+
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options)
+            })
+          },
+        },
+      },
+    )
+
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Validate redirect — reject open redirects, protocol-relative URLs, auth loops
-      let safePath = '/'
-      try {
-        const decoded = decodeURIComponent(next)
-        if (
-          decoded.startsWith('/') &&
-          !decoded.startsWith('//') &&
-          !decoded.includes('://') &&
-          !decoded.includes('@') &&
-          !decoded.includes('\n') &&
-          !decoded.includes('\r') &&
-          decoded !== '/login' &&
-          decoded !== '/register'
-        ) {
-          safePath = decoded
-        }
-      } catch {
-        // malformed encoding — keep '/'
-      }
-      return NextResponse.redirect(`${origin}${safePath}`)
+      return response
     }
 
     // Code exchange failed — likely redirect URL mismatch in Supabase dashboard

@@ -299,7 +299,7 @@ export default function ProfilePage() {
 
         {flowState === 'verified' ? (
           <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
-            Your WhatsApp number <span className="font-semibold">+91 {verifiedPhone}</span> is
+            Your phone number <span className="font-semibold">+91 {verifiedPhone}</span> is
             verified. Buyers can reach you directly after their request is accepted.
             <button
               type="button"
@@ -322,7 +322,7 @@ export default function ProfilePage() {
                 htmlFor="phone-number"
                 className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
               >
-                WhatsApp number <span className="text-[var(--color-destructive)]">*</span>
+                Phone number <span className="text-[var(--color-destructive)]">*</span>
               </label>
               <div
                 className={cn(
@@ -446,7 +446,7 @@ export default function ProfilePage() {
 
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)]">
                   <Phone className="h-3.5 w-3.5" />
-                  Check your SMS messages for a 6-digit code. Valid for 10 minutes.
+                  Check your SMS messages for a 6-digit code. Valid for 5 minutes.
                 </p>
               </div>
             )}
