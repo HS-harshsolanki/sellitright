@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   let firebaseUid: string
   try {
     const adminAuth = getFirebaseAdminAuth()
-    const decoded = await adminAuth.verifyIdToken(idToken)
+    const decoded = await adminAuth.verifyIdToken(idToken, true)
 
     if (!decoded.phone_number) {
       return NextResponse.json({ error: 'No phone number in Firebase token.' }, { status: 422 })
@@ -79,21 +79,22 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Check no other account has already verified this phone
+  // Check no other account has already verified this phone.
+  // Uses a security-definer SQL function to query auth.users directly — avoids
+  // the listUsers() admin API which only returns the first 50 users per call.
   const serviceClient = createServiceClient()
   if (serviceClient) {
-    const { data: existingUsers } = await serviceClient.auth.admin.listUsers()
-    const normalizedPhone = firebasePhone // already E.164 from Firebase
-    const conflict = existingUsers?.users?.find(
-      (u) =>
-        u.id !== user.id &&
-        (u.phone === normalizedPhone ||
-          u.user_metadata?.phone === normalizedPhone?.replace('+91', '') ||
-          (u.user_metadata?.phone_verified === true &&
-            u.user_metadata?.phone &&
-            normalizedPhone?.endsWith(u.user_metadata.phone))),
-    )
-    if (conflict) {
+    type PhoneRpcResult = { data: string | null; error: { message: string } | null }
+    const { data: conflictingUserId, error: rpcError } = await (serviceClient.rpc(
+      'find_user_by_verified_phone' as never,
+      {
+        p_phone: phone,
+        p_exclude_user: user.id,
+      } as never,
+    ) as unknown as Promise<PhoneRpcResult>)
+    if (rpcError) {
+      logger.error('[firebase-verify] phone uniqueness check failed', { error: rpcError.message })
+    } else if (conflictingUserId) {
       return NextResponse.json(
         { error: 'This phone number is already associated with another account.' },
         { status: 409 },

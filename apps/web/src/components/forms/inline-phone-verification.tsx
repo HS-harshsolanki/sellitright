@@ -98,7 +98,18 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
 
       const { signInWithPhoneNumber } = await import('firebase/auth')
       const verifier = await initVerifier()
-      const confirmation = await signInWithPhoneNumber(firebaseAuth, `+91${normalized}`, verifier)
+      const TIMEOUT_MS = 15_000
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () =>
+            reject(new Error('OTP request timed out. Please check your connection and try again.')),
+          TIMEOUT_MS,
+        ),
+      )
+      const confirmation = await Promise.race([
+        signInWithPhoneNumber(firebaseAuth, `+91${normalized}`, verifier),
+        timeoutPromise,
+      ])
       confirmationRef.current = confirmation
       setFlowState('otp_sent')
       setResendCooldown(RESEND_COOLDOWN)
@@ -154,7 +165,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
       }
 
       const result = await confirmationRef.current.confirm(otp)
-      const idToken = await result.user.getIdToken()
+      const idToken = await result.user.getIdToken(/* forceRefresh */ true)
       const res = await fetch('/api/phone/firebase-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,10 +191,10 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
 
   async function markVerifiedInSupabase(
     phone: string,
-    firebaseUser: { getIdToken(): Promise<string> },
+    firebaseUser: { getIdToken(forceRefresh?: boolean): Promise<string> },
   ) {
     try {
-      const idToken = await firebaseUser.getIdToken()
+      const idToken = await firebaseUser.getIdToken(/* forceRefresh */ true)
       const res = await fetch('/api/phone/firebase-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

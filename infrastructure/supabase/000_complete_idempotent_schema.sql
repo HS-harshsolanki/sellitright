@@ -514,6 +514,12 @@ create index if not exists buyer_interest_pending_idx
 create unique index if not exists payments_interest_success_idx
   on public.payments(interest_id) where (status = 'SUCCESS');
 
+-- Prevents multiple simultaneous PENDING rows for the same interest (orphan guard).
+-- The create-order route cleans up stale PENDING rows before inserting, so this
+-- index fires only on a true race condition (two tabs clicking simultaneously).
+create unique index if not exists payments_interest_pending_idx
+  on public.payments(interest_id) where (status = 'PENDING');
+
 create index if not exists payments_buyer_id_idx      on public.payments (buyer_id);
 create index if not exists payments_interest_id_idx   on public.payments (interest_id);
 create index if not exists payments_order_id_idx      on public.payments (razorpay_order_id);
@@ -577,6 +583,34 @@ create or replace view public.pending_per_listing as
 do $$ begin
   alter publication supabase_realtime add table public.notifications;
 exception when duplicate_object then null; end $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- SECTION 11 — HELPER FUNCTIONS
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Checks whether a given 10-digit phone is already verified by another user.
+-- Called by /api/phone/firebase-verify to enforce phone uniqueness without
+-- scanning all users via the Auth admin API (which is limited to 50 per page).
+-- Returns the conflicting user's id, or NULL if the phone is free to use.
+create or replace function public.find_user_by_verified_phone(
+  p_phone text,          -- 10-digit Indian mobile, e.g. "9876543210"
+  p_exclude_user uuid    -- the calling user's own id (exempt from the conflict check)
+)
+returns uuid
+language sql
+security definer
+set search_path = auth, public
+as $$
+  select id
+  from auth.users
+  where id <> p_exclude_user
+    and (
+      raw_user_meta_data->>'phone' = p_phone
+      or raw_user_meta_data->>'phone' = '+91' || p_phone
+    )
+    and (raw_user_meta_data->>'phone_verified')::boolean is true
+  limit 1;
+$$;
 
 -- =============================================================================
 -- DONE. All tables, policies, indexes, triggers, and views are now in place.

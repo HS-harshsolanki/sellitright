@@ -162,7 +162,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
     '@type': 'RealEstateListing',
     name: listing.title,
     description: (listing.description ?? '').slice(0, 500),
-    url: `https://chapternew.com/listing/${listing.id}`,
+    url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://chapternew.com'}/listing/${listing.id}`,
     datePosted: listing.createdAt,
     price: listing.price,
     priceCurrency: 'INR',

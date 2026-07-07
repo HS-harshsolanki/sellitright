@@ -24,7 +24,12 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
+              cookieStore.set(name, value, {
+                ...options,
+                // Secure cookies are rejected by browsers over plain HTTP (e.g. LAN IP testing).
+                // Strip the flag in dev so sessions work on http://192.168.x.x URLs.
+                secure: process.env.NODE_ENV === 'production' ? (options?.secure ?? true) : false,
+              }),
             )
           } catch {
             // Server Component — cookies can only be set in Server Actions or Route Handlers

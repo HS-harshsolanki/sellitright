@@ -134,15 +134,20 @@ export default function ProfilePage() {
   }
 
   async function initVerifier(): Promise<RV> {
-    const { RecaptchaVerifier } = await import('firebase/auth')
     if (verifierRef.current) {
-      verifierRef.current.clear()
+      try {
+        verifierRef.current.clear()
+      } catch {
+        /* ignore */
+      }
       verifierRef.current = null
     }
-    if (recaptchaContainerRef.current) {
-      recaptchaContainerRef.current.innerHTML = ''
-    }
-    const verifier = new RecaptchaVerifier(firebaseAuth, recaptchaContainerRef.current!, {
+    const { RecaptchaVerifier } = await import('firebase/auth')
+    const container = recaptchaContainerRef.current!
+    container.innerHTML = ''
+    const anchor = document.createElement('div')
+    container.appendChild(anchor)
+    const verifier = new RecaptchaVerifier(firebaseAuth, anchor, {
       size: 'invisible',
     })
     verifierRef.current = verifier
@@ -176,23 +181,32 @@ export default function ProfilePage() {
         return
       }
 
-      const { linkWithPhoneNumber } = await import('firebase/auth')
+      const { signInWithPhoneNumber } = await import('firebase/auth')
       const verifier = await initVerifier()
-      const confirmation = await linkWithPhoneNumber(
-        firebaseAuth.currentUser!,
-        `+91${normalized}`,
-        verifier,
+      const TIMEOUT_MS = 15_000
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () =>
+            reject(new Error('OTP request timed out. Please check your connection and try again.')),
+          TIMEOUT_MS,
+        ),
       )
+      const confirmation = await Promise.race([
+        signInWithPhoneNumber(firebaseAuth, `+91${normalized}`, verifier),
+        timeoutPromise,
+      ])
       confirmationRef.current = confirmation
       setFlowState('otp-sent')
       startCooldown(30)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('provider-already-linked') || msg.includes('credential-already-in-use')) {
+      if (
+        (msg.includes('provider-already-linked') || msg.includes('credential-already-in-use')) &&
+        firebaseAuth.currentUser
+      ) {
         // Already linked — just update Supabase metadata
-        const { getIdToken } = await import('firebase/auth')
         try {
-          const idToken = await getIdToken(firebaseAuth.currentUser!)
+          const idToken = await firebaseAuth.currentUser.getIdToken(/* forceRefresh */ true)
           const res = await fetch('/api/phone/firebase-verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -213,7 +227,15 @@ export default function ProfilePage() {
         }
         return
       }
-      setPhoneError('Failed to send OTP. Please check your number and try again.')
+      console.error('[Firebase OTP] sendOTP error:', err)
+      const isTooMany = msg.includes('too-many-requests')
+      const friendlyMsg = isTooMany
+        ? 'Too many attempts. Please wait 5 minutes and try again.'
+        : msg.includes('invalid-phone-number')
+          ? "That doesn't look like a valid phone number."
+          : 'Failed to send OTP. Please try again.'
+      setPhoneError(friendlyMsg)
+      if (isTooMany) startCooldown(300)
       setFlowState('idle')
       verifierRef.current?.clear()
       verifierRef.current = null
@@ -250,7 +272,7 @@ export default function ProfilePage() {
       }
 
       const result = await confirmationRef.current.confirm(digits)
-      const idToken = await result.user.getIdToken()
+      const idToken = await result.user.getIdToken(/* forceRefresh */ true)
       const res = await fetch('/api/phone/firebase-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -376,7 +398,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* WhatsApp verification card */}
+      {/* Phone verification card */}
       <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white p-5">
         <div className="flex items-center gap-2">
           <Phone className="h-5 w-5 text-[var(--color-primary)]" />
@@ -393,7 +415,7 @@ export default function ProfilePage() {
 
         {flowState === 'verified' ? (
           <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
-            Your WhatsApp number <span className="font-semibold">+91 {verifiedPhone}</span> is
+            Your phone number <span className="font-semibold">+91 {verifiedPhone}</span> is
             verified. Buyers can reach you directly after their request is accepted.
             <button
               type="button"
@@ -402,6 +424,7 @@ export default function ProfilePage() {
                 setPhoneInput('')
                 setOtpInput('')
                 setPhoneError('')
+                confirmationRef.current = null
               }}
               className="ml-2 text-xs underline opacity-60 hover:opacity-100"
             >
@@ -416,7 +439,7 @@ export default function ProfilePage() {
                 htmlFor="phone-number"
                 className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
               >
-                WhatsApp number <span className="text-[var(--color-destructive)]">*</span>
+                Phone number <span className="text-[var(--color-destructive)]">*</span>
               </label>
               <div
                 className={cn(
@@ -476,11 +499,11 @@ export default function ProfilePage() {
                   >
                     <input
                       id="otp-input"
-                      type="text"
+                      type="password"
                       inputMode="numeric"
                       maxLength={6}
                       autoComplete="one-time-code"
-                      placeholder="• • • • • •"
+                      placeholder="••••••"
                       value={otpInput}
                       onChange={(e) => {
                         setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))
@@ -514,6 +537,7 @@ export default function ProfilePage() {
                       setFlowState('idle')
                       setOtpInput('')
                       setPhoneError('')
+                      confirmationRef.current = null
                     }}
                     className="text-xs text-[var(--color-muted-foreground)] underline hover:text-[var(--color-foreground)]"
                   >
@@ -528,7 +552,8 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setFlowState('idle')
+                        setOtpInput('')
+                        setPhoneError('')
                         void handleSendOtp()
                       }}
                       className="text-xs text-[var(--color-primary)] underline"
@@ -540,7 +565,7 @@ export default function ProfilePage() {
 
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)]">
                   <Phone className="h-3.5 w-3.5" />
-                  Check your SMS messages for a 6-digit code. Valid for 10 minutes.
+                  Check your SMS messages for a 6-digit code. Valid for 5 minutes.
                 </p>
               </div>
             )}

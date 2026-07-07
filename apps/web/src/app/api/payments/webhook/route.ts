@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     buyerAuthResult.data.user?.phone ?? buyerAuthResult.data.user?.user_metadata?.phone ?? null
   const buyerEmail = buyerAuthResult.data.user?.email ?? null
 
-  await admin
+  const { error: unlockError } = await admin
     .from('buyer_interest')
     .update({
       contact_unlocked: true,
@@ -168,6 +168,19 @@ export async function POST(request: NextRequest) {
       buyer_email: buyerEmail,
     })
     .eq('id', payment.interest_id)
+
+  if (unlockError) {
+    logger.error(
+      '[webhook] failed to unlock buyer_interest contact — buyer charged but contact not visible',
+      {
+        error: unlockError.message,
+        interestId: payment.interest_id,
+        paymentId: payment.id,
+      },
+    )
+    // Return 500 so Razorpay retries — contact unlock must not be silently skipped
+    return NextResponse.json({ error: 'Contact unlock failed' }, { status: 500 })
+  }
 
   // Notify both parties — fire-and-forget, deduped to avoid double notifications
   // when both verify and webhook succeed for the same payment.

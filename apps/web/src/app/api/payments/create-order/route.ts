@@ -67,6 +67,41 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // ── Reuse or clean up stale PENDING row from a previous dismissed attempt ──
+  // A user who opens the Razorpay modal and dismisses it leaves a PENDING row
+  // behind. Rather than accumulating orphaned rows, reuse any row created in
+  // the last 30 minutes (its Razorpay order is still valid) or delete older ones.
+  const adminForPending = createServiceClient()
+  if (adminForPending) {
+    const { data: pendingRows } = await adminForPending
+      .from('payments')
+      .select('id, razorpay_order_id, created_at')
+      .eq('interest_id', interestId)
+      .eq('status', 'PENDING')
+      .order('created_at', { ascending: false })
+
+    if (pendingRows && pendingRows.length > 0) {
+      const recent = pendingRows[0] as {
+        id: string
+        razorpay_order_id: string | null
+        created_at: string
+      }
+      const ageMs = Date.now() - new Date(recent.created_at).getTime()
+      if (recent.razorpay_order_id && ageMs < 30 * 60 * 1000) {
+        // Fresh enough — return the existing order so the client reopens the modal
+        return NextResponse.json({
+          orderId: recent.razorpay_order_id,
+          amount: 4900,
+          currency: 'INR',
+          reused: true,
+        })
+      }
+      // Stale rows — delete all so the unique partial index won't block the new insert
+      const staleIds = pendingRows.map((r: { id: string }) => r.id)
+      await adminForPending.from('payments').delete().in('id', staleIds)
+    }
+  }
+
   // ── Rate limit: max 5 PENDING orders per user per 60 s ───────────────────
   const { count: recentCount } = await supabase
     .from('payments')
