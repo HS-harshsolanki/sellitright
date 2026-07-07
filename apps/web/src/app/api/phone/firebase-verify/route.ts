@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
 
   // Verify the Firebase ID token server-side — this is the trust anchor
   let firebasePhone: string
+  let firebaseUid: string
   try {
     const adminAuth = getFirebaseAdminAuth()
     const decoded = await adminAuth.verifyIdToken(idToken)
@@ -50,11 +51,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No phone number in Firebase token.' }, { status: 422 })
     }
     firebasePhone = decoded.phone_number // E.164 format e.g. "+919876543210"
+    firebaseUid = decoded.uid
   } catch (err) {
     logger.error('[firebase-verify] token verification failed', {
       error: err instanceof Error ? err.message : String(err),
     })
     return NextResponse.json({ error: 'Invalid or expired verification token.' }, { status: 401 })
+  }
+
+  // Bind Firebase identity to Supabase user — prevent cross-account phone theft
+  // Firebase UID should match the Supabase user's firebase_uid in metadata,
+  // OR this is the first time linking (no existing firebase_uid stored yet).
+  const existingFirebaseUid = user.user_metadata?.firebase_uid as string | undefined
+  if (existingFirebaseUid && existingFirebaseUid !== firebaseUid) {
+    return NextResponse.json(
+      { error: 'Firebase identity does not match your account.' },
+      { status: 403 },
+    )
   }
 
   // Normalize to 10-digit Indian mobile (strip +91)
@@ -64,6 +77,28 @@ export async function POST(request: NextRequest) {
       { error: 'Verified number is not a valid Indian mobile number.' },
       { status: 422 },
     )
+  }
+
+  // Check no other account has already verified this phone
+  const serviceClient = createServiceClient()
+  if (serviceClient) {
+    const { data: existingUsers } = await serviceClient.auth.admin.listUsers()
+    const normalizedPhone = firebasePhone // already E.164 from Firebase
+    const conflict = existingUsers?.users?.find(
+      (u) =>
+        u.id !== user.id &&
+        (u.phone === normalizedPhone ||
+          u.user_metadata?.phone === normalizedPhone?.replace('+91', '') ||
+          (u.user_metadata?.phone_verified === true &&
+            u.user_metadata?.phone &&
+            normalizedPhone?.endsWith(u.user_metadata.phone))),
+    )
+    if (conflict) {
+      return NextResponse.json(
+        { error: 'This phone number is already associated with another account.' },
+        { status: 409 },
+      )
+    }
   }
 
   // Write phone + phone_verified flag to Supabase user_metadata via service role
@@ -77,6 +112,7 @@ export async function POST(request: NextRequest) {
       ...user.user_metadata,
       phone,
       phone_verified: true,
+      firebase_uid: firebaseUid,
     },
   })
 

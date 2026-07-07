@@ -51,17 +51,22 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
   }, [])
 
   async function initVerifier(): Promise<RV> {
-    const { RecaptchaVerifier } = await import('firebase/auth')
     if (verifierRef.current) {
-      verifierRef.current.clear()
+      try {
+        verifierRef.current.clear()
+      } catch {
+        /* ignore */
+      }
       verifierRef.current = null
     }
-    if (recaptchaContainerRef.current) {
-      recaptchaContainerRef.current.innerHTML = ''
-    }
-    const verifier = new RecaptchaVerifier(firebaseAuth, recaptchaContainerRef.current!, {
-      size: 'invisible',
-    })
+    const { RecaptchaVerifier } = await import('firebase/auth')
+    // Create a fresh inner div inside the stable React-managed container.
+    // Never replace the container itself — that detaches it from React's fiber tree.
+    const container = recaptchaContainerRef.current!
+    container.innerHTML = ''
+    const anchor = document.createElement('div')
+    container.appendChild(anchor)
+    const verifier = new RecaptchaVerifier(firebaseAuth, anchor, { size: 'invisible' })
     verifierRef.current = verifier
     return verifier
   }
@@ -91,23 +96,33 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
         return
       }
 
-      const { linkWithPhoneNumber } = await import('firebase/auth')
+      const { signInWithPhoneNumber } = await import('firebase/auth')
       const verifier = await initVerifier()
-      const confirmation = await linkWithPhoneNumber(
-        firebaseAuth.currentUser!,
-        `+91${normalized}`,
-        verifier,
-      )
+      const confirmation = await signInWithPhoneNumber(firebaseAuth, `+91${normalized}`, verifier)
       confirmationRef.current = confirmation
       setFlowState('otp_sent')
       setResendCooldown(RESEND_COOLDOWN)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
+      const fbUser = firebaseAuth.currentUser
       if (msg.includes('provider-already-linked') || msg.includes('credential-already-in-use')) {
-        await markVerifiedInSupabase(normalized)
+        if (!fbUser) {
+          setError('Authentication session expired. Please refresh and try again.')
+          setFlowState('idle')
+          return
+        }
+        await markVerifiedInSupabase(normalized, fbUser)
         return
       }
-      setError('Failed to send OTP. Please check your number and try again.')
+      console.error('[Firebase OTP] sendOTP error:', err)
+      const isTooMany = msg.includes('too-many-requests')
+      const friendlyMsg = isTooMany
+        ? 'Too many attempts. Please wait 5 minutes and try again.'
+        : msg.includes('invalid-phone-number')
+          ? "That doesn't look like a valid phone number."
+          : 'Failed to send OTP. Please try again.'
+      setError(friendlyMsg)
+      if (isTooMany) setResendCooldown(300)
       setFlowState('idle')
       verifierRef.current?.clear()
       verifierRef.current = null
@@ -163,10 +178,12 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
     }
   }
 
-  async function markVerifiedInSupabase(phone: string) {
-    const { getIdToken } = await import('firebase/auth')
+  async function markVerifiedInSupabase(
+    phone: string,
+    firebaseUser: { getIdToken(): Promise<string> },
+  ) {
     try {
-      const idToken = await getIdToken(firebaseAuth.currentUser!)
+      const idToken = await firebaseUser.getIdToken()
       const res = await fetch('/api/phone/firebase-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -321,7 +338,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
       <div className="flex gap-2">
         <input
           id="inline-otp"
-          type="text"
+          type="password"
           inputMode="numeric"
           value={otp}
           onChange={(e) => {
@@ -329,7 +346,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
             setOtp(val)
             setError(null)
           }}
-          placeholder="6-digit OTP"
+          placeholder="••••••"
           maxLength={6}
           autoComplete="one-time-code"
           aria-describedby={`otp-hint${error ? ' otp-error' : ''}`}
@@ -380,7 +397,11 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
 
       <button
         type="button"
-        onClick={() => void handleSendOtp()}
+        onClick={() => {
+          setOtp('')
+          setError(null)
+          void handleSendOtp()
+        }}
         disabled={isLoading || resendCooldown > 0}
         className={cn(
           'mt-2.5 block px-1 py-2 text-xs text-amber-700 underline underline-offset-2',

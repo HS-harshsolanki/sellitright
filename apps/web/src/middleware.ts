@@ -3,7 +3,16 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 // /api/admin is intentionally excluded — those routes use key-based auth (x-admin-key),
 // not session auth. Middleware redirects would bypass the isAuthorized() check entirely.
-const PROTECTED_PATHS = ['/dashboard', '/sell', '/admin', '/profile']
+const PROTECTED_PATHS = [
+  '/dashboard',
+  '/sell',
+  '/admin',
+  '/profile',
+  '/messages',
+  '/notifications',
+  '/requests',
+  '/listings',
+]
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
