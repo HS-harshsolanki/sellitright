@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { firebaseAuth, isFirebaseConfigured } from '@/lib/firebase/client'
+import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase/client'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -147,7 +147,9 @@ export default function ProfilePage() {
     container.innerHTML = ''
     const anchor = document.createElement('div')
     container.appendChild(anchor)
-    const verifier = new RecaptchaVerifier(firebaseAuth, anchor, {
+    const auth = getFirebaseAuth()
+    if (!auth) throw new Error('Firebase not available')
+    const verifier = new RecaptchaVerifier(auth, anchor, {
       size: 'invisible',
     })
     verifierRef.current = verifier
@@ -192,7 +194,7 @@ export default function ProfilePage() {
         ),
       )
       const confirmation = await Promise.race([
-        signInWithPhoneNumber(firebaseAuth, `+91${normalized}`, verifier),
+        signInWithPhoneNumber(getFirebaseAuth()!, `+91${normalized}`, verifier),
         timeoutPromise,
       ])
       confirmationRef.current = confirmation
@@ -202,11 +204,11 @@ export default function ProfilePage() {
       const msg = err instanceof Error ? err.message : String(err)
       if (
         (msg.includes('provider-already-linked') || msg.includes('credential-already-in-use')) &&
-        firebaseAuth.currentUser
+        getFirebaseAuth()?.currentUser
       ) {
         // Already linked — just update Supabase metadata
         try {
-          const idToken = await firebaseAuth.currentUser.getIdToken(/* forceRefresh */ true)
+          const idToken = await getFirebaseAuth()!.currentUser!.getIdToken(/* forceRefresh */ true)
           const res = await fetch('/api/phone/firebase-verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

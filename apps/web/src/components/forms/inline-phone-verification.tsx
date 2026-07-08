@@ -3,7 +3,7 @@
 import { AlertCircle, CheckCircle2, Loader2, Phone } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-import { firebaseAuth, isFirebaseConfigured } from '@/lib/firebase/client'
+import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase/client'
 import { INDIAN_MOBILE_RE, normalizePhone } from '@/lib/phone'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -66,7 +66,9 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
     container.innerHTML = ''
     const anchor = document.createElement('div')
     container.appendChild(anchor)
-    const verifier = new RecaptchaVerifier(firebaseAuth, anchor, { size: 'invisible' })
+    const auth = getFirebaseAuth()
+    if (!auth) throw new Error('Firebase not available')
+    const verifier = new RecaptchaVerifier(auth, anchor, { size: 'invisible' })
     verifierRef.current = verifier
     return verifier
   }
@@ -107,7 +109,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
         ),
       )
       const confirmation = await Promise.race([
-        signInWithPhoneNumber(firebaseAuth, `+91${normalized}`, verifier),
+        signInWithPhoneNumber(getFirebaseAuth()!, `+91${normalized}`, verifier),
         timeoutPromise,
       ])
       confirmationRef.current = confirmation
@@ -115,7 +117,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
       setResendCooldown(RESEND_COOLDOWN)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      const fbUser = firebaseAuth.currentUser
+      const fbUser = getFirebaseAuth()?.currentUser
       if (msg.includes('provider-already-linked') || msg.includes('credential-already-in-use')) {
         if (!fbUser) {
           setError('Authentication session expired. Please refresh and try again.')
