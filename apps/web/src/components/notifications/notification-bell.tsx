@@ -17,11 +17,14 @@ import { useEffect, useRef, useState } from 'react'
 import type { NotificationItem, UseNotificationsResult } from '@/hooks/use-notifications'
 
 function getNotificationActionUrl(type: string): string | null {
-  if (type === 'InterestRequest' || type === 'Accepted' || type === 'Rejected') {
+  if (type === 'InterestRequest') {
     return '/dashboard?tab=buyers'
   }
+  if (type === 'Accepted' || type === 'Rejected') {
+    return '/dashboard/requests'
+  }
   if (type === 'ConnectionUnlocked' || type === 'PaymentReceived') {
-    return '/dashboard?tab=buyers'
+    return '/dashboard/requests'
   }
   return null
 }

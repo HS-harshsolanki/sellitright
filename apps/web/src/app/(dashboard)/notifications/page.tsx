@@ -24,11 +24,14 @@ function getNotificationActionUrl(item: {
   entityType?: string | null
   entityId?: string | null
 }): string | null {
-  if (item.type === 'InterestRequest' || item.type === 'Accepted' || item.type === 'Rejected') {
+  if (item.type === 'InterestRequest') {
     return '/dashboard?tab=buyers'
   }
+  if (item.type === 'Accepted' || item.type === 'Rejected') {
+    return '/dashboard/requests'
+  }
   if (item.type === 'ConnectionUnlocked' || item.type === 'PaymentReceived') {
-    return '/dashboard?tab=interests'
+    return '/dashboard/requests'
   }
   if (item.entityType === 'listing' && item.entityId) {
     return `/listing/${item.entityId}`
