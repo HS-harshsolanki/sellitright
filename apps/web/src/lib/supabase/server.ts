@@ -26,8 +26,8 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, {
                 ...options,
-                // Secure cookies are rejected by browsers over plain HTTP (e.g. LAN IP testing).
-                // Strip the flag in dev so sessions work on http://192.168.x.x URLs.
+                // Secure cookies are rejected by browsers over plain HTTP.
+                // Strip the flag in dev so sessions work on http://192.168.x.x LAN URLs.
                 secure: process.env.NODE_ENV === 'production' ? (options?.secure ?? true) : false,
               }),
             )

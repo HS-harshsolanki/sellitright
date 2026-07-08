@@ -11,7 +11,7 @@ const PROTECTED_PATHS = [
   '/messages',
   '/notifications',
   '/requests',
-  '/listings',
+  '/listings', // covers /listings/[id]/edit and other sub-paths
 ]
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''

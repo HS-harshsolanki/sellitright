@@ -467,25 +467,13 @@ export function redactPhoneNumbers(text: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 13. Cross-message window detection
-// ---------------------------------------------------------------------------
+// 13. Window-based cross-message detection
+//     Checks whether the new message, combined with recent sent messages,
+//     forms a phone number when concatenated — catches numbers split across msgs.
 
-/**
- * Concatenates a sliding window of recent messages from the same sender and
- * runs the full filter on the combined text. Catches phone numbers split
- * across multiple messages (e.g. "nine", "eight", … as separate sends).
- *
- * @param recentMessages  Last N messages from this sender (oldest → newest).
- * @param newMessage      The message the user is about to send.
- * @param windowSize      How many prior messages to include. Default 8.
- */
-export function containsPhoneNumberInWindow(
-  recentMessages: string[],
-  newMessage: string,
-  windowSize = 8,
-): boolean {
-  const window = [...recentMessages.slice(-windowSize), newMessage].join(' ')
-  return containsPhoneNumber(window)
+export function containsPhoneNumberInWindow(recentMessages: string[], newMessage: string): boolean {
+  const windowText = [...recentMessages, newMessage].join(' ')
+  return containsPhoneNumber(windowText)
 }
 
 // ---------------------------------------------------------------------------

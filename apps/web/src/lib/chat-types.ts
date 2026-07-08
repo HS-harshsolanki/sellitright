@@ -23,6 +23,7 @@ export interface LocalPhoneWarning {
   id: string
   isPhoneWarning: true
   warningText: string
+  offenseNumber: number
   createdAt: string
 }
 

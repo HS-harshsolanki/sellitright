@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Search, PlusSquare, User, LayoutDashboard } from 'lucide-react'
+import { Home, Search, PlusSquare, User, LayoutDashboard, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -11,14 +11,20 @@ export function MobileNav() {
   const pathname = usePathname()
   const { user } = useAuth()
 
-  const tabs = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
-    { href: '/sell', label: 'Sell', icon: PlusSquare },
-    user
-      ? { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }
-      : { href: '/login', label: 'Profile', icon: User },
-  ]
+  const tabs = user
+    ? [
+        { href: '/', label: 'Home', icon: Home },
+        { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
+        { href: '/messages', label: 'Messages', icon: MessageSquare, matchHref: '/messages' },
+        { href: '/sell', label: 'Sell', icon: PlusSquare },
+        { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, matchHref: '/dashboard' },
+      ]
+    : [
+        { href: '/', label: 'Home', icon: Home },
+        { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
+        { href: '/sell', label: 'Sell', icon: PlusSquare },
+        { href: '/login', label: 'Profile', icon: User },
+      ]
 
   return (
     <nav

@@ -270,7 +270,6 @@ export async function POST(
     const offenseNumber = (priorCount ?? 0) + 1
     const contentPreview = safeContentPreview(trimmed)
 
-    // Record violation with exact (redacted) content so admin can review
     await chatTable(admin, 'chat_violations').insert({
       thread_id: threadId,
       sender_id: user.id,
@@ -284,17 +283,12 @@ export async function POST(
       offense: offenseNumber,
     })
 
-    // ── Wipe the entire thread immediately ──────────────────────────────────
-    // Soft-delete every message so neither party can see what was sent.
-    // The violation record in chat_violations preserves the evidence for admin.
     await chatTable(admin, 'chat_messages').update({ is_deleted: true }).eq('thread_id', threadId)
 
-    // Clear unread counts — messages are gone, badges should reset
     await chatTable(admin, 'chat_threads')
       .update({ buyer_unread: 0, seller_unread: 0 })
       .eq('id', threadId)
 
-    // ── Notify the sender ────────────────────────────────────────────────────
     const offenseLabel =
       offenseNumber >= 3
         ? `This is violation #${offenseNumber}. Your account has been auto-flagged for admin review.`
@@ -309,7 +303,6 @@ export async function POST(
       entity_id: threadId,
     })
 
-    // ── Notify the other party (neutral — don't reveal who triggered it) ────
     const otherPartyId = isBuyer ? thread.seller_id : thread.buyer_id
     await admin.from('notifications').insert({
       user_id: otherPartyId,
@@ -321,8 +314,6 @@ export async function POST(
       entity_id: threadId,
     })
 
-    // ── Auto-report to admin on every offense ───────────────────────────────
-    // Admin sees every incident immediately with the exact (redacted) content.
     await admin.from('reports').insert({
       reporter_id: otherPartyId,
       reporter_role: isBuyer ? 'seller' : 'buyer',
@@ -332,7 +323,6 @@ export async function POST(
       status: 'OPEN',
     })
 
-    // ── 3rd offense: auto-block the sender ──────────────────────────────────
     if (offenseNumber >= 3) {
       const { data: existingBlock } = await chatTable(admin, 'phone_block_flags')
         .select('id')

@@ -3,11 +3,11 @@
 import { ChevronDown, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { ListingCard } from '@/components/listing/listing-card'
 import { FilterBar, type ActiveFilters } from '@/components/search/filter-bar'
-import { MOCK_LISTINGS, type MockListing } from '@/lib/mock-data'
+import type { MockListing } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -90,9 +90,6 @@ export function BrowseClient({
   const [isLoading, setIsLoading] = useState<boolean>(
     isSupabaseConfigured() && initialListings.length === 0,
   )
-  // When Supabase is not configured the API falls back to mock data and sets
-  // _mockFallback. We track this so we can switch back to the local useMemo path.
-  const [useMockFallback, setUseMockFallback] = useState<boolean>(!isSupabaseConfigured())
   // Error banner shown when the listings fetch fails in production.
   const [fetchErrorBanner, setFetchErrorBanner] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
@@ -217,24 +214,13 @@ export function BrowseClient({
           total: number
           page: number
           totalPages: number
-          _mockFallback?: boolean
         }
 
         if (cancelled) return
 
-        if (json._mockFallback) {
-          // Development only — mock data is acceptable in local env
-          if (process.env.NODE_ENV !== 'development') {
-            setFetchErrorBanner('Unable to load listings right now. Please try again.')
-          } else {
-            setUseMockFallback(true)
-          }
-        } else {
-          setUseMockFallback(false)
-          setApiListings(json.listings)
-          setApiTotal(json.total)
-          setApiTotalPages(json.totalPages)
-        }
+        setApiListings(json.listings)
+        setApiTotal(json.total)
+        setApiTotalPages(json.totalPages)
       } catch {
         if (!cancelled) {
           setFetchErrorBanner('Unable to load listings right now. Please try again.')
@@ -250,59 +236,10 @@ export function BrowseClient({
     }
   }, [searchQuery, filters, sort, apiPage, initialPage, retryCount])
 
-  // ─── Mock fallback — client-side filter + sort (original logic) ───────────
-  const mockListings = useMemo(() => {
-    if (!useMockFallback) return []
-
-    let result = MOCK_LISTINGS.filter((l) => l.status === 'ACTIVE')
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter(
-        (l) =>
-          l.city.toLowerCase().includes(q) ||
-          l.locality.toLowerCase().includes(q) ||
-          l.title.toLowerCase().includes(q),
-      )
-    }
-
-    if (filters.bhkType) {
-      const mapped = BHK_MAP[filters.bhkType]
-      if (mapped) result = result.filter((l) => l.bhkType === mapped)
-    }
-
-    if (filters.furnishing) {
-      const mapped = FURNISHING_MAP[filters.furnishing]
-      if (mapped) result = result.filter((l) => l.furnishing === mapped)
-    }
-
-    if (filters.propertyType) {
-      const mapped = PROPERTY_TYPE_MAP[filters.propertyType]
-      if (mapped) result = result.filter((l) => l.propertyType === mapped)
-    }
-
-    if (filters.budget) {
-      const { min, max } = filters.budget
-      if (min !== null && min !== undefined) result = result.filter((l) => l.price >= min)
-      if (max !== null && max !== undefined) result = result.filter((l) => l.price <= max)
-    }
-
-    const sorted = [...result]
-    if (sort === 'newest') {
-      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    } else if (sort === 'price_asc') {
-      sorted.sort((a, b) => a.price - b.price)
-    } else {
-      sorted.sort((a, b) => b.price - a.price)
-    }
-
-    return sorted
-  }, [useMockFallback, searchQuery, filters, sort])
-
-  // ─── Active listings — API or mock ───────────────────────────────────────
-  const listings: MockListing[] = useMockFallback ? mockListings : (apiListings ?? [])
-  const totalPages = useMockFallback ? 1 : apiTotalPages
-  const totalCount = useMockFallback ? mockListings.length : apiTotal
+  // ─── Active listings ──────────────────────────────────────────────────────
+  const listings: MockListing[] = apiListings ?? []
+  const totalPages = apiTotalPages
+  const totalCount = apiTotal
 
   const resetFilters = useCallback(() => {
     setFilters({})
@@ -483,7 +420,7 @@ export function BrowseClient({
         )}
 
         {/* Pagination — only shown when using real API data and there are multiple pages */}
-        {!useMockFallback && !isLoading && totalPages > 1 && (
+        {!isLoading && totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
               type="button"

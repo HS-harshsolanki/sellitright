@@ -33,12 +33,16 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
     const supabase = createClient()
 
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) setAuthError(error)
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    supabase.auth
+      .getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) setAuthError(error)
+        setSession(session)
+        setUser(session?.user ?? null)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
 
     const {
       data: { subscription },
