@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Validate order ID format to prevent probing attacks
-  const isDev = process.env.NODE_ENV === 'development'
+  const isDev =
+    process.env.NODE_ENV === 'development' && !process.env.RAZORPAY_KEY_ID?.startsWith('rzp_live_')
   const isRealOrder = /^order_[A-Za-z0-9]{14,}$/.test(razorpayOrderId)
   const isDemoOrderId = isDev && razorpayOrderId.startsWith('demo_order_')
 
@@ -56,8 +57,7 @@ export async function POST(request: NextRequest) {
 
   // ── Verify HMAC signature ─────────────────────────────────────────────────
   // Demo mode is only permitted in development with a demo_ order ID
-  const isDemoOrder =
-    process.env.NODE_ENV === 'development' && razorpayOrderId.startsWith('demo_order_')
+  const isDemoOrder = isDev && razorpayOrderId.startsWith('demo_order_')
   if (!isDemoOrder) {
     const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)
     if (!isValid) {

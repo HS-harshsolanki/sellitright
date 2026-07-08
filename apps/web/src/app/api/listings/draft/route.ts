@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('id', id)
       .eq('seller_id', user.id)
-      .eq('status', 'DRAFT')
+      .in('status', ['DRAFT', 'REJECTED'])
       .single()
 
     if (error || !data) {
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         .update(record)
         .eq('id', input.id)
         .eq('seller_id', user.id)
-        .eq('status', 'DRAFT')
+        .in('status', ['DRAFT', 'REJECTED'])
         .select('id, status, updated_at')
         .single()
 

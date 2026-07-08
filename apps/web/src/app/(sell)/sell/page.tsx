@@ -214,7 +214,8 @@ export default function SellPage() {
           location.state,
         )
       case 'details':
-        // furnishing is required by the API schema
+        // PLOT has no BHK/furnishing — only area is required
+        if (propertyType === 'PLOT') return Boolean(details.builtUpArea)
         return Boolean(details.bhkType && details.builtUpArea && details.furnishing)
       case 'photos':
         return true

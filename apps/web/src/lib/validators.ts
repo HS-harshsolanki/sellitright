@@ -51,13 +51,13 @@ export const listingCreateSchema = z.object({
     .int('Price must be a whole number')
     .positive('Price must be positive'),
   propertyType: PropertyTypeEnum,
-  bhkType: BHKTypeEnum,
+  bhkType: BHKTypeEnum.optional(),
   builtUpArea: z.number().int().positive('Built-up area must be positive'),
   carpetArea: z.number().int().positive().optional(),
   floor: z.number().int().min(0).optional(),
   totalFloors: z.number().int().positive().optional(),
   facing: FacingEnum.optional(),
-  furnishing: FurnishingEnum,
+  furnishing: FurnishingEnum.optional(),
   ageOfProperty: z.number().int().min(0).max(100).optional(),
   bathrooms: z.number().int().min(1).max(10),
   balconies: z.number().int().min(0).max(10).optional(),
@@ -71,19 +71,7 @@ export const listingCreateSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   amenities: z.array(z.string()).default([]),
   imageUrls: z
-    .array(
-      z
-        .string()
-        .url('Each image must be a valid URL')
-        .refine(
-          (url) => {
-            const base = process.env.NEXT_PUBLIC_SUPABASE_URL
-            if (!base) return url.includes('.supabase.co/storage/') // fallback for dev/test
-            return url.startsWith(`${base}/storage/v1/object/public/photos/`)
-          },
-          { message: 'Image must be uploaded to this platform' },
-        ),
-    )
+    .array(z.string().url('Each image must be a valid URL').startsWith('https://'))
     .max(20)
     .default([]),
 })

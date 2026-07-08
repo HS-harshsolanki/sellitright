@@ -5,6 +5,7 @@ import {
   Bell,
   ClipboardList,
   LayoutGrid,
+  MessageSquare,
   Plus,
   Search,
   User,
@@ -31,6 +32,12 @@ const NAV_ITEMS = [
     label: 'My Requests',
     icon: <ClipboardList className="h-4 w-4" />,
     matchPath: '/dashboard/requests',
+  },
+  {
+    href: '/messages',
+    label: 'Messages',
+    icon: <MessageSquare className="h-4 w-4" />,
+    matchPath: '/messages',
   },
   {
     href: '/notifications',

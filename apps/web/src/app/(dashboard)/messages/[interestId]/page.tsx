@@ -47,6 +47,7 @@ export default function ChatThreadPage() {
   const [threadId, setThreadId] = useState<string | null>(null)
   const [threadStatus, setThreadStatus] = useState<'active' | 'locked' | 'disabled'>('active')
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer')
+  const [otherPartyName, setOtherPartyName] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -79,11 +80,19 @@ export default function ChatThreadPage() {
     setLoading(true)
     fetch(`/api/chat/threads/${threadId}/messages`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((json: { messages: ChatMessage[]; threadStatus: string; role: string }) => {
-        setMessages(json.messages)
-        setThreadStatus(json.threadStatus as 'active' | 'locked' | 'disabled')
-        setRole(json.role as 'buyer' | 'seller')
-      })
+      .then(
+        (json: {
+          messages: ChatMessage[]
+          threadStatus: string
+          role: string
+          otherPartyName?: string
+        }) => {
+          setMessages(json.messages)
+          setThreadStatus(json.threadStatus as 'active' | 'locked' | 'disabled')
+          setRole(json.role as 'buyer' | 'seller')
+          if (json.otherPartyName) setOtherPartyName(json.otherPartyName)
+        },
+      )
       .catch(() => setFetchError('Failed to load messages.'))
       .finally(() => setLoading(false))
   }, [threadId])
@@ -198,7 +207,7 @@ export default function ChatThreadPage() {
         </Link>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-[var(--color-foreground)]">
-            {role === 'buyer' ? 'Seller' : 'Buyer'}
+            {otherPartyName ?? (role === 'buyer' ? 'Seller' : 'Buyer')}
           </p>
           <p className="truncate text-xs text-[var(--color-muted-foreground)]">
             {threadStatus === 'locked'
