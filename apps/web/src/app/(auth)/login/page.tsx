@@ -40,7 +40,7 @@ function Spinner() {
 
 function LoginPageInner() {
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') ?? '/'
+  const next = searchParams.get('next') ?? '/properties'
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
