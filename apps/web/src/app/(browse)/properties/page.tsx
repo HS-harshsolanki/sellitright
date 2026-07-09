@@ -43,7 +43,7 @@ export default async function BrowsePage() {
   const initialTotalPages = Math.max(1, Math.ceil(initialTotal / 12))
 
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <BrowseClient
         initialListings={initialListings}
         initialTotal={initialTotal}

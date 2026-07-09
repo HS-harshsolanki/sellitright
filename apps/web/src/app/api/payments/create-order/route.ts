@@ -7,7 +7,7 @@ import { getRazorpayInstance, isRazorpayConfigured } from '@/lib/razorpay'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 // POST /api/payments/create-order
-// Creates a Razorpay order for the ₹49 contact-unlock fee.
+// Creates a Razorpay order for the ₹99 contact-unlock fee.
 // Body: { interestId: string }
 export async function POST(request: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         // Fresh enough — return the existing order so the client reopens the modal
         return NextResponse.json({
           orderId: recent.razorpay_order_id,
-          amount: 4900,
+          amount: 9900,
           currency: 'INR',
           reused: true,
         })
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     // Dev/demo mode — return a mock order so UI can be tested without real keys
     return NextResponse.json({
       orderId: `demo_order_${Date.now()}`,
-      amount: 4900,
+      amount: 9900,
       currency: 'INR',
       demo: true,
     })
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
       interest_id: interestId,
       razorpay_order_id: null,
       status: 'PENDING',
-      amount: 4900,
+      amount: 9900,
       currency: 'INR',
     })
     .select('id')
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
   try {
     const razorpay = getRazorpayInstance()
     razorpayOrder = (await razorpay.orders.create({
-      amount: 4900,
+      amount: 9900,
       currency: 'INR',
       receipt: localReceiptId.slice(0, 40),
     })) as { id: string; amount: number; currency: string }

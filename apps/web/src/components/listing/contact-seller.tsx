@@ -188,7 +188,7 @@ export function ContactSeller({
               <Link href={`/login?next=/listing/${listingId}`}>Sign in to Request Contact</Link>
             </Button>
             <p className="mt-2 text-center text-xs text-[var(--color-muted-foreground)]">
-              ₹49 connection fee — only charged after the owner accepts your request
+              ₹99 connection fee — only charged after the owner accepts your request
             </p>
           </div>
         ) : requested ? (
@@ -199,7 +199,7 @@ export function ContactSeller({
               <div>
                 <p className="text-sm font-semibold text-green-800">Request sent</p>
                 <p className="text-xs text-green-700">
-                  Waiting for the owner to accept. Once accepted, return here to pay ₹49 and unlock
+                  Waiting for the owner to accept. Once accepted, return here to pay ₹99 and unlock
                   their number — no charge until then.
                 </p>
               </div>
@@ -224,7 +224,7 @@ export function ContactSeller({
               Request Contact
             </Button>
             <p className="mt-2 text-center text-xs text-[var(--color-muted-foreground)]">
-              ₹49 connection fee — only charged after the owner accepts your request
+              ₹99 connection fee — only charged after the owner accepts your request
             </p>
           </div>
         )}

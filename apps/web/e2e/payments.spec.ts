@@ -3,9 +3,9 @@ import { test, expect } from '@playwright/test'
 /**
  * Payment flow end-to-end tests.
  *
- * These tests verify the full ₹49 contact-unlock pipeline at the API layer:
+ * These tests verify the full ₹99 contact-unlock pipeline at the API layer:
  *
- *   buyer submits interest → seller accepts → buyer pays ₹49 → contact details unlock
+ *   buyer submits interest → seller accepts → buyer pays ₹99 → contact details unlock
  *
  * Tests here cover:
  *   1. Auth guards — every payment route rejects unauthenticated callers

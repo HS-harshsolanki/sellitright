@@ -52,6 +52,7 @@ export const listingCreateSchema = z.object({
     .positive('Price must be positive'),
   propertyType: PropertyTypeEnum,
   bhkType: BHKTypeEnum.optional(),
+  negotiable: z.boolean().optional(),
   builtUpArea: z.number().int().positive('Built-up area must be positive'),
   carpetArea: z.number().int().positive().optional(),
   floor: z.number().int().min(0).optional(),

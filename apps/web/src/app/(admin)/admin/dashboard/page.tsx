@@ -86,7 +86,7 @@ export default function AdminDashboardPage() {
       href: '/admin/users',
     },
     {
-      label: 'Revenue (₹49 payments)',
+      label: 'Revenue (₹99 payments)',
       value: stats ? formatRupees(stats.payments.totalRevenue) : '—',
       icon: CreditCard,
       color: 'border-green-200 bg-green-50 text-green-900',

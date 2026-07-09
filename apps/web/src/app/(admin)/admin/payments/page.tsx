@@ -108,7 +108,7 @@ export default function AdminPaymentsPage() {
       <div>
         <h1 className="text-2xl font-bold text-[var(--color-foreground)]">Payments</h1>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Search and review ₹49 contact-unlock payments.
+          Search and review ₹99 contact-unlock payments.
         </p>
       </div>
 
@@ -298,7 +298,7 @@ export default function AdminPaymentsPage() {
                                   onClick={() => setConfirmRefundId(p.id)}
                                   className="rounded border border-red-300 px-2.5 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
                                 >
-                                  Refund ₹49
+                                  Refund ₹99
                                 </button>
                               ) : (
                                 <>

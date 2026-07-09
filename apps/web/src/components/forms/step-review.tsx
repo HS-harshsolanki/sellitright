@@ -153,15 +153,18 @@ export function StepReview({ draftId, hasPhone = true, onPhoneVerified }: StepRe
   // Build a list of everything that would fail Zod validation at submit time
   function getIncompleteFields(): IncompleteField[] {
     const issues: IncompleteField[] = []
+    const isPlot = propertyType === 'PLOT'
     if (!propertyType) issues.push({ label: 'Property type not selected', stepIndex: 0 })
     if (!location.city) issues.push({ label: 'City missing', stepIndex: 1 })
     if (!location.locality.trim()) issues.push({ label: 'Locality / area missing', stepIndex: 1 })
     if (location.pincode.length !== 6)
       issues.push({ label: 'Pincode must be 6 digits', stepIndex: 1 })
     if (!location.state) issues.push({ label: 'State missing', stepIndex: 1 })
-    if (!details.bhkType) issues.push({ label: 'BHK configuration not selected', stepIndex: 2 })
+    if (!isPlot && !details.bhkType)
+      issues.push({ label: 'BHK configuration not selected', stepIndex: 2 })
     if (!details.builtUpArea) issues.push({ label: 'Built-up area missing', stepIndex: 2 })
-    if (!details.furnishing) issues.push({ label: 'Furnishing status not selected', stepIndex: 2 })
+    if (!isPlot && !details.furnishing)
+      issues.push({ label: 'Furnishing status not selected', stepIndex: 2 })
     const rawPrice = Number(pricing.price.replace(/,/g, ''))
     if (rawPrice < 100_000)
       issues.push({
@@ -203,6 +206,7 @@ export function StepReview({ draftId, hasPhone = true, onPhoneVerified }: StepRe
       title: title.slice(0, 120),
       description: description.slice(0, 2000),
       price: rawPrice,
+      negotiable: pricing.negotiable,
       propertyType,
       bhkType: details.bhkType,
       builtUpArea: details.builtUpArea ? parseInt(details.builtUpArea, 10) : undefined,

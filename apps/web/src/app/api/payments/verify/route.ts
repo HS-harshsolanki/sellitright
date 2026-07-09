@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
       admin,
       userId: interest.seller_id,
       title: 'Payment received',
-      message: 'A buyer paid ₹49 to unlock your contact details.',
+      message: 'A buyer paid ₹99 to unlock your contact details.',
       type: 'PaymentReceived',
       entityType: 'payment',
       entityId: payment.id,

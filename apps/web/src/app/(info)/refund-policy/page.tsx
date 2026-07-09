@@ -3,14 +3,14 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Refund Policy | ChapterNew',
-  description: 'Understand when and how ChapterNew issues refunds for the ₹49 connection fee.',
+  description: 'Understand when and how ChapterNew issues refunds for the ₹99 connection fee.',
 }
 
 const SECTIONS = [
   {
     id: '1',
     title: 'What we charge',
-    body: "A one-time ₹49 connection fee is charged when a buyer pays to unlock a seller's contact details. This fee is charged only after the seller has explicitly accepted the buyer's request — you are never charged for a request that is still pending or that the seller has declined.",
+    body: "A one-time ₹99 connection fee is charged when a buyer pays to unlock a seller's contact details. This fee is charged only after the seller has explicitly accepted the buyer's request — you are never charged for a request that is still pending or that the seller has declined.",
   },
   {
     id: '2',
@@ -37,7 +37,7 @@ const SECTIONS = [
   {
     id: '5',
     title: 'Pricing and taxes',
-    body: 'The ₹49 connection fee is the total amount charged to you. GST (if applicable) is included in this amount. We will provide a tax invoice on request. Our GSTIN will be published here once obtained.',
+    body: 'The ₹99 connection fee is the total amount charged to you. GST (if applicable) is included in this amount. We will provide a tax invoice on request. Our GSTIN will be published here once obtained.',
   },
   {
     id: '6',
