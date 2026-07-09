@@ -23,7 +23,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self'",
       // Firebase reCAPTCHA renders an invisible iframe from firebaseapp.com + google.com
-      'frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.google.com https://recaptcha.google.com https://chapternew-e35ef.firebaseapp.com',
+      `frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.google.com https://recaptcha.google.com${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? ` https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com` : ''}`,
       "frame-ancestors 'self'",
       "object-src 'none'",
       "base-uri 'self'",
