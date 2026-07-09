@@ -36,6 +36,8 @@ declare global {
   }
 }
 
+// ── PhonePe does not require a window SDK — it uses a redirect flow ───────────
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface UnlockContactSectionProps {
@@ -104,12 +106,15 @@ export function UnlockContactSection({
     setFlowState('ordering')
     setErrorMessage(null)
 
-    // ── Step 1: Create Razorpay order ───────────────────────────────────────
+    // ── Step 1: Create order ────────────────────────────────────────────────
     let orderData: {
-      orderId: string
-      amount: number
-      currency: string
+      orderId?: string
+      amount?: number
+      currency?: string
       demo?: boolean
+      gateway?: string
+      redirectUrl?: string
+      merchantTransactionId?: string
     }
 
     try {
@@ -122,6 +127,7 @@ export function UnlockContactSection({
       const json = (await res.json()) as typeof orderData & {
         error?: string
         alreadyPaid?: boolean
+        alreadyPending?: boolean
       }
 
       if (res.status === 409 && json.alreadyPaid) {
@@ -163,7 +169,7 @@ export function UnlockContactSection({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            razorpayOrderId: orderData.orderId,
+            razorpayOrderId: orderData.orderId ?? '',
             razorpayPaymentId: `demo_pay_${Date.now()}`,
             razorpaySignature: 'demo_signature',
             interestId,
@@ -187,9 +193,67 @@ export function UnlockContactSection({
       }
     }
 
-    // ── Step 3: Load Razorpay SDK and open checkout ──────────────────────────
+    // ── Step 3a: PhonePe gateway — open redirect URL in new tab ─────────────
+    if (orderData.gateway === 'phonepe') {
+      if (!orderData.redirectUrl) {
+        setFlowState('error')
+        setErrorMessage('Payment URL not available. Please try again.')
+        setErrorType('order_creation')
+        return
+      }
+
+      setFlowState('paying')
+      const ppWindow = window.open(orderData.redirectUrl, '_blank')
+      if (!ppWindow) {
+        setFlowState('error')
+        setErrorType('generic')
+        setErrorMessage('Could not open payment window. Please allow popups and try again.')
+        return
+      }
+
+      setFlowState('verifying')
+      let pollAttempts = 0
+      const maxPollAttempts = 40
+
+      verifyTimeoutRef.current = setTimeout(() => {
+        setFlowState('error')
+        setErrorType('verification')
+        setErrorMessage(
+          'Payment confirmation is taking too long. If you completed payment, please refresh the listing page. Contact support if charged.',
+        )
+      }, 120_000)
+
+      const pollStatus = async (): Promise<void> => {
+        pollAttempts++
+        try {
+          const statusRes = await fetch(
+            `/api/payments/status?interestId=${encodeURIComponent(interestId)}`,
+          )
+          const statusData = (await statusRes.json()) as {
+            unlocked?: boolean
+            sellerPhone?: string | null
+            sellerEmail?: string | null
+          }
+          if (statusData.unlocked) {
+            if (verifyTimeoutRef.current) clearTimeout(verifyTimeoutRef.current)
+            onUnlocked(statusData.sellerPhone ?? '', statusData.sellerEmail ?? null)
+            return
+          }
+        } catch {
+          // continue polling
+        }
+        if (pollAttempts < maxPollAttempts) {
+          setTimeout(() => void pollStatus(), 3000)
+        }
+      }
+
+      setTimeout(() => void pollStatus(), 3000)
+      return
+    }
+
+    // ── Step 3b: Load Razorpay SDK and open checkout ─────────────────────────
     if (!assertRazorpayKey()) return
-    setCurrentOrderId(orderData.orderId)
+    setCurrentOrderId(orderData.orderId ?? '')
     setFlowState('paying')
     const loaded = await loadRazorpayScript()
     if (!loaded || !window.Razorpay) {
@@ -201,9 +265,9 @@ export function UnlockContactSection({
 
     const rzp = new window.Razorpay({
       key: razorpayKeyId,
-      amount: orderData.amount,
-      currency: orderData.currency,
-      order_id: orderData.orderId,
+      amount: orderData.amount ?? 4900,
+      currency: orderData.currency ?? 'INR',
+      order_id: orderData.orderId ?? '',
       name: 'ChapterNew',
       description: `Unlock seller contact for: ${listingTitle.slice(0, 60)}`,
       theme: { color: '#222222' },
@@ -392,7 +456,7 @@ export function UnlockContactSection({
       </Button>
 
       <p className="text-center text-xs text-[var(--color-muted-foreground)]">
-        Secure payment via Razorpay · One-time fee · No subscription
+        Secure payment · One-time fee · No subscription
       </p>
       <p className="text-center text-xs text-[var(--color-muted-foreground)]">
         <a

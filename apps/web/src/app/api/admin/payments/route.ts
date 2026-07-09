@@ -11,6 +11,8 @@ export interface PaymentAdminItem {
   sellerEmail: string | null
   listingId: string
   interestId: string
+  gateway: string
+  gatewayOrderId: string | null
   razorpayOrderId: string
   razorpayPaymentId: string | null
   status: string
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
   let query = admin
     .from('payments')
     .select(
-      'id, buyer_id, seller_id, listing_id, interest_id, razorpay_order_id, razorpay_payment_id, status, amount, paid_at, created_at',
+      'id, buyer_id, seller_id, listing_id, interest_id, gateway, gateway_order_id, razorpay_order_id, razorpay_payment_id, status, amount, paid_at, created_at',
       { count: 'exact' },
     )
     .order('created_at', { ascending: sort === 'oldest' })
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
   // Text search on IDs
   if (q) {
     query = query.or(
-      `razorpay_order_id.ilike.%${q}%,razorpay_payment_id.ilike.%${q}%,id.ilike.%${q}%`,
+      `razorpay_order_id.ilike.%${q}%,razorpay_payment_id.ilike.%${q}%,gateway_order_id.ilike.%${q}%,id.ilike.%${q}%`,
     )
   }
 
@@ -119,6 +121,8 @@ export async function GET(request: NextRequest) {
       seller_id: string
       listing_id: string
       interest_id: string
+      gateway: string | null
+      gateway_order_id: string | null
       razorpay_order_id: string
       razorpay_payment_id: string | null
       status: string
@@ -134,6 +138,8 @@ export async function GET(request: NextRequest) {
       sellerEmail: profileMap.get(row.seller_id)?.email ?? null,
       listingId: row.listing_id,
       interestId: row.interest_id,
+      gateway: row.gateway ?? 'razorpay',
+      gatewayOrderId: row.gateway_order_id ?? null,
       razorpayOrderId: row.razorpay_order_id,
       razorpayPaymentId: row.razorpay_payment_id ?? null,
       status: row.status,

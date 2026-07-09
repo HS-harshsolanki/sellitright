@@ -3,11 +3,12 @@ import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logger } from '@/lib/logger'
+import { isPhonePeConfigured, buildPhonePeChecksum, getPhonePeBaseUrl } from '@/lib/phonepe'
 import { getRazorpayInstance, isRazorpayConfigured } from '@/lib/razorpay'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 // POST /api/payments/create-order
-// Creates a Razorpay order for the ₹49 contact-unlock fee.
+// Creates an order for the ₹49 contact-unlock fee.
 // Body: { interestId: string }
 export async function POST(request: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -137,6 +138,128 @@ export async function POST(request: NextRequest) {
       },
       { status: 422 },
     )
+  }
+
+  // ── Active gateway selection ──────────────────────────────────────────────
+  const activeGateway = process.env.ACTIVE_GATEWAY ?? 'razorpay'
+
+  if (activeGateway === 'phonepe') {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+
+    if (!isPhonePeConfigured()) {
+      if (process.env.NODE_ENV !== 'development') {
+        return NextResponse.json(
+          { error: 'Payment service is not configured. Contact support.' },
+          { status: 503 },
+        )
+      }
+      return NextResponse.json({
+        gateway: 'phonepe',
+        demo: true,
+        redirectUrl: `${appUrl}/payment-return?demo=1&interestId=${encodeURIComponent(interestId)}`,
+      })
+    }
+
+    const merchantId = process.env.PHONEPE_MERCHANT_ID ?? ''
+    const merchantTransactionId = crypto.randomUUID().replace(/-/g, '').slice(0, 38)
+
+    const { data: ppPendingPayment, error: ppInsertError } = await admin
+      .from('payments')
+      .insert({
+        buyer_id: user.id,
+        seller_id: interest.seller_id,
+        listing_id: interest.listing_id,
+        interest_id: interestId,
+        gateway: 'phonepe',
+        gateway_order_id: merchantTransactionId,
+        razorpay_order_id: null,
+        status: 'PENDING',
+        amount: 4900,
+        currency: 'INR',
+      })
+      .select('id')
+      .single()
+
+    if (ppInsertError || !ppPendingPayment) {
+      if (ppInsertError?.code === '23505') {
+        return NextResponse.json(
+          { error: 'A payment is already in progress.', alreadyPending: true },
+          { status: 409 },
+        )
+      }
+      logger.error('[create-order/phonepe] failed to insert payment row', {
+        error: ppInsertError?.message,
+      })
+      return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
+    }
+
+    const ppPayload = {
+      merchantId,
+      merchantTransactionId,
+      merchantUserId: user.id.slice(0, 36),
+      amount: 4900,
+      redirectUrl: `${appUrl}/payment-return?interestId=${encodeURIComponent(interestId)}&transactionId=${encodeURIComponent(merchantTransactionId)}`,
+      redirectMode: 'GET',
+      callbackUrl: `${appUrl}/api/payments/webhook-phonepe`,
+      paymentInstrument: { type: 'PAY_PAGE' },
+    }
+
+    const base64Payload = Buffer.from(JSON.stringify(ppPayload)).toString('base64')
+    const checksum = buildPhonePeChecksum(base64Payload, '/pg/v1/pay')
+
+    let ppRedirectUrl: string
+    try {
+      const ppRes = await fetch(`${getPhonePeBaseUrl()}/pg/v1/pay`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-VERIFY': checksum,
+          'X-MERCHANT-ID': merchantId,
+        },
+        body: JSON.stringify({ request: base64Payload }),
+      })
+      if (!ppRes.ok) {
+        const errText = await ppRes.text()
+        logger.error('[create-order/phonepe] PhonePe API error', {
+          status: ppRes.status,
+          body: errText,
+        })
+        await admin.from('payments').delete().eq('id', ppPendingPayment.id)
+        return NextResponse.json(
+          { error: 'Failed to create payment order. Please try again.' },
+          { status: 500 },
+        )
+      }
+      const ppOrder = (await ppRes.json()) as {
+        success: boolean
+        data?: {
+          instrumentResponse?: { redirectInfo?: { url?: string } }
+        }
+      }
+      if (!ppOrder.success || !ppOrder.data?.instrumentResponse?.redirectInfo?.url) {
+        await admin.from('payments').delete().eq('id', ppPendingPayment.id)
+        return NextResponse.json(
+          { error: 'Failed to get payment URL. Please try again.' },
+          { status: 500 },
+        )
+      }
+      ppRedirectUrl = ppOrder.data.instrumentResponse.redirectInfo.url
+    } catch (err) {
+      logger.error('[create-order/phonepe] fetch error', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      await admin.from('payments').delete().eq('id', ppPendingPayment.id)
+      return NextResponse.json(
+        { error: 'Failed to create payment order. Please try again.' },
+        { status: 500 },
+      )
+    }
+
+    return NextResponse.json({
+      gateway: 'phonepe',
+      redirectUrl: ppRedirectUrl,
+      merchantTransactionId,
+    })
   }
 
   // ── Razorpay: demo-mode guard ─────────────────────────────────────────────

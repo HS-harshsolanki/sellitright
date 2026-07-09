@@ -175,6 +175,9 @@ export type Database = {
           seller_id: string
           listing_id: string
           interest_id: string
+          gateway: string
+          gateway_order_id: string | null
+          gateway_payment_id: string | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
           status: string
@@ -189,6 +192,9 @@ export type Database = {
           seller_id: string
           listing_id: string
           interest_id: string
+          gateway?: string
+          gateway_order_id?: string | null
+          gateway_payment_id?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           status?: string
@@ -203,6 +209,9 @@ export type Database = {
           seller_id?: string
           listing_id?: string
           interest_id?: string
+          gateway?: string
+          gateway_order_id?: string | null
+          gateway_payment_id?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           status?: string
