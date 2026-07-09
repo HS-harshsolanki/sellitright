@@ -11,6 +11,9 @@ coverage/
 *.log
 .vercel
 
+# Claude Code worktrees
+.claude/
+
 # Playwright
 apps/web/playwright-report/
 apps/web/test-results/
