@@ -68,6 +68,7 @@ export async function GET(_request: NextRequest) {
     .limit(50)
 
   if (error) {
+    console.error('[chat/threads] DB error:', error.message, error.code)
     return NextResponse.json({ error: 'Failed to load conversations.' }, { status: 500 })
   }
 
