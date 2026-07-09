@@ -77,13 +77,23 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Copy refreshed session cookies onto any redirect we create.
+  // If we return a bare NextResponse.redirect(), the Set-Cookie headers that
+  // supabase.auth.getUser() wrote onto supabaseResponse are silently dropped,
+  // causing the "login twice" symptom.
+  function redirectWithCookies(to: URL): NextResponse {
+    const res = NextResponse.redirect(to)
+    supabaseResponse.cookies.getAll().forEach((c) => res.cookies.set(c.name, c.value, c))
+    return res
+  }
+
   // Redirect unauthenticated users away from protected routes
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p))
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/login'
     redirectUrl.searchParams.set('next', pathname)
-    return NextResponse.redirect(redirectUrl)
+    return redirectWithCookies(redirectUrl)
   }
 
   // Redirect authenticated users away from login/register
@@ -92,7 +102,7 @@ export async function middleware(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = sanitiseNext(raw)
     redirectUrl.search = ''
-    return NextResponse.redirect(redirectUrl)
+    return redirectWithCookies(redirectUrl)
   }
 
   return supabaseResponse
