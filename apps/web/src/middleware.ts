@@ -98,7 +98,7 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from login/register
   if (user && (pathname === '/login' || pathname === '/register')) {
-    const raw = request.nextUrl.searchParams.get('next') ?? '/'
+    const raw = request.nextUrl.searchParams.get('next') ?? '/properties'
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = sanitiseNext(raw)
     redirectUrl.search = ''
