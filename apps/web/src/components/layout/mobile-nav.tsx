@@ -11,11 +11,18 @@ export function MobileNav() {
   const pathname = usePathname()
   const { user } = useAuth()
 
+  const isPropertyContext =
+    pathname === '/properties' ||
+    pathname.startsWith('/properties') ||
+    pathname.startsWith('/listing/')
+
   const tabs = user
     ? [
         { href: '/', label: 'Home', icon: Home },
         { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
-        { href: '/messages', label: 'Messages', icon: MessageSquare, matchHref: '/messages' },
+        ...(isPropertyContext
+          ? [{ href: '/messages', label: 'Messages', icon: MessageSquare, matchHref: '/messages' }]
+          : []),
         { href: '/sell', label: 'Sell', icon: PlusSquare },
         { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, matchHref: '/dashboard' },
       ]
