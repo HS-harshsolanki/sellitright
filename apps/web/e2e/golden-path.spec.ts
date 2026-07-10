@@ -154,17 +154,9 @@ test.describe('Golden path — Step 4: Buyer pays to unlock contact', () => {
 // ── Step 5: Notifications received ────────────────────────────────────────────
 
 test.describe('Golden path — Step 5: Notifications', () => {
-  test('GET /api/notifications returns empty state without auth (not 500)', async ({ request }) => {
+  test('GET /api/notifications returns 401 without auth (not 500)', async ({ request }) => {
     const res = await request.get('/api/notifications')
-    expect(res.status()).toBe(200)
-    const body = (await res.json()) as {
-      notifications: unknown[]
-      total: number
-      unreadCount: number
-    }
-    expect(Array.isArray(body.notifications)).toBe(true)
-    expect(body.total).toBe(0)
-    expect(body.unreadCount).toBe(0)
+    expect(res.status()).toBe(401)
   })
 
   test('PATCH /api/notifications/:id returns 401 without auth', async ({ request }) => {
