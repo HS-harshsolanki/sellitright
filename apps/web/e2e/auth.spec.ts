@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test'
 /**
  * Auth E2E tests.
  *
- * The login page uses Google OAuth only.
- * Full OAuth redirect cannot be E2E tested without a live Supabase project.
+ * The login page supports Google OAuth and email magic link (Supabase OTP).
+ * Full OAuth/OTP redirect flows cannot be E2E tested without a live Supabase project.
  */
 
 test.describe('Login page', () => {
@@ -34,6 +34,80 @@ test.describe('Login page', () => {
 
   test('should show the ChapterNew logo/home link', async ({ page }) => {
     await expect(page.getByRole('link', { name: /chapternew/i })).toBeVisible()
+  })
+})
+
+// ── TC-A14–TC-A19: Email magic link auth UI ───────────────────────────────────
+
+test.describe('TC-A14 — Email sign-in option is visible', () => {
+  test('Continue with Email button visible on initial load', async ({ page }) => {
+    await page.goto('/login')
+    await expect(page.getByRole('button', { name: /continue with email/i })).toBeVisible({
+      timeout: 5000,
+    })
+  })
+})
+
+test.describe('TC-A15 — Email form shows on click', () => {
+  test('clicking Continue with Email reveals the email input and send button', async ({ page }) => {
+    await page.goto('/login')
+    await page.getByRole('button', { name: /continue with email/i }).click()
+    await expect(page.getByRole('textbox', { name: /email/i })).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('button', { name: /send sign-in link/i })).toBeVisible()
+  })
+})
+
+test.describe('TC-A16 — Email send button disabled without input', () => {
+  test('Send sign-in link button is disabled when email is empty', async ({ page }) => {
+    await page.goto('/login')
+    await page.getByRole('button', { name: /continue with email/i }).click()
+    await expect(page.getByRole('textbox', { name: /email/i })).toBeVisible()
+    const sendBtn = page.getByRole('button', { name: /send sign-in link/i })
+    await expect(sendBtn).toBeDisabled()
+  })
+})
+
+test.describe('TC-A17 — Email OTP success state', () => {
+  test('after OTP send succeeds, confirmation state shows the email address', async ({ page }) => {
+    // Mock Supabase OTP endpoint to return success
+    await page.route('**/auth/v1/otp**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+    )
+    await page.goto('/login')
+    await page.getByRole('button', { name: /continue with email/i }).click()
+    await page.getByRole('textbox', { name: /email/i }).fill('test@example.com')
+    await page.getByRole('button', { name: /send sign-in link/i }).click()
+    await expect(page.getByText(/check your email/i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/test@example.com/)).toBeVisible()
+  })
+})
+
+test.describe('TC-A18 — Use different email resets flow', () => {
+  test('Use a different email button resets back to Continue with Email', async ({ page }) => {
+    await page.route('**/auth/v1/otp**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+    )
+    await page.goto('/login')
+    await page.getByRole('button', { name: /continue with email/i }).click()
+    await page.getByRole('textbox', { name: /email/i }).fill('test@example.com')
+    await page.getByRole('button', { name: /send sign-in link/i }).click()
+    await page.getByRole('button', { name: /use a different email/i }).click()
+    await expect(page.getByRole('button', { name: /continue with email/i })).toBeVisible({
+      timeout: 3000,
+    })
+  })
+})
+
+test.describe('TC-A19 — Back button hides email form', () => {
+  test('Back button inside email form restores Continue with Email button', async ({ page }) => {
+    await page.goto('/login')
+    await page.getByRole('button', { name: /continue with email/i }).click()
+    await expect(page.getByRole('textbox', { name: /email/i })).toBeVisible()
+    await page.getByRole('button', { name: /^back$/i }).click()
+    await expect(page.getByRole('button', { name: /continue with email/i })).toBeVisible({
+      timeout: 3000,
+    })
+    await expect(page.getByRole('textbox', { name: /email/i })).not.toBeVisible()
   })
 })
 
