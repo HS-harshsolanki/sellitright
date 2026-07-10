@@ -94,6 +94,18 @@ jobs:
       - name: Build app
         run: pnpm --filter web build
 
+      - name: Load test env
+        run: |
+          # Set placeholder Supabase values so the dev server boots without real credentials.
+          # These are safe public values; E2E tests mock all Supabase network calls.
+          # Only set if not already provided by secrets (empty string = not set).
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321" >> $GITHUB_ENV
+          fi
+          if [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=test-anon-key-placeholder" >> $GITHUB_ENV
+          fi
+
       - name: Run E2E tests
         run: pnpm --filter web test:e2e
         env:
