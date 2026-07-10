@@ -89,7 +89,11 @@ function LoginPageInner() {
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
-    if (!email.trim() || !isSupabaseConfigured()) {
+    if (!email.trim()) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    if (!isSupabaseConfigured()) {
       setError('Sign-in is temporarily unavailable. Please try again later.')
       return
     }
@@ -245,7 +249,10 @@ function LoginPageInner() {
               type="button"
               variant="outline"
               className="h-12 w-full gap-3 border-[var(--color-border)] text-sm font-medium shadow-sm"
-              onClick={() => setShowEmailForm(true)}
+              onClick={() => {
+                setShowEmailForm(true)
+                setError('')
+              }}
               disabled={loading}
             >
               <MailIcon />

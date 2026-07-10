@@ -134,7 +134,7 @@ export function GlobalMessagesBubble() {
   // Never show on the homepage — it looks out of place for unauthenticated visitors.
   const shouldShow =
     pathname === '/properties' ||
-    pathname.startsWith('/properties') ||
+    pathname.startsWith('/properties/') ||
     /^\/listing\//.test(pathname)
 
   // ── Load thread list ────────────────────────────────────────────────────
