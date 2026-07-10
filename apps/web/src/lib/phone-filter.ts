@@ -219,7 +219,7 @@ function stripInvisible(text: string): string {
 function stripEmojiSeparators(text: string): string {
   // Replace emoji (Emoji_Presentation or Emoji_Modifier_Base ranges) with a space
   // so the separator-collapse step can handle them.
-  return text.replace(/\p{Emoji}/gu, ' ')
+  return text.replace(/\p{Emoji_Presentation}/gu, ' ')
 }
 
 // ---------------------------------------------------------------------------
