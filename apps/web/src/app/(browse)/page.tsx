@@ -8,27 +8,27 @@ import { FAQItem, FadeIn, Reveal, ScrollChevron, Stagger } from '@/components/la
 const PAIN_POINTS = [
   {
     num: '01',
-    title: 'Listings stay live after properties are sold.',
+    title: 'That listing you called about? It sold three months ago.',
     description:
-      'Ghost listings drive engagement on portals. You call. No one answers. The property was sold months ago.',
+      'Ghost listings keep portals looking busy. You spend evenings calling numbers that go unanswered — or worse, answered by a broker who says "that one is gone, but I have others."',
   },
   {
     num: '02',
-    title: 'You cannot verify the owner is real.',
+    title: 'There is no way to know if the owner is even real.',
     description:
-      'Anonymous posts. No ID check. The person on the other end could be a broker, a sublet, or no one.',
+      'No ID. No verification. The person posting could be a broker pretending to be an owner, a sub-broker, or someone running a scam. You have no way to tell until it is too late.',
   },
   {
     num: '03',
-    title: '1–2% of the sale price goes to someone who made one call.',
+    title: 'Lakhs go to a broker for a connection you could have made yourself.',
     description:
-      'Lakhs in commission. For a connection you could have made yourself, to an owner you could have found directly.',
+      '1–2% of the sale price. On a ₹80 lakh flat, that is ₹80,000–₹1.6 lakh — for someone who sent one WhatsApp message and showed up once.',
   },
   {
     num: '04',
-    title: 'Your number is sold before you see a single listing.',
+    title: 'You get twelve broker calls before you see a single listing.',
     description:
-      'You searched. Your number was harvested. Twelve brokers have it by evening. You never agreed to this.',
+      'You searched once. Your number was harvested and sold. By evening, strangers are calling you about properties in cities you never looked at. You never consented to any of this.',
   },
 ]
 
@@ -38,61 +38,62 @@ const HANDSHAKE_STEPS = [
     actor: 'Owner',
     label: 'Lists their property',
     description:
-      'Real photos. Verified identity. Contact details stay private until they choose to share them.',
+      'Real photos. Verified identity. Contact details stay completely private until the owner chooses to share them — with exactly the right person.',
   },
   {
     step: '02',
     actor: 'Buyer',
     label: 'Sends a request',
     description:
-      'The owner sees exactly who is asking — name, intent, no anonymity — before agreeing to anything.',
+      'The owner sees who is asking — your name, your intent — before agreeing to anything. No anonymous pings. No pressure.',
   },
   {
     step: '03',
     actor: 'Owner',
     label: 'Approves or declines',
-    description: 'Full control. The owner decides who gets access. No cold contacts. No surprises.',
+    description:
+      'The owner is in full control. They decide who gets their number. No cold calls, no strangers showing up uninvited.',
   },
   {
     step: '04',
     actor: 'Buyer',
     label: 'Pays a small platform fee',
     description:
-      'Pays a one-time connection fee — only after both sides agree. No commission. No subscription.',
+      'Just ₹49 — a one-time fee, charged only after both sides have agreed to connect. Not before. Not as a subscription. Just once.',
   },
   {
     step: '05',
     actor: 'Both',
     label: 'Talk directly',
     description:
-      'A real conversation via WhatsApp — between a verified owner and a serious buyer. No broker in the middle.',
+      'A real conversation on WhatsApp — owner to buyer, no middleman listening in. What you say, what you negotiate, is between the two of you.',
   },
 ]
 
 const TRUST_PILLARS = [
   {
     icon: BadgeCheck,
-    title: 'Owner identity confirmed before listing.',
+    title: 'Every owner is verified before their listing goes live.',
     description:
-      'Government ID matched to the property documents. Anonymous posts are not accepted.',
+      'Government ID checked and matched to property documents. If we cannot verify the owner, the listing does not appear. No exceptions.',
   },
   {
     icon: ShieldCheck,
-    title: 'You know exactly who sent the listing.',
+    title: 'You know exactly who owns the property you are looking at.',
     description:
-      'Owners verify their phone number and identity before their first listing goes live.',
+      'Owners verify their identity and phone number before posting. The person behind every listing is a real, confirmed individual — not an anonymous post.',
   },
   {
     icon: Lock,
-    title: 'Your contact details are never shared without your approval.',
+    title: 'Your contact details are never shared without your say-so.',
     description:
-      'Contact information is hidden on both sides until an owner explicitly accepts a request.',
+      'Your number stays hidden until an owner explicitly approves your request. No one can see your contact details just by browsing.',
   },
   {
     icon: CheckCircle2,
-    title: 'If a listing is wrong, we take it down.',
+    title: 'Spot something wrong? We act within 48 hours.',
     description:
-      'Report a listing that does not match reality. We investigate within 48 hours and take action before any fee is charged.',
+      'If a listing does not match what you see in person, report it. We investigate and take it down before any fee is ever charged to you.',
   },
 ]
 
@@ -100,17 +101,27 @@ const FAQ_ITEMS = [
   {
     question: 'Is ChapterNew a broker?',
     answer:
-      'No. We are a platform. We connect owners and buyers directly — no ChapterNew employee is involved in your negotiation, price discussion, or site visit. We charge a one-time platform fee only when both sides agree to connect.',
+      'No — and that is the whole point. We are a platform, not a middleman. No ChapterNew person is involved in your negotiation, your price discussion, or your site visit. You deal directly with the owner. We charge a small one-time platform fee only after both sides agree to connect.',
   },
   {
-    question: 'What does the platform fee cover?',
+    question: 'What does the ₹49 platform fee actually cover?',
     answer:
-      'The fee covers identity verification of the owner, listing review, and the secure contact exchange between both parties. You pay nothing until a connection is mutually agreed upon.',
+      "It covers the cost of verifying the owner's identity, reviewing the listing, and enabling the secure exchange of contact details between both parties. You pay nothing until you have seen the listing, found it genuine, and chosen to connect. Not before.",
   },
   {
-    question: 'What if the owner does not respond after I express interest?',
+    question: 'What if the owner does not respond after I send a request?',
     answer:
-      'Owners are notified immediately when you send a request. If there is no response within 72 hours, the listing is flagged for review. You can also report unresponsive listings directly — we investigate and follow up.',
+      'Owners are notified the moment you express interest. If they do not respond within 72 hours, the listing is flagged for our review. You can also report unresponsive listings directly — we follow up and take action. Your time matters.',
+  },
+  {
+    question: 'How do I know the listing is still available and not already sold?',
+    answer:
+      'Owners are required to mark their listing as sold or remove it once a deal is done. Listings that stay live without activity are automatically flagged. If you suspect a ghost listing, report it — we investigate within 48 hours. The ₹49 fee is never charged for a listing that turns out to be unavailable.',
+  },
+  {
+    question: 'Can I negotiate the price directly with the owner?',
+    answer:
+      'Yes — completely. Once you are connected, everything between you and the owner is your business. We do not set prices, take a cut of the deal, or interfere in negotiations. What you agree on is between the two of you.',
   },
 ]
 
@@ -142,16 +153,16 @@ export default async function LandingPage() {
               id="hero-heading"
               className="text-[clamp(2.75rem,7vw,5.5rem)] font-semibold leading-[1.05] tracking-tight text-[var(--color-foreground)]"
             >
-              Find your next
+              Buy or sell a home.
               <br />
-              place in <span style={{ color: '#F86039' }}>life.</span>
+              No broker in the <span style={{ color: '#F86039' }}>middle.</span>
             </h1>
           </Reveal>
 
           <Reveal delay={0.1} y={20}>
             <p className="mt-6 max-w-lg text-xl leading-relaxed text-[var(--color-muted-foreground)] sm:text-2xl">
-              ChapterNew connects verified owners directly with serious buyers — no middlemen, no
-              number leaks, no surprises.
+              ChapterNew is where verified property owners meet serious buyers — directly,
+              privately, and on their own terms. No brokers. No number leaks. No drama.
             </p>
           </Reveal>
 
@@ -185,7 +196,7 @@ export default async function LandingPage() {
                 href="/properties"
                 className="text-sm font-medium text-[var(--color-foreground)] underline-offset-4 hover:underline"
               >
-                Find a Home
+                Search Homes
               </Link>
               <span className="text-[var(--color-border)]" aria-hidden="true">
                 ·
@@ -194,12 +205,12 @@ export default async function LandingPage() {
                 href="/sell"
                 className="text-sm font-medium text-[var(--color-foreground)] underline-offset-4 hover:underline"
               >
-                List Your Property
+                List Your Property Free
               </Link>
             </div>
 
             <p className="mt-4 text-sm text-[var(--color-muted-foreground)]">
-              No broker fees &nbsp;·&nbsp; No unsolicited contact &nbsp;·&nbsp; Free to list
+              No broker fees &nbsp;·&nbsp; No spam calls &nbsp;·&nbsp; Free to list
             </p>
           </Reveal>
 
@@ -227,8 +238,8 @@ export default async function LandingPage() {
               against <span style={{ color: '#F86039' }}>you.</span>
             </h2>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-              They profit from your number, your time, and your inability to verify what you&apos;re
-              looking at.
+              If you have ever searched for a home in India, you already know this. Here is why it
+              keeps happening.
             </p>
           </Reveal>
 
@@ -266,13 +277,13 @@ export default async function LandingPage() {
               id="handshake-heading"
               className="text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-tight tracking-tight text-white"
             >
-              A process that respects
+              How it works — for
               <br />
               both <span style={{ color: '#F86039' }}>sides.</span>
             </h2>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/60">
-              Every step is designed so neither party needs to trust a stranger — the system does
-              the work.
+              Every step is built so owners stay in control and buyers only pay when they have found
+              something real.
             </p>
           </FadeIn>
 
@@ -313,13 +324,13 @@ export default async function LandingPage() {
                 href="/sell"
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
               >
-                List Your Property <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                List Your Property Free <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href="/properties"
                 className="inline-flex items-center gap-2 rounded-xl border border-white/25 px-7 py-3.5 text-sm font-semibold text-white/80 transition-all hover:border-white/50 hover:text-white"
               >
-                Browse Homes <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                Search Homes <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
           </Reveal>
@@ -339,12 +350,13 @@ export default async function LandingPage() {
               id="trust-heading"
               className="max-w-2xl text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-tight tracking-tight text-[var(--color-foreground)]"
             >
-              What we verify before
+              What we check before
               <br />
               anything goes <span style={{ color: '#F86039' }}>live.</span>
             </h2>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-              Every listing passes the same checks. No exceptions for premium listings.
+              Every listing goes through the same process. No shortcuts, no paid boosts that skip
+              verification.
             </p>
           </Reveal>
 
@@ -411,7 +423,8 @@ export default async function LandingPage() {
               Browse by <span style={{ color: '#F86039' }}>city.</span>
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-              Owner-listed properties across India&apos;s major residential markets.
+              Verified owner listings — no brokers, no fake posts — across India&apos;s major
+              cities.
             </p>
           </FadeIn>
 
@@ -457,14 +470,14 @@ export default async function LandingPage() {
                     Looking for a <span style={{ color: '#F86039' }}>home?</span>
                   </h2>
                   <p className="mt-4 text-lg leading-relaxed text-white/55">
-                    Search verified owner listings in your city. No broker calls.
+                    Browse verified owner listings in your city — no broker calls, no number leaks.
                   </p>
                 </div>
                 <Link
                   href="/properties"
                   className="mt-auto inline-flex items-center gap-2 self-start rounded-xl border border-white/25 px-7 py-3.5 text-sm font-semibold text-white transition-all hover:border-white/50 hover:bg-white/5"
                 >
-                  Find a Home <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  Search Homes <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </div>
             </Reveal>
@@ -478,14 +491,15 @@ export default async function LandingPage() {
                     Selling your <span style={{ color: '#F86039' }}>property?</span>
                   </h2>
                   <p className="mt-4 text-lg leading-relaxed text-white/55">
-                    List in 5 minutes. We verify it. Buyers come to you.
+                    List in minutes, free. We verify it. Serious buyers come to you — no broker in
+                    the middle taking a cut.
                   </p>
                 </div>
                 <Link
                   href="/sell"
                   className="mt-auto inline-flex items-center gap-2 self-start rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-[var(--color-primary)] transition-opacity hover:opacity-90"
                 >
-                  List Your Property <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  List Your Property Free <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </div>
             </Reveal>

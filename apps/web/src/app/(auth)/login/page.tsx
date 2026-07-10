@@ -29,6 +29,20 @@ const GoogleIcon = () => (
   </svg>
 )
 
+const MailIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    className="h-5 w-5"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    aria-hidden="true"
+  >
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="M2 7l10 7 10-7" />
+  </svg>
+)
+
 function Spinner() {
   return (
     <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -43,12 +57,14 @@ function LoginPageInner() {
   const next = searchParams.get('next') ?? '/properties'
 
   const [loading, setLoading] = useState(false)
+  const [emailLoading, setEmailLoading] = useState(false)
   const [error, setError] = useState('')
+  const [email, setEmail] = useState('')
+  const [emailSent, setEmailSent] = useState(false)
+  const [showEmailForm, setShowEmailForm] = useState(false)
 
   async function handleGoogleLogin() {
     if (!isSupabaseConfigured()) {
-      // Dev-only — never shown to end users in production
-      console.warn('[login] Supabase is not configured. Check your .env.local file.')
       setError('Sign-in is temporarily unavailable. Please try again later.')
       return
     }
@@ -69,6 +85,30 @@ function LoginPageInner() {
       setError('Sign-in failed. Please try again.')
       setLoading(false)
     }
+  }
+
+  async function handleEmailLogin(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim() || !isSupabaseConfigured()) {
+      setError('Sign-in is temporarily unavailable. Please try again later.')
+      return
+    }
+    setEmailLoading(true)
+    setError('')
+    const { error: otpError } = await createClient().auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        shouldCreateUser: true,
+      },
+    })
+    setEmailLoading(false)
+    if (otpError) {
+      console.error('[login] Email OTP error:', otpError.message)
+      setError('Could not send sign-in link. Please try again.')
+      return
+    }
+    setEmailSent(true)
   }
 
   const callbackError = searchParams.get('error')
@@ -108,16 +148,112 @@ function LoginPageInner() {
         </div>
       )}
 
-      <Button
-        type="button"
-        variant="outline"
-        className="h-12 w-full gap-3 border-[var(--color-border)] text-sm font-medium shadow-sm"
-        onClick={handleGoogleLogin}
-        disabled={loading}
-      >
-        {loading ? <Spinner /> : <GoogleIcon />}
-        {loading ? 'Redirecting to Google…' : 'Continue with Google'}
-      </Button>
+      {emailSent ? (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-center">
+          <div className="mb-2 flex justify-center">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-8 w-8 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <p className="text-sm font-semibold text-green-800">Check your email</p>
+          <p className="mt-1 text-xs text-green-700">
+            We sent a sign-in link to <strong>{email}</strong>. Click it to log in — no password
+            needed.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setEmailSent(false)
+              setEmail('')
+              setShowEmailForm(false)
+            }}
+            className="mt-3 text-xs text-green-700 underline underline-offset-2 hover:text-green-900"
+          >
+            Use a different email
+          </button>
+        </div>
+      ) : (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 w-full gap-3 border-[var(--color-border)] text-sm font-medium shadow-sm"
+            onClick={handleGoogleLogin}
+            disabled={loading || emailLoading}
+          >
+            {loading ? <Spinner /> : <GoogleIcon />}
+            {loading ? 'Redirecting to Google…' : 'Continue with Google'}
+          </Button>
+
+          <div className="my-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--color-border)]" />
+            <span className="text-xs text-[var(--color-muted-foreground)]">or</span>
+            <div className="h-px flex-1 bg-[var(--color-border)]" />
+          </div>
+
+          {showEmailForm ? (
+            <form onSubmit={handleEmailLogin} className="space-y-3">
+              <div>
+                <label htmlFor="email" className="sr-only">
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoFocus
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="focus:ring-[var(--color-foreground)]/10 h-12 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] px-4 text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-foreground)] focus:bg-white focus:outline-none focus:ring-2"
+                  disabled={emailLoading}
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="outline"
+                className="h-12 w-full gap-3 border-[var(--color-border)] text-sm font-medium shadow-sm"
+                disabled={emailLoading || !email.trim()}
+              >
+                {emailLoading ? <Spinner /> : <MailIcon />}
+                {emailLoading ? 'Sending link…' : 'Send sign-in link'}
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmailForm(false)
+                  setError('')
+                }}
+                className="w-full text-center text-xs text-[var(--color-muted-foreground)] underline underline-offset-2 hover:text-[var(--color-foreground)]"
+              >
+                Back
+              </button>
+            </form>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 w-full gap-3 border-[var(--color-border)] text-sm font-medium shadow-sm"
+              onClick={() => setShowEmailForm(true)}
+              disabled={loading}
+            >
+              <MailIcon />
+              Continue with Email
+            </Button>
+          )}
+        </>
+      )}
 
       <p className="mt-6 text-center text-xs text-[var(--color-muted-foreground)]">
         By continuing, you agree to our{' '}
