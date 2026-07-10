@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Search, PlusSquare, User, LayoutDashboard, MessageSquare } from 'lucide-react'
+import { Home, Search, PlusSquare, User, LayoutDashboard, Bell } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -11,19 +11,12 @@ export function MobileNav() {
   const pathname = usePathname()
   const { user } = useAuth()
 
-  const isPropertyContext =
-    pathname === '/properties' ||
-    pathname.startsWith('/properties') ||
-    pathname.startsWith('/listing/')
-
   const tabs = user
     ? [
         { href: '/', label: 'Home', icon: Home },
         { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
-        ...(isPropertyContext
-          ? [{ href: '/messages', label: 'Messages', icon: MessageSquare, matchHref: '/messages' }]
-          : []),
         { href: '/sell', label: 'Sell', icon: PlusSquare },
+        { href: '/notifications', label: 'Alerts', icon: Bell, matchHref: '/notifications' },
         { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, matchHref: '/dashboard' },
       ]
     : [

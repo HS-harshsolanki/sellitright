@@ -32,8 +32,8 @@ test.describe('Login page', () => {
     await expect(page.getByRole('button', { name: /continue with google/i })).toBeEnabled()
   })
 
-  test('should show the SellItRight logo/home link', async ({ page }) => {
-    await expect(page.getByRole('link', { name: /sellitright home/i })).toBeVisible()
+  test('should show the ChapterNew logo/home link', async ({ page }) => {
+    await expect(page.getByRole('link', { name: /chapternew/i })).toBeVisible()
   })
 })
 

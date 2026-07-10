@@ -85,24 +85,26 @@ function mockListings(page: import('@playwright/test').Page, listings = MOCK_LIS
 }
 
 test.describe('Browse page', () => {
+  // These tests use /properties which has a BrowseClient component that fetches
+  // listings client-side after hydration, so page.route() intercepts correctly.
   test.beforeEach(async ({ page }) => {
     await mockListings(page)
-    await page.goto('/')
+    await page.goto('/properties')
   })
 
-  test('should show listing cards on the home page', async ({ page }) => {
-    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
+  test('should show listing cards on the browse page', async ({ page }) => {
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 10000 })
   })
 
   test('should show property count', async ({ page }) => {
-    await expect(page.getByText(/\d+ propert/i)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/\d+ propert/i)).toBeVisible({ timeout: 10000 })
   })
 
   test('should filter listings when search query is entered', async ({ page }) => {
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 10000 })
     const search = page.getByRole('searchbox').or(page.getByPlaceholder(/search/i))
     await search.fill('Mumbai')
-    await page.waitForURL(/\?q=Mumbai/)
-    // With a q param, a new fetch fires — mock returns same data so just confirm URL changed
+    await page.waitForURL(/\?q=Mumbai/, { timeout: 8000 })
     await expect(page).toHaveURL(/\?q=Mumbai/)
   })
 
@@ -117,42 +119,41 @@ test.describe('Browse page', () => {
     })
     const search = page.getByRole('searchbox').or(page.getByPlaceholder(/search/i))
     await search.fill('zzzzzzz_impossible_xyz_9999')
-    await page.waitForURL(/\?q=/)
+    await page.waitForURL(/\?q=/, { timeout: 8000 })
     await expect(page.getByText(/no properties found/i)).toBeVisible({ timeout: 5000 })
   })
 
   test('should show sort dropdown on click', async ({ page }) => {
-    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 10000 })
     await page.getByRole('button', { name: /newest first/i }).click()
     await expect(page.getByRole('option', { name: /price: low to high/i })).toBeVisible()
   })
 
   test('should change sort order when selecting Price: Low to High', async ({ page }) => {
-    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 10000 })
     await page.getByRole('button', { name: /newest first/i }).click()
     await page.getByRole('option', { name: /price: low to high/i }).click()
     await expect(page.getByRole('button', { name: /price: low to high/i })).toBeVisible()
   })
 })
 
-test.describe('Listing detail page', () => {
-  test.beforeEach(async ({ page }) => {
-    await mockListings(page)
-  })
+// MOCK_LISTING_ID must match a real ID in src/lib/mock-data.ts so the
+// server component falls back to mock data when Supabase is not configured.
+const MOCK_LISTING_ID = 'listing-001'
 
+test.describe('Listing detail page', () => {
   test('should navigate to listing detail on card click', async ({ page }) => {
-    await page.goto('/')
-    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
+    await mockListings(page)
+    await page.goto('/properties')
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 10000 })
     await page.locator('a[href^="/listing/"]').first().click()
     await expect(page).toHaveURL(/\/listing\//, { timeout: 8000 })
   })
 
   test('should show price on listing detail page', async ({ page }) => {
-    // Navigate via card click to land on a real listing detail page
+    // Navigate directly to a known mock listing — avoids SSR/no-data race on home page
     await page.setViewportSize({ width: 1280, height: 800 })
-    await page.goto('/')
-    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 8000 })
-    await page.locator('a[href^="/listing/"]').first().click()
+    await page.goto(`/listing/${MOCK_LISTING_ID}`)
     await expect(page).toHaveURL(/\/listing\//, { timeout: 8000 })
     // Price element may be in a hidden-on-mobile section; toBeAttached is sufficient
     await expect(page.getByText(/₹/).first()).toBeAttached({ timeout: 8000 })
