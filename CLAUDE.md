@@ -1,4 +1,60 @@
-# sellitright — Claude Code Instructions
+# ChapterNew (sellitright) — Claude Code Instructions
+
+## ⚠️ STOP — Read this section before touching anything
+
+### `main` → production. Every push deploys to chapternew.com.
+
+`.github/workflows/deploy.yml` auto-deploys to Fly.io on every push to `main` that passes CI.
+**A bad commit on `main` = broken production = real users affected immediately.**
+
+#### Hard rules — no exceptions
+
+1. **Never `git push origin main`** under any circumstances.
+2. **Never commit directly to local `main`** — always work on a feature branch.
+3. **Never merge your own PR** — open it and stop. The user merges.
+4. **Never deploy to production** unless the user says the exact words "deploy to production" or "push to main". Staging (Vercel) is separate and safe.
+5. **If local `main` is ahead of `origin/main`**, stop immediately, do not push, tell the user which commits are unpushed and ask how to handle it.
+
+---
+
+## Branch workflow — mandatory for every agent
+
+### Before starting work
+
+```bash
+git fetch origin
+git log --oneline origin/main..HEAD   # must show nothing — if not, stop and tell the user
+git checkout -b <type>/<description> origin/main
+```
+
+Branch naming prefixes:
+
+- `fix/` bug fixes
+- `feat/` new features
+- `chore/` config, deps, CI, docs
+- `refactor/` code restructure with no behaviour change
+
+Examples: `fix/phone-filter-emoji`, `feat/contact-reveal-ui`, `chore/update-flytoml`
+
+**Never branch off another agent's branch** unless the user explicitly says to build on top of it.
+
+### Commit on your branch, open a PR, stop
+
+```bash
+git push origin <your-branch>
+gh pr create --base main --title "..." --body "..."
+# STOP HERE — do not merge, do not push main
+```
+
+---
+
+## Multiple agents working in parallel
+
+- Each agent works on its **own branch** — never share a branch between two agents.
+- If two agents touch the same file, that is a merge conflict waiting to happen. Ask the user to coordinate before starting.
+- If you see that local `main` has unpushed commits from a previous agent session, tell the user before doing anything — don't rebase, don't push, just report.
+
+---
 
 ## Worktree policy (REQUIRED)
 
@@ -18,7 +74,7 @@ If you are in the main working tree (`/Users/harshsolanki/sellitright`), create 
 
 ```bash
 # Replace <branch-name> with the feature you are working on
-git worktree add .claude/worktrees/<branch-name> -b <branch-name>
+git worktree add .claude/worktrees/<branch-name> -b <branch-name> origin/main
 ```
 
 Then use the `EnterWorktree` tool (or `cd .claude/worktrees/<branch-name>`) to switch into it.
