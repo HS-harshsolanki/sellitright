@@ -213,6 +213,15 @@ function stripInvisible(text: string): string {
   return text.replace(INVISIBLE_CHARS_RE, '')
 }
 
+// Emoji characters used as separators between digits (pattern #21)
+// Replaces any emoji between two digit characters with an empty string so
+// "9\u2b508\u2b507\u2b506..." collapses to "9876..." before the 10-digit check.
+function stripEmojiSeparators(text: string): string {
+  // Replace emoji (Emoji_Presentation or Emoji_Modifier_Base ranges) with a space
+  // so the separator-collapse step can handle them.
+  return text.replace(/\p{Emoji}/gu, ' ')
+}
+
 // ---------------------------------------------------------------------------
 // 6. Separator stripping — collapses common separators between digits
 // ---------------------------------------------------------------------------
@@ -229,7 +238,7 @@ function stripInvisible(text: string): string {
  */
 function collapseSeparators(text: string): string {
   // Pass 1: strip pure symbol separators between digits (space, dash, dot, comma, etc.)
-  const SYMBOL_SEP_RE = /(\d)[\s\-.,_|*#/\\()[\]]{1,4}(\d)/g
+  const SYMBOL_SEP_RE = /(\d)[\s\-.,_|*#+/\\()[\]]{1,4}(\d)/g
   let prev = text
   for (let i = 0; i < 8; i++) {
     const next = prev.replace(SYMBOL_SEP_RE, (_m, d1, d2) => d1 + d2)
@@ -370,6 +379,10 @@ export function containsPhoneNumber(text: string, options: PhoneFilterOptions = 
   // Step 2: Strip invisible / zero-width glue characters
   // e.g. "9​8​7​6​5​4​3​2​1​0" with ZWJ between digits → "9876543210"
   working = stripInvisible(working)
+
+  // Step 2b: Replace emoji separators with spaces
+  // "9⭐8⭐7⭐6⭐5⭐4⭐3⭐2⭐1⭐0" → "9 8 7 6 5 4 3 2 1 0" (collapsed in step 6)
+  working = stripEmojiSeparators(working)
 
   // Step 3: Normalize Unicode digit scripts to ASCII
   // Devanagari ९८७६५४३२१० → 9876543210

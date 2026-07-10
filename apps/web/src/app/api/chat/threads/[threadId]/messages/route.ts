@@ -46,12 +46,25 @@ function chatTable(client: ReturnType<typeof createServiceClient>, table: string
   return (client as any).from(table)
 }
 
+const PAGE_SIZE = 50
+
 // GET /api/chat/threads/[threadId]/messages
+// Query params:
+//   before: ISO timestamp cursor — returns messages older than this timestamp (exclusive)
+//           Omit to get the latest PAGE_SIZE messages.
+//   limit:  number 1–100 (default PAGE_SIZE)
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ threadId: string }> },
 ) {
   const { threadId } = await params
+
+  const { searchParams } = new URL(request.url)
+  const beforeCursor = searchParams.get('before') // ISO string or null
+  const limitParam = Math.min(
+    100,
+    Math.max(1, parseInt(searchParams.get('limit') ?? String(PAGE_SIZE), 10)),
+  )
 
   const supabase = await createClient()
   const {
@@ -80,11 +93,17 @@ export async function GET(
     return NextResponse.json({ error: 'Not authorized.' }, { status: 403 })
   }
 
-  const { data: messages, error } = await chatTable(admin, 'chat_messages')
+  let query = chatTable(admin, 'chat_messages')
     .select('id, sender_id, content, is_deleted, created_at')
     .eq('thread_id', threadId)
-    .order('created_at', { ascending: true })
-    .limit(200)
+    .order('created_at', { ascending: false })
+    .limit(limitParam + 1) // fetch one extra to determine hasMore
+
+  if (beforeCursor) {
+    query = query.lt('created_at', beforeCursor)
+  }
+
+  const { data: rawMessages, error } = await query
 
   if (error) {
     return NextResponse.json({ error: 'Failed to load messages.' }, { status: 500 })
@@ -131,15 +150,22 @@ export async function GET(
   const otherPartyOffenseCount = otherPartyViolationResult.count ?? 0
   const otherPartyIsPhoneBlocked = !!otherPartyBlockResult.data
 
-  const result: ChatMessage[] = (
-    messages as Array<{
-      id: string
-      sender_id: string
-      content: string
-      is_deleted: boolean
-      created_at: string
-    }>
-  ).map((m) => ({
+  type RawMessage = {
+    id: string
+    sender_id: string
+    content: string
+    is_deleted: boolean
+    created_at: string
+  }
+
+  const allFetched = (rawMessages as RawMessage[] | null) ?? []
+  const hasMore = allFetched.length > limitParam
+  const pageMessages = hasMore ? allFetched.slice(0, limitParam) : allFetched
+  // Results came back newest-first; reverse so the client gets oldest-first order.
+  const ordered = [...pageMessages].reverse()
+  const nextCursor = hasMore ? (pageMessages[pageMessages.length - 1]?.created_at ?? null) : null
+
+  const result: ChatMessage[] = ordered.map((m) => ({
     id: m.id,
     senderId: m.sender_id,
     content: m.is_deleted ? '[Message deleted]' : m.content,
@@ -149,6 +175,8 @@ export async function GET(
 
   return NextResponse.json({
     messages: result,
+    hasMore,
+    nextCursor,
     threadStatus: thread.status,
     role: isBuyer ? 'buyer' : 'seller',
     otherPartyName,
@@ -283,11 +311,16 @@ export async function POST(
       offense: offenseNumber,
     })
 
-    await chatTable(admin, 'chat_messages').update({ is_deleted: true }).eq('thread_id', threadId)
-
-    await chatTable(admin, 'chat_threads')
-      .update({ buyer_unread: 0, seller_unread: 0 })
-      .eq('id', threadId)
+    // Only soft-delete the sender's recent messages that contributed to the violation
+    // (the window of up to 8 messages used in the detection check).
+    // We do NOT wipe the entire thread — other party's messages are preserved.
+    await chatTable(admin, 'chat_messages')
+      .update({ is_deleted: true })
+      .eq('thread_id', threadId)
+      .eq('sender_id', user.id)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false })
+      .limit(8)
 
     const offenseLabel =
       offenseNumber >= 3
@@ -296,8 +329,8 @@ export async function POST(
 
     await admin.from('notifications').insert({
       user_id: user.id,
-      title: 'Chat cleared — phone number detected',
-      message: `Your message contained a phone number. The entire conversation has been cleared. ${offenseLabel}`,
+      title: 'Messages removed — phone number detected',
+      message: `Your recent messages contained a phone number and have been removed. ${offenseLabel}`,
       type: 'PhoneViolationWarning',
       entity_type: 'chat_thread',
       entity_id: threadId,
@@ -306,9 +339,9 @@ export async function POST(
     const otherPartyId = isBuyer ? thread.seller_id : thread.buyer_id
     await admin.from('notifications').insert({
       user_id: otherPartyId,
-      title: 'Conversation cleared',
+      title: 'Some messages were removed',
       message:
-        'A phone number was detected in this conversation. The chat has been cleared to protect platform integrity.',
+        'A phone number was detected. The offending messages have been removed to protect platform integrity.',
       type: 'PhoneViolationWarning',
       entity_type: 'chat_thread',
       entity_id: threadId,

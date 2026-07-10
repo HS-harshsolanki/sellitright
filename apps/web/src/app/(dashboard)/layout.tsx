@@ -169,7 +169,7 @@ function TopBar() {
   )
 }
 
-// 5-item mobile nav: Listings | Requests | Post | Buyers | Profile
+// 6-item mobile nav: Listings | Requests | Post | Messages | Alerts | Profile
 // Browse is accessible from the main header on all pages; Requests was unreachable on mobile.
 const MOBILE_ITEMS = [
   {
@@ -190,6 +190,12 @@ const MOBILE_ITEMS = [
     label: 'Messages',
     icon: <MessageSquare className="h-5 w-5" />,
     matchPath: '/messages',
+  },
+  {
+    href: '/notifications',
+    label: 'Alerts',
+    icon: <Bell className="h-5 w-5" />,
+    matchPath: '/notifications',
   },
   { href: '/profile', label: 'Profile', icon: <User className="h-5 w-5" /> },
 ]
