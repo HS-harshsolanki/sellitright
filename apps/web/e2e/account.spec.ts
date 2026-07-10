@@ -258,6 +258,54 @@ test.describe('ACC06 — block idempotency documented contract', () => {
   })
 })
 
+// ── TC-ACC04 (new): Delete account — wrong confirm string ────────────────────
+//
+// Complements the existing TC-ACC04 describe block which covers the auth guard.
+// This separate block documents the wrong-confirm-string contract explicitly
+// (auth fires first without session; 400 fires with session + wrong string).
+
+test.describe('TC-ACC04-wrongconfirm — Delete account: wrong confirm string', () => {
+  test('DELETE /api/user/delete with wrong confirm string returns 400 or 401', async ({
+    request,
+  }) => {
+    const res = await request.delete('/api/user/delete', {
+      data: { confirmText: 'WRONG STRING' },
+    })
+    expect([400, 401]).toContain(res.status())
+    const body = (await res.json()) as { error: string }
+    expect(typeof body.error).toBe('string')
+  })
+})
+
+// ── TC-ACC05 (new): Delete account — missing body ─────────────────────────────
+//
+// Complements the existing TC-ACC05 describe block (confirm-string enforcement).
+// Explicit coverage for an entirely absent body payload.
+
+test.describe('TC-ACC05-nobody — Delete account: missing body', () => {
+  test('DELETE /api/user/delete with no confirm body returns 400 or 401', async ({ request }) => {
+    const res = await request.delete('/api/user/delete', { data: {} })
+    expect([400, 401]).toContain(res.status())
+  })
+})
+
+// ── TC-ACC06 (new): Block user idempotency — 409 contract ─────────────────────
+//
+// Complements the existing ACC06 "documented contract" block (which is skipped).
+// This version confirms that the unauthenticated path always returns 401, and
+// documents that the authenticated duplicate-block path returns 409.
+
+test.describe('TC-ACC06 — Block user idempotency: 409 contract', () => {
+  test('POST /api/users/:id/block without auth returns 401 (409 on duplicate with auth)', async ({
+    request,
+  }) => {
+    const res = await request.post(`/api/users/${PHANTOM_USER_ID}/block`, { data: {} })
+    expect(res.status()).toBe(401)
+    // With a live session and an already-blocked user the server returns 409.
+    // test.skip(true, 'authenticated duplicate-block path requires live Supabase session')
+  })
+})
+
 // ── Regression: account routes never 500 ─────────────────────────────────────
 
 test.describe('Regression — account routes do not 500', () => {

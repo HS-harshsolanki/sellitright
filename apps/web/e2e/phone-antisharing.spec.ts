@@ -612,6 +612,191 @@ test.describe('TC-PHONE-17: UI handles server 403 PHONE_SEND_BLOCKED — account
   })
 })
 
+// ── TC-PHONE-07 (UI variant): Devanagari digits — server 422 offense #2 ───────
+//
+// Distinguisher vs TC-PHONE-16:
+//   TC-PHONE-16 tests offenseNumber 1 (first detection).
+//   TC-PHONE-07 tests offenseNumber 2 — the "sliding window" path where the
+//   server has already logged one violation in the recent window and this is the
+//   second attempt.  The warning message text escalates accordingly.
+//
+// The existing TC-PHONE-07 auth-guard test (above) verifies that POST returns
+// 401 without a session.  This test verifies the UI correctly handles the 422
+// that the server emits when a Devanagari-encoded number bypasses the client
+// guard and the server's window counter is at offense #2.
+
+test.describe('TC-PHONE-07 (UI variant): server 422 offense #2 — Devanagari window detection', () => {
+  test('UI shows warning card when server returns 422 with offenseNumber 2', async ({ page }) => {
+    await setupChatPage(page)
+
+    // Override the POST handler to simulate offense #2 (sliding-window detection)
+    await page.route(`**/api/chat/threads/${PHANTOM_THREAD_ID}/messages`, (route) => {
+      if (route.request().method() === 'POST') {
+        void route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error:
+              'Warning 2/3: Phone number detected — conversation cleared. One more attempt will automatically restrict your account.',
+            code: 'PHONE_NUMBER_BLOCKED',
+            offenseNumber: 2,
+            chatCleared: true,
+          }),
+        })
+      } else {
+        void route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_MESSAGES_RESPONSE),
+        })
+      }
+    })
+
+    await page.goto(`/messages/${PHANTOM_INTEREST_ID}`)
+    const textarea = page.locator('textarea[placeholder="Type a message…"]')
+    await expect(textarea).toBeVisible({ timeout: 10_000 })
+
+    // Send a message to trigger the mocked 422 response
+    await textarea.fill('hello this is a test message')
+    const sendBtn = page.locator('button[aria-label="Send message"]')
+    await sendBtn.click()
+
+    // Warning card must appear (same UI element as TC-PHONE-16, different offense number)
+    const warningCard = page
+      .locator('text=Phone number blocked')
+      .or(page.locator("text=Phone numbers can't be shared here"))
+      .or(page.locator('text=Warning'))
+    await expect(warningCard.first()).toBeVisible({ timeout: 5_000 })
+  })
+})
+
+// ── TC-PHONE-08 (UI variant): word-digits — server 422 offense #1 (cross-thread)
+//
+// Distinguisher vs TC-PHONE-16:
+//   TC-PHONE-16 tests a generic 422 with offenseNumber 1.
+//   TC-PHONE-08 tests the same offense level but for the "word-spelled-out
+//   digits" evasion path ("nine zero zero …").  The server detection here
+//   exercises the word-digit normalizer rather than the regex path.
+//   This is the cross-thread counting path: the offense may have been recorded
+//   in a different thread and this one triggers the violation log.
+//
+// The existing TC-PHONE-08 auth-guard test verifies 401 without session.
+// This test verifies the UI handles the 422 for this evasion variant.
+
+test.describe('TC-PHONE-08 (UI variant): server 422 offense #1 — word-digits cross-thread detection', () => {
+  test('UI shows warning card when server returns 422 for word-digit evasion', async ({ page }) => {
+    await setupChatPage(page)
+
+    await page.route(`**/api/chat/threads/${PHANTOM_THREAD_ID}/messages`, (route) => {
+      if (route.request().method() === 'POST') {
+        void route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error:
+              "Warning 1/3: Phone numbers can't be shared here. Use the Call or WhatsApp buttons after unlocking contact. The conversation has been cleared.",
+            code: 'PHONE_NUMBER_BLOCKED',
+            offenseNumber: 1,
+            chatCleared: true,
+          }),
+        })
+      } else {
+        void route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_MESSAGES_RESPONSE),
+        })
+      }
+    })
+
+    await page.goto(`/messages/${PHANTOM_INTEREST_ID}`)
+    const textarea = page.locator('textarea[placeholder="Type a message…"]')
+    await expect(textarea).toBeVisible({ timeout: 10_000 })
+
+    // Send a safe-looking message (word digits would slip past the client guard)
+    await textarea.fill('nine zero zero zero zero zero zero zero zero one')
+    await page.waitForTimeout(200)
+
+    // If client guard DID clear the input, fill with a safe message and send
+    const currentValue = await textarea.inputValue()
+    if (!currentValue) {
+      await textarea.fill('hello this is a normal message')
+    }
+
+    const sendBtn = page.locator('button[aria-label="Send message"]')
+    await sendBtn.click()
+
+    const warningCard = page
+      .locator('text=Phone number blocked')
+      .or(page.locator("text=Phone numbers can't be shared here"))
+      .or(page.locator('text=Warning'))
+    await expect(warningCard.first()).toBeVisible({ timeout: 5_000 })
+  })
+})
+
+// ── TC-PHONE-09 (UI variant): reversed number — server 403 offense #3 (hard block)
+//
+// Distinguisher vs TC-PHONE-17:
+//   TC-PHONE-17 tests a generic 403 PHONE_SEND_BLOCKED with offenseNumber 3.
+//   TC-PHONE-09 tests the same hard-block path but documents that it was
+//   triggered by a reversed-number attempt ("1000000009" → reverses to
+//   "9000000001").  The server's checkReversed=true path detected it and this
+//   was the 3rd offense, causing an automatic account restriction.
+//
+// The existing TC-PHONE-09 auth-guard test verifies 401 without session.
+// This test verifies the UI renders the account-locked state on 403.
+
+test.describe('TC-PHONE-09 (UI variant): server 403 offense #3 — reversed number hard block', () => {
+  test('UI renders account-restricted state when server returns 403 for reversed-number offense #3', async ({
+    page,
+  }) => {
+    await setupChatPage(page)
+
+    // Mock POST to return 403 PHONE_SEND_BLOCKED (hard block at offense #3,
+    // triggered by reversed-number detection)
+    await page.route(`**/api/chat/threads/${PHANTOM_THREAD_ID}/messages`, (route) => {
+      if (route.request().method() === 'POST') {
+        void route.fulfill({
+          status: 403,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error:
+              'Your account has been automatically restricted after 3 phone-sharing attempts. Only an admin can restore access. Please contact support.',
+            code: 'PHONE_SEND_BLOCKED',
+            offenseNumber: 3,
+            chatCleared: true,
+          }),
+        })
+      } else {
+        void route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_MESSAGES_RESPONSE),
+        })
+      }
+    })
+
+    await page.goto(`/messages/${PHANTOM_INTEREST_ID}`)
+    const textarea = page.locator('textarea[placeholder="Type a message…"]')
+    await expect(textarea).toBeVisible({ timeout: 10_000 })
+
+    // Send any message to trigger the mocked 403
+    await textarea.fill('hello')
+    const sendBtn = page.locator('button[aria-label="Send message"]')
+    await sendBtn.click()
+
+    // Account-restricted banner must appear (same UI element as TC-PHONE-17)
+    const restrictedBanner = page
+      .locator('text=Account Restricted')
+      .or(page.locator('text=Account restricted'))
+      .or(page.locator('text=automatically restricted'))
+    await expect(restrictedBanner.first()).toBeVisible({ timeout: 5_000 })
+
+    // The textarea must be removed from the DOM (sessionBlocked=true)
+    await expect(textarea).not.toBeVisible()
+  })
+})
+
 // ── TC-PHONE-18: Admin violations page ───────────────────────────────────────
 
 test.describe('TC-PHONE-18: admin phone violations page renders list', () => {

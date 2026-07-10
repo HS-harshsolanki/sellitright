@@ -447,3 +447,416 @@ test.describe('Sell form — review step phone verification (TC-S09)', () => {
     await expect(publishBtn).toBeDisabled()
   })
 })
+
+// ── TC-S01: POST /api/listings without auth → 401 ────────────────────────────
+
+test.describe('Listings API — auth guard (TC-S01)', () => {
+  /**
+   * TC-S01: Posting to /api/listings without a session must return 401.
+   */
+  test('TC-S01: POST /api/listings without auth → 401', async ({ request }) => {
+    const res = await request.post('/api/listings', {
+      data: { propertyType: 'APARTMENT', city: 'Mumbai', price: 1500000 },
+    })
+    expect(res.status()).toBe(401)
+  })
+})
+
+// ── TC-S03: Sell form location step — city required ───────────────────────────
+
+test.describe('Sell form — location step city validation (TC-S03)', () => {
+  /**
+   * TC-S03: When the form is at the location step with no city entered,
+   * clicking Next should keep the user on the same step — showing a
+   * disabled button or a validation error.
+   */
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/auth/v1/user', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'user-1',
+          email: 'test@test.com',
+          user_metadata: { phone_verified: true, full_name: 'Test User' },
+          aud: 'authenticated',
+          role: 'authenticated',
+        }),
+      })
+    })
+    await page.route('**/api/listings/draft**', (route) => {
+      route.fulfill({ status: 200, body: JSON.stringify({ id: 'draft-loc' }) })
+    })
+    await page.addInitScript(() => {
+      const state = {
+        state: {
+          currentStep: 'location',
+          propertyType: 'APARTMENT',
+          location: { city: '', state: '', locality: '', pincode: '', address: '' },
+          details: {
+            bhkType: null,
+            builtUpArea: '',
+            carpetArea: '',
+            floor: '',
+            totalFloors: '',
+            facing: null,
+            furnishing: null,
+            ageOfProperty: '',
+            bathrooms: 1,
+            balconies: 1,
+            parking: null,
+            amenities: [],
+          },
+          photos: [],
+          pricing: { price: '', title: '', description: '', negotiable: false },
+          saveStatus: 'idle',
+          draftId: null,
+          submitted: false,
+        },
+        version: 0,
+      }
+      window.localStorage.setItem('sell-form-draft', JSON.stringify(state))
+    })
+  })
+
+  test('TC-S03: Next button disabled or city-required error when city is empty', async ({
+    page,
+  }) => {
+    await page.goto('/sell')
+    const url = page.url()
+    if (url.includes('/login')) {
+      test.skip()
+      return
+    }
+
+    const nextBtn = page.getByRole('button', { name: /next|continue/i }).first()
+    await expect(nextBtn).toBeVisible({ timeout: 8000 })
+    await nextBtn.click()
+
+    // Either the button is disabled or a city-required error appears
+    const btnDisabled = await nextBtn.isDisabled()
+    if (!btnDisabled) {
+      const cityError = page.getByText(/city.*required|enter.*city|city is/i).first()
+      await expect(cityError).toBeVisible({ timeout: 3000 })
+    }
+  })
+})
+
+// ── TC-S04: Sell form PLOT type hides BHK options ────────────────────────────
+
+test.describe('Sell form — PLOT type hides BHK (TC-S04)', () => {
+  /**
+   * TC-S04: When property type is PLOT the details step should not show
+   * BHK/bedroom selection options.
+   */
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/auth/v1/user', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'user-1',
+          email: 'test@test.com',
+          user_metadata: { phone_verified: true, full_name: 'Test User' },
+          aud: 'authenticated',
+          role: 'authenticated',
+        }),
+      })
+    })
+    await page.route('**/api/listings/draft**', (route) => {
+      route.fulfill({ status: 200, body: JSON.stringify({ id: 'draft-plot' }) })
+    })
+    await page.addInitScript(() => {
+      const state = {
+        state: {
+          currentStep: 'details',
+          propertyType: 'PLOT',
+          location: {
+            city: 'Mumbai',
+            locality: 'Bandra',
+            state: 'Maharashtra',
+            pincode: '400050',
+            address: '123 Test',
+          },
+          details: {
+            bhkType: null,
+            builtUpArea: '',
+            carpetArea: '',
+            floor: '',
+            totalFloors: '',
+            facing: null,
+            furnishing: null,
+            ageOfProperty: '',
+            bathrooms: 1,
+            balconies: 1,
+            parking: null,
+            amenities: [],
+          },
+          photos: [],
+          pricing: { price: '', title: '', description: '', negotiable: false },
+          saveStatus: 'idle',
+          draftId: null,
+          submitted: false,
+        },
+        version: 0,
+      }
+      window.localStorage.setItem('sell-form-draft', JSON.stringify(state))
+    })
+  })
+
+  test('TC-S04: PLOT type — BHK options not visible in details step', async ({ page }) => {
+    await page.goto('/sell')
+    const url = page.url()
+    if (url.includes('/login')) {
+      test.skip()
+      return
+    }
+
+    // Wait for the details step to render
+    await page.waitForTimeout(1000)
+    // BHK options must not be visible for PLOT type
+    const bhkOption = page.getByText(/1 bhk|2 bhk|3 bhk/i).first()
+    await expect(bhkOption).not.toBeVisible({ timeout: 5000 })
+  })
+})
+
+// ── TC-S05: Sell form APARTMENT type requires BHK ────────────────────────────
+
+test.describe('Sell form — APARTMENT requires BHK selection (TC-S05)', () => {
+  /**
+   * TC-S05: When property type is APARTMENT, clicking Next on the details step
+   * without selecting a BHK type should block progression.
+   */
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/auth/v1/user', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'user-1',
+          email: 'test@test.com',
+          user_metadata: { phone_verified: true, full_name: 'Test User' },
+          aud: 'authenticated',
+          role: 'authenticated',
+        }),
+      })
+    })
+    await page.route('**/api/listings/draft**', (route) => {
+      route.fulfill({ status: 200, body: JSON.stringify({ id: 'draft-apt' }) })
+    })
+    await page.addInitScript(() => {
+      const state = {
+        state: {
+          currentStep: 'details',
+          propertyType: 'APARTMENT',
+          location: {
+            city: 'Mumbai',
+            locality: 'Bandra',
+            state: 'Maharashtra',
+            pincode: '400050',
+            address: '123 Test',
+          },
+          details: {
+            bhkType: null,
+            builtUpArea: '',
+            carpetArea: '',
+            floor: '',
+            totalFloors: '',
+            facing: null,
+            furnishing: null,
+            ageOfProperty: '',
+            bathrooms: 1,
+            balconies: 1,
+            parking: null,
+            amenities: [],
+          },
+          photos: [],
+          pricing: { price: '', title: '', description: '', negotiable: false },
+          saveStatus: 'idle',
+          draftId: null,
+          submitted: false,
+        },
+        version: 0,
+      }
+      window.localStorage.setItem('sell-form-draft', JSON.stringify(state))
+    })
+  })
+
+  test('TC-S05: APARTMENT — Next blocked without BHK selection', async ({ page }) => {
+    await page.goto('/sell')
+    const url = page.url()
+    if (url.includes('/login')) {
+      test.skip()
+      return
+    }
+
+    const nextBtn = page.getByRole('button', { name: /next|continue/i }).first()
+    await expect(nextBtn).toBeVisible({ timeout: 8000 })
+    await nextBtn.click()
+
+    // Either the button is disabled or a BHK-required error appears
+    const btnDisabled = await nextBtn.isDisabled()
+    if (!btnDisabled) {
+      const bhkError = page.getByText(/bhk.*required|select.*bhk|bedroom/i).first()
+      await expect(bhkError).toBeVisible({ timeout: 3000 })
+    }
+  })
+})
+
+// ── TC-S07: Sell form photos step shows upload area ───────────────────────────
+
+test.describe('Sell form — photos step upload area (TC-S07)', () => {
+  /**
+   * TC-S07: When the form is at the photos step, an upload area (dropzone or
+   * file input) must be visible.
+   */
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/auth/v1/user', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'user-1',
+          email: 'test@test.com',
+          user_metadata: { phone_verified: true, full_name: 'Test User' },
+          aud: 'authenticated',
+          role: 'authenticated',
+        }),
+      })
+    })
+    await page.route('**/api/listings/draft**', (route) => {
+      route.fulfill({ status: 200, body: JSON.stringify({ id: 'draft-photos' }) })
+    })
+    await page.addInitScript(() => {
+      const state = {
+        state: {
+          currentStep: 'photos',
+          propertyType: 'APARTMENT',
+          location: {
+            city: 'Mumbai',
+            locality: 'Bandra',
+            state: 'Maharashtra',
+            pincode: '400050',
+            address: '123 Test',
+          },
+          details: {
+            bhkType: 'TWO_BHK',
+            builtUpArea: '1000',
+            carpetArea: '',
+            floor: '',
+            totalFloors: '',
+            facing: null,
+            furnishing: 'UNFURNISHED',
+            ageOfProperty: '',
+            bathrooms: 1,
+            balconies: 1,
+            parking: null,
+            amenities: [],
+          },
+          photos: [],
+          pricing: { price: '', title: '', description: '', negotiable: false },
+          saveStatus: 'idle',
+          draftId: null,
+          submitted: false,
+        },
+        version: 0,
+      }
+      window.localStorage.setItem('sell-form-draft', JSON.stringify(state))
+    })
+  })
+
+  test('TC-S07: photos step shows upload area or file input', async ({ page }) => {
+    await page.goto('/sell')
+    const url = page.url()
+    if (url.includes('/login')) {
+      test.skip()
+      return
+    }
+
+    // Upload area text or a file input must be present
+    const uploadText = page.getByText(/add photo|upload photo|drag.*drop|choose file/i).first()
+    const fileInput = page.locator('input[type="file"]')
+
+    const textVisible = await uploadText.isVisible().catch(() => false)
+    const inputAttached = (await fileInput.count()) > 0
+
+    expect(textVisible || inputAttached).toBe(true)
+  })
+})
+
+// ── TC-S08: Photo upload rejects non-image content type ──────────────────────
+
+test.describe('Photo upload API — content type guard (TC-S08)', () => {
+  /**
+   * TC-S08: POST /api/upload/photo with application/json content type must
+   * return 400, 401, or 415 — not succeed.
+   */
+  test('TC-S08: POST /api/upload/photo with JSON body → 400/401/415', async ({ request }) => {
+    const res = await request.post('/api/upload/photo', {
+      headers: { 'Content-Type': 'application/json' },
+      data: {},
+    })
+    expect([400, 401, 415]).toContain(res.status())
+  })
+})
+
+// ── TC-S11: Draft autosave endpoint auth guard ────────────────────────────────
+
+test.describe('Draft autosave API — auth guard (TC-S11)', () => {
+  /**
+   * TC-S11: POST /api/listings/draft without a session must return 401.
+   */
+  test('TC-S11: POST /api/listings/draft without auth → 401', async ({ request }) => {
+    const res = await request.post('/api/listings/draft', {
+      data: { propertyType: 'APARTMENT' },
+    })
+    expect(res.status()).toBe(401)
+  })
+})
+
+// ── TC-S12: GET /api/listings returns 200 with array shape ───────────────────
+
+test.describe('Listings API — public listing shape (TC-S12)', () => {
+  /**
+   * TC-S12: GET /api/listings?page=1&limit=5 must return 200 with a body
+   * that contains an array (either body.listings or body itself).
+   */
+  test('TC-S12: GET /api/listings returns 200 with array shape', async ({ request }) => {
+    const res = await request.get('/api/listings?page=1&limit=5')
+    expect(res.status()).toBe(200)
+    const body = await res.json()
+    expect(Array.isArray(body.listings ?? body)).toBe(true)
+  })
+})
+
+// ── TC-S13: GET /api/listings with nonsense query returns empty/200 ───────────
+
+test.describe('Listings API — nonsense query returns empty result (TC-S13)', () => {
+  /**
+   * TC-S13: Searching for an impossible string must return 200 with zero
+   * results — not an error.
+   */
+  test('TC-S13: GET /api/listings?q=xyzzyimpossible → 200 with 0 results', async ({ request }) => {
+    const res = await request.get('/api/listings?q=xyzzyimpossible99999abc')
+    expect(res.status()).toBe(200)
+    const body = await res.json()
+    const listings: unknown[] = body.listings ?? body
+    const total: number = body.total ?? listings.length
+    expect(total).toBe(0)
+  })
+})
+
+// ── TC-S15: POST /api/listings with malformed body → 400 or 401 ──────────────
+
+test.describe('Listings API — malformed body guard (TC-S15)', () => {
+  /**
+   * TC-S15: Posting a malformed payload (wrong types) must return 400 or 401 —
+   * never a 500 or a successful 201.
+   */
+  test('TC-S15: POST /api/listings with malformed body → 400 or 401', async ({ request }) => {
+    const res = await request.post('/api/listings', {
+      data: { price: 'not-a-number', propertyType: 99 },
+    })
+    expect([400, 401]).toContain(res.status())
+  })
+})
