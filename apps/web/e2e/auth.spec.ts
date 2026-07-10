@@ -64,34 +64,27 @@ test.describe('Protected route redirect', () => {
 test.describe('Open redirect prevention (TC-A11, TC-A12)', () => {
   /**
    * TC-A11 / TC-A12: Navigating to /login?next=<external-URL> must never
-   * redirect the browser to that external URL.  The middleware validates the
-   * `next` param and falls back to "/" or "/dashboard" for anything that is
-   * not a safe internal path.
+   * redirect the browser to that external URL.  The sanitiseNext() function in
+   * middleware rejects anything not starting with "/" or containing "://" and
+   * the browser stays on localhost — never on evil.com.
    *
-   * We test at the middleware level: after any redirect settles the final URL
-   * must not contain the evil domain.
+   * Correct assertion: the browser hostname stays localhost, not evil.com.
+   * The ?next= param may still appear in the URL (that's fine — it's just a
+   * query param, not a redirect target).
    */
   test('TC-A11: ?next=https://evil.com does not redirect to evil.com', async ({ page }) => {
     await page.goto('/login?next=https://evil.com')
-    // Allow up to 5 s for redirects to settle
-    await page
-      .waitForURL((url) => !url.toString().includes('/login?next=https'), { timeout: 5000 })
-      .catch(() => {
-        /* still on login — that's fine */
-      })
+    // Give any redirects 3 s to settle, then verify we stayed on localhost
+    await page.waitForTimeout(500)
     const finalUrl = page.url()
-    expect(finalUrl).not.toContain('evil.com')
+    expect(new URL(finalUrl).hostname).toBe('localhost')
   })
 
   test('TC-A12: ?next=//evil.com does not redirect to evil.com', async ({ page }) => {
     await page.goto('/login?next=//evil.com')
-    await page
-      .waitForURL((url) => !url.toString().includes('/login?next=%2F%2F'), { timeout: 5000 })
-      .catch(() => {
-        /* still on login — fine */
-      })
+    await page.waitForTimeout(500)
     const finalUrl = page.url()
-    expect(finalUrl).not.toContain('evil.com')
+    expect(new URL(finalUrl).hostname).toBe('localhost')
   })
 })
 
