@@ -1,5 +1,6 @@
 import { ArrowRight, BadgeCheck, CheckCircle2, Lock, Search, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { FAQItem, FadeIn, Reveal, ScrollChevron, Stagger } from '@/components/landing/reveal'
 
@@ -136,7 +137,21 @@ const CITIES_GRID = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function LandingPage() {
+// Supabase OAuth fallback: if the Supabase dashboard "Site URL" is chapternew.com/
+// and /auth/callback is not in the allowed redirect list, Google sends the PKCE code
+// to the root URL. Catch it here and forward to the real callback handler.
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>
+}) {
+  const params = await searchParams
+  if (params.code) {
+    const qs = new URLSearchParams({ code: params.code })
+    if (params.next) qs.set('next', params.next)
+    redirect(`/auth/callback?${qs.toString()}`)
+  }
+
   return (
     <main className="overflow-x-hidden">
       {/* ══════════════════════════════════════════════════════════════════════
