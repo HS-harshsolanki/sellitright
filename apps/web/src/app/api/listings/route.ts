@@ -78,9 +78,9 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      // Supabase query error — return empty rather than fake data
-      console.error('[api/listings] Supabase query error:', error?.message)
-      return NextResponse.json({ listings: [], total: 0, page, totalPages: 1 }, { status: 500 })
+      // Supabase query error — degrade gracefully to empty result set
+      console.error('[api/listings] Supabase query error:', error?.message ?? String(error))
+      return NextResponse.json({ listings: [], total: 0, page, totalPages: 1 })
     }
 
     // Supabase not configured
