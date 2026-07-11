@@ -48,6 +48,15 @@ function sanitiseNext(raw: string): string {
 }
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // The auth callback route exchanges the PKCE code for a session — it must
+  // run before any Supabase auth call touches the code-verifier cookie.
+  // Passing through here lets the route handler do the exchange cleanly.
+  if (pathname === '/auth/callback') {
+    return NextResponse.next({ request })
+  }
+
   // Skip auth enforcement when Supabase is not yet configured (local dev before setup)
   if (!isSupabaseConfigured()) {
     return NextResponse.next({ request })
@@ -74,8 +83,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const { pathname } = request.nextUrl
 
   // Copy refreshed session cookies onto any redirect we create.
   // If we return a bare NextResponse.redirect(), the Set-Cookie headers that
