@@ -356,12 +356,11 @@ test.describe('TC-ADM17 — Admin stats: correct shape', () => {
 // ─── TC-ADM19 — Admin phone violations review: auth guard ────────────────────
 
 test.describe('TC-ADM19 — Admin phone violations review: auth guard', () => {
-  test('PATCH /api/admin/phone-violations/:id returns 401 without key', async ({ request }) => {
-    const res = await request.patch(
+  test('DELETE /api/admin/phone-violations/:id returns 401 without key', async ({ request }) => {
+    // The per-record endpoint only exposes DELETE (unblock); PATCH bulk-review is at the
+    // collection level /api/admin/phone-violations (no :id). Use DELETE here.
+    const res = await request.delete(
       '/api/admin/phone-violations/00000000-0000-0000-0000-000000000001',
-      {
-        data: { reviewed: true },
-      },
     )
     expect(res.status()).toBe(401)
   })

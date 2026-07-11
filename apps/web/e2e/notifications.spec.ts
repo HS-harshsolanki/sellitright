@@ -2,6 +2,9 @@ import { test, expect, type Page } from '@playwright/test'
 
 const PHANTOM_NOTIF_ID = '00000000-0000-0000-0000-000000000020'
 
+// Tests navigating to /notifications require middleware to pass — needs a real session.
+const NEEDS_REAL_AUTH = !process.env.E2E_SUPABASE_USER
+
 async function mockAuth(page: Page) {
   await page.route('**/auth/v1/user', (route) =>
     route.fulfill({
@@ -33,6 +36,7 @@ async function mockAuth(page: Page) {
 // TC-D08 — Mark All Read fires PATCH /api/notifications/read-all
 test.describe('TC-D08 — Mark all notifications as read', () => {
   test('clicking Mark All Read calls the read-all endpoint', async ({ page }) => {
+    test.skip(NEEDS_REAL_AUTH, 'requires real Supabase session (middleware blocks /notifications)')
     await mockAuth(page)
     let patchFired = false
     await page.route('**/api/notifications/read-all**', (route) => {
@@ -99,6 +103,7 @@ test.describe('TC-D09 — Mark single notification as read', () => {
   test('clicking notification or mark-read fires PATCH for that notification ID', async ({
     page,
   }) => {
+    test.skip(NEEDS_REAL_AUTH, 'requires real Supabase session (middleware blocks /notifications)')
     await mockAuth(page)
     let patchUrl = ''
     await page.route('**/api/notifications/**', (route) => {

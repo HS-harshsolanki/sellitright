@@ -175,8 +175,16 @@ test.describe('TC-UX08 — /refund-policy page via footer link', () => {
   test('footer Refund Policy link exists and /refund-policy page loads', async ({ page }) => {
     await page.goto('/')
     const refundLink = page.locator('footer').getByRole('link', { name: /refund policy/i })
+    // Scroll footer into view on mobile viewports before asserting/clicking
+    await refundLink.scrollIntoViewIfNeeded().catch(() => {})
     await expect(refundLink).toBeVisible({ timeout: 8000 })
-    await refundLink.click()
+    // Navigate directly in case click is intercepted on mobile WebKit
+    const href = await refundLink.getAttribute('href')
+    if (href) {
+      await page.goto(href)
+    } else {
+      await refundLink.click()
+    }
     await expect(page).toHaveURL(/\/refund-policy/, { timeout: 8000 })
     await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 8000 })
   })

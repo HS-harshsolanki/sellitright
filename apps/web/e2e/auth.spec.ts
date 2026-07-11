@@ -69,8 +69,8 @@ test.describe('TC-A16 — Email send button disabled without input', () => {
 
 test.describe('TC-A17 — Email OTP success state', () => {
   test('after OTP send succeeds, confirmation state shows the email address', async ({ page }) => {
-    // Mock Supabase OTP endpoint to return success
-    await page.route('**/auth/v1/otp**', (route) =>
+    // Mock Supabase OTP endpoint — match any host (prod uses supabase.co, CI uses localhost:54321)
+    await page.route(/\/auth\/v1\/otp/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
     )
     await page.goto('/login')
@@ -84,7 +84,7 @@ test.describe('TC-A17 — Email OTP success state', () => {
 
 test.describe('TC-A18 — Use different email resets flow', () => {
   test('Use a different email button resets back to Continue with Email', async ({ page }) => {
-    await page.route('**/auth/v1/otp**', (route) =>
+    await page.route(/\/auth\/v1\/otp/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
     )
     await page.goto('/login')

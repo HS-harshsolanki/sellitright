@@ -1,5 +1,10 @@
 import { test, expect, type Page } from '@playwright/test'
 
+// Tests that navigate to protected pages (/dashboard, /notifications) require
+// the middleware to pass — which needs a real Supabase session. page.route()
+// only intercepts browser-side requests; middleware runs server-side.
+const NEEDS_REAL_AUTH = !process.env.E2E_SUPABASE_USER
+
 /**
  * Dashboard page tests.
  *
@@ -192,6 +197,7 @@ test.describe('TC-D04 — Dashboard interests PATCH invalid action', () => {
 // TC-D07 — Dashboard listings tab shows status badges
 test.describe('TC-D07 — Dashboard listings status badges', () => {
   test('shows ACTIVE and PENDING_REVIEW status badges', async ({ page }) => {
+    test.skip(NEEDS_REAL_AUTH, 'requires real Supabase session (middleware blocks /dashboard)')
     await mockAuth(page)
     await page.route('**/api/dashboard/listings**', (route) => {
       route.fulfill({
@@ -242,6 +248,7 @@ test.describe('TC-D07 — Dashboard listings status badges', () => {
 // TC-D08 — Dashboard buyer requests tab is clickable
 test.describe('TC-D08 — Dashboard buyer requests tab', () => {
   test('buyer requests tab is clickable and changes content or URL', async ({ page }) => {
+    test.skip(NEEDS_REAL_AUTH, 'requires real Supabase session (middleware blocks /dashboard)')
     await mockAuth(page)
     await page.route('**/api/dashboard/listings**', (route) => {
       route.fulfill({
@@ -304,17 +311,12 @@ test.describe('TC-D10 — Notifications API unauthenticated', () => {
   })
 })
 
-// TC-D12 — PATCH /api/notifications/:id/read returns 401 without auth
+// TC-D12 — PATCH /api/notifications/:id returns 401 without auth
 test.describe('TC-D12 — Notifications mark-read API unauthenticated', () => {
-  test('PATCH /api/notifications/:id/read returns 401 without auth', async ({ request }) => {
-    const resWithRead = await request.patch(
-      '/api/notifications/00000000-0000-0000-0000-000000000001/read',
-    )
-    expect(resWithRead.status()).toBe(401)
-    const resWithoutRead = await request.patch(
-      '/api/notifications/00000000-0000-0000-0000-000000000001',
-    )
-    expect([401, 404, 405]).toContain(resWithoutRead.status())
+  test('PATCH /api/notifications/:id returns 401 without auth', async ({ request }) => {
+    // The mark-read endpoint is PATCH /api/notifications/[id] (no /read suffix).
+    const res = await request.patch('/api/notifications/00000000-0000-0000-0000-000000000001')
+    expect(res.status()).toBe(401)
   })
 })
 
@@ -331,6 +333,7 @@ test.describe('TC-D13 — Notifications read-all API unauthenticated', () => {
 // TC-D14 — Notifications page renders mocked notifications
 test.describe('TC-D14 — Notifications page renders mocked data', () => {
   test('shows notification title from mocked API response', async ({ page }) => {
+    test.skip(NEEDS_REAL_AUTH, 'requires real Supabase session (middleware blocks /notifications)')
     await mockAuth(page)
     await page.route('**/api/notifications**', (route) => {
       route.fulfill({
