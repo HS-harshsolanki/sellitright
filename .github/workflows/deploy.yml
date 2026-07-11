@@ -20,7 +20,7 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: superfly/flyctl-actions/setup-flyctl@v3
+      - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy
         run: |
