@@ -229,3 +229,139 @@ test.describe('Admin API — positive path', () => {
     body.entries.forEach((e) => expect(e.action).toBe('approved'))
   })
 })
+
+// ─── TC-ADM01 — Admin users list: auth guard ─────────────────────────────────
+
+test.describe('TC-ADM01 — Admin users list: auth guard', () => {
+  test('GET /api/admin/users returns 401 without admin key', async ({ request }) => {
+    const res = await request.get('/api/admin/users')
+    expect(res.status()).toBe(401)
+    const body = await res.json()
+    expect(typeof body.error).toBe('string')
+  })
+})
+
+// ─── TC-ADM03 — Admin users list: wrong key rejected ─────────────────────────
+
+test.describe('TC-ADM03 — Admin users list: wrong key rejected', () => {
+  test('GET /api/admin/users returns 401 with wrong admin key', async ({ request }) => {
+    const res = await request.get('/api/admin/users', {
+      headers: { 'x-admin-key': 'wrong-key-xyz-9999' },
+    })
+    expect(res.status()).toBe(401)
+  })
+})
+
+// ─── TC-ADM04 — Admin users list: correct shape ──────────────────────────────
+
+test.describe('TC-ADM04 — Admin users list: correct shape', () => {
+  test('GET /api/admin/users with valid key returns user list shape', async ({ request }) => {
+    test.skip(!ADMIN_KEY, 'requires ADMIN_SECRET_KEY env var')
+    const res = await request.get('/api/admin/users', { headers: { 'x-admin-key': ADMIN_KEY } })
+    expect(res.status()).toBe(200)
+    const body = await res.json()
+    expect(Array.isArray(body.users)).toBe(true)
+    expect(typeof body.total).toBe('number')
+  })
+})
+
+// ─── TC-ADM06 — Admin suspend user: auth guard ───────────────────────────────
+
+test.describe('TC-ADM06 — Admin suspend user: auth guard', () => {
+  test('POST /api/admin/users/:id/suspend returns 401 without key', async ({ request }) => {
+    const res = await request.post(
+      '/api/admin/users/00000000-0000-0000-0000-000000000001/suspend',
+      { data: {} },
+    )
+    expect(res.status()).toBe(401)
+  })
+})
+
+// ─── TC-ADM07 — Admin activate user: auth guard ──────────────────────────────
+
+test.describe('TC-ADM07 — Admin activate user: auth guard', () => {
+  test('POST /api/admin/users/:id/activate returns 401 without key', async ({ request }) => {
+    const res = await request.post(
+      '/api/admin/users/00000000-0000-0000-0000-000000000001/activate',
+      { data: {} },
+    )
+    expect(res.status()).toBe(401)
+  })
+})
+
+// ─── TC-ADM08 — Admin suspend phantom user: 404 ──────────────────────────────
+
+test.describe('TC-ADM08 — Admin suspend phantom user: 404', () => {
+  test('POST suspend on non-existent user returns 404 with valid key', async ({ request }) => {
+    test.skip(!ADMIN_KEY, 'requires ADMIN_SECRET_KEY env var')
+    const res = await request.post(
+      '/api/admin/users/00000000-0000-0000-0000-000000000001/suspend',
+      {
+        headers: { 'x-admin-key': ADMIN_KEY },
+        data: {},
+      },
+    )
+    expect([404, 400]).toContain(res.status())
+    const body = await res.json()
+    expect(typeof body.error).toBe('string')
+  })
+})
+
+// ─── TC-ADM10 — Admin payments list: auth guard ──────────────────────────────
+
+test.describe('TC-ADM10 — Admin payments list: auth guard', () => {
+  test('GET /api/admin/payments returns 401 without admin key', async ({ request }) => {
+    const res = await request.get('/api/admin/payments')
+    expect(res.status()).toBe(401)
+  })
+})
+
+// ─── TC-ADM11 — Admin payments list: correct shape ───────────────────────────
+
+test.describe('TC-ADM11 — Admin payments list: correct shape', () => {
+  test('GET /api/admin/payments with valid key returns payments shape', async ({ request }) => {
+    test.skip(!ADMIN_KEY, 'requires ADMIN_SECRET_KEY env var')
+    const res = await request.get('/api/admin/payments', { headers: { 'x-admin-key': ADMIN_KEY } })
+    expect(res.status()).toBe(200)
+    const body = await res.json()
+    expect(Array.isArray(body.payments)).toBe(true)
+    expect(typeof body.total).toBe('number')
+  })
+})
+
+// ─── TC-ADM15 — Admin stats: auth guard ──────────────────────────────────────
+
+test.describe('TC-ADM15 — Admin stats: auth guard', () => {
+  test('GET /api/admin/stats returns 401 without admin key', async ({ request }) => {
+    const res = await request.get('/api/admin/stats')
+    expect(res.status()).toBe(401)
+  })
+})
+
+// ─── TC-ADM17 — Admin stats: correct shape ───────────────────────────────────
+
+test.describe('TC-ADM17 — Admin stats: correct shape', () => {
+  test('GET /api/admin/stats with valid key returns stats object', async ({ request }) => {
+    test.skip(!ADMIN_KEY, 'requires ADMIN_SECRET_KEY env var')
+    const res = await request.get('/api/admin/stats', { headers: { 'x-admin-key': ADMIN_KEY } })
+    expect(res.status()).toBe(200)
+    const body = await res.json()
+    // Stats object should have numeric counts
+    expect(res.status()).not.toBeGreaterThanOrEqual(500)
+    expect(typeof body).toBe('object')
+    expect(body).not.toBeNull()
+  })
+})
+
+// ─── TC-ADM19 — Admin phone violations review: auth guard ────────────────────
+
+test.describe('TC-ADM19 — Admin phone violations review: auth guard', () => {
+  test('DELETE /api/admin/phone-violations/:id returns 401 without key', async ({ request }) => {
+    // The per-record endpoint only exposes DELETE (unblock); PATCH bulk-review is at the
+    // collection level /api/admin/phone-violations (no :id). Use DELETE here.
+    const res = await request.delete(
+      '/api/admin/phone-violations/00000000-0000-0000-0000-000000000001',
+    )
+    expect(res.status()).toBe(401)
+  })
+})

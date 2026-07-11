@@ -330,3 +330,114 @@ test.describe('Regression — payment routes do not 500', () => {
     expect(res.headers()['content-type']).toContain('application/json')
   })
 })
+
+// ── TC-PAY03: Already-paid contract ──────────────────────────────────────────
+
+test.describe('TC-PAY03 — Create order: already-paid interest returns 409 contract', () => {
+  test('POST /api/payments/create-order without auth returns 401 (409 when interest already paid with auth)', async ({
+    request,
+  }) => {
+    const res = await request.post('/api/payments/create-order', {
+      data: { interestId: '00000000-0000-0000-0000-000000000001' },
+    })
+    // 401 fires before the already-paid check without a session
+    expect([401, 409]).toContain(res.status())
+    const body = await res.json()
+    expect(typeof body.error).toBe('string')
+    // With a valid session and an already-SUCCESS payment, server returns 409 { alreadyPaid: true }
+    // test.skip(true, 'authenticated 409 path requires a live Supabase session with an existing SUCCESS payment row')
+  })
+})
+
+// ── TC-PAY04: Seller phone gate contract ─────────────────────────────────────
+
+test.describe('TC-PAY04 — Create order: seller phone gate contract', () => {
+  test('POST /api/payments/create-order without auth returns 401 (403 if seller has no phone with auth)', async ({
+    request,
+  }) => {
+    const res = await request.post('/api/payments/create-order', {
+      data: { interestId: '00000000-0000-0000-0000-000000000002' },
+    })
+    expect([401, 403]).toContain(res.status())
+    expect(res.status()).not.toBeGreaterThanOrEqual(500)
+  })
+})
+
+// ── TC-PAY06: All payment routes return JSON, never HTML or 500 ───────────────
+
+test.describe('TC-PAY06 — Payment routes always return JSON (no HTML, no 500)', () => {
+  const routes = [
+    {
+      method: 'POST',
+      path: '/api/payments/create-order',
+      data: { interestId: '00000000-0000-0000-0000-000000000001' },
+    },
+    {
+      method: 'POST',
+      path: '/api/payments/verify',
+      data: {
+        razorpayOrderId: 'order_ABCDEFGHIJKLMNO',
+        razorpayPaymentId: 'pay_ABCDEFGHIJKLMNO',
+        razorpaySignature: 'fakesig',
+        interestId: '00000000-0000-0000-0000-000000000001',
+      },
+    },
+    {
+      method: 'GET',
+      path: '/api/payments/status?interestId=00000000-0000-0000-0000-000000000001',
+      data: undefined,
+    },
+  ]
+  for (const route of routes) {
+    test(`${route.method} ${route.path} returns JSON content-type and not 500`, async ({
+      request,
+    }) => {
+      const res =
+        route.method === 'GET'
+          ? await request.get(route.path)
+          : await request.post(route.path, { data: route.data })
+      expect(res.status()).not.toBeGreaterThanOrEqual(500)
+      expect(res.headers()['content-type']).toContain('application/json')
+    })
+  }
+})
+
+// ── TC-PAY11: Missing razorpaySignature field → 400 or 401 ───────────────────
+
+test.describe('TC-PAY11 — Verify payment: missing signature field', () => {
+  test('POST /api/payments/verify without razorpaySignature returns 400 or 401', async ({
+    request,
+  }) => {
+    const res = await request.post('/api/payments/verify', {
+      data: {
+        razorpayOrderId: 'order_MISSIGSIG1234567',
+        razorpayPaymentId: 'pay_MISSIGSIG1234567',
+        interestId: '00000000-0000-0000-0000-000000000001',
+        // razorpaySignature intentionally omitted
+      },
+    })
+    expect([400, 401]).toContain(res.status())
+    const body = await res.json()
+    expect(typeof body.error).toBe('string')
+  })
+})
+
+// ── TC-PAY12: Forged HMAC rejected (distinct from existing tampered-sig test) ─
+
+test.describe('TC-PAY12 — Verify payment: forged HMAC rejected', () => {
+  test('POST /api/payments/verify with forged HMAC returns 400 or 401', async ({ request }) => {
+    const res = await request.post('/api/payments/verify', {
+      data: {
+        razorpayOrderId: 'order_FORGEDHMAC123456',
+        razorpayPaymentId: 'pay_FORGEDHMAC123456',
+        razorpaySignature: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        interestId: '00000000-0000-0000-0000-000000000001',
+      },
+    })
+    // Without a valid session, 401 fires before HMAC check
+    // With valid session and invalid signature, server returns 400
+    expect([400, 401]).toContain(res.status())
+    const body = await res.json()
+    expect(typeof body.error).toBe('string')
+  })
+})

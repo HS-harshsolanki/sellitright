@@ -311,16 +311,21 @@ export async function POST(
       offense: offenseNumber,
     })
 
-    // Only soft-delete the sender's recent messages that contributed to the violation
-    // (the window of up to 8 messages used in the detection check).
-    // We do NOT wipe the entire thread — other party's messages are preserved.
-    await chatTable(admin, 'chat_messages')
-      .update({ is_deleted: true })
+    // Soft-delete only the sender's last 8 messages that contributed to the violation.
+    // PostgREST ignores ORDER BY/LIMIT on UPDATE, so we SELECT the IDs first then
+    // update by ID to guarantee only the detection window is removed.
+    const { data: toDelete } = await chatTable(admin, 'chat_messages')
+      .select('id')
       .eq('thread_id', threadId)
       .eq('sender_id', user.id)
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .limit(8)
+
+    const deleteIds = ((toDelete as Array<{ id: string }> | null) ?? []).map((r) => r.id)
+    if (deleteIds.length > 0) {
+      await chatTable(admin, 'chat_messages').update({ is_deleted: true }).in('id', deleteIds)
+    }
 
     const offenseLabel =
       offenseNumber >= 3

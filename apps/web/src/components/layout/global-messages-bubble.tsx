@@ -130,7 +130,12 @@ export function GlobalMessagesBubble() {
   // Tracks accumulated offense count seeded from GET load — used so client-side blocks show correct badge
   const priorOffenseRef = useRef<number>(0)
 
-  const isListingPage = /^\/listing\//.test(pathname)
+  // Only show the messaging bubble on properties/listing pages and dashboard routes.
+  // Never show on the homepage — it looks out of place for unauthenticated visitors.
+  const shouldShow =
+    pathname === '/properties' ||
+    pathname.startsWith('/properties/') ||
+    /^\/listing\//.test(pathname)
 
   // ── Load thread list ────────────────────────────────────────────────────
   const loadThreads = useCallback(async () => {
@@ -468,7 +473,7 @@ export function GlobalMessagesBubble() {
     void loadThreads()
   }
 
-  if (isListingPage) return null
+  if (!shouldShow) return null
 
   // Logged-out users see the pill with a sign-in prompt
   if (!user) {
