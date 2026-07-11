@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 
 interface HealthStatus {
   status: 'ok' | 'degraded' | 'down'
+  app_env: string
   timestamp: string
   checks: {
     database: 'ok' | 'error'
@@ -42,10 +43,14 @@ export async function GET() {
       ? 'down'
       : 'degraded'
 
-  const timestamp = new Date().toISOString()
-
   return NextResponse.json(
-    { status, timestamp },
+    {
+      status,
+      app_env: process.env.NEXT_PUBLIC_APP_ENV ?? 'production',
+      timestamp: new Date().toISOString(),
+      checks,
+      version: process.env.npm_package_version ?? '0.1.0',
+    },
     {
       status: allOk ? 200 : 503,
       headers: { 'Cache-Control': 'no-store' },

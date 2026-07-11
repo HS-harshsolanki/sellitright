@@ -4,6 +4,9 @@ import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 import { CookieConsent } from '@/components/cookie-consent'
+import { PostHogProvider } from '@/components/posthog-provider'
+import { StagingBanner } from '@/components/staging-banner'
+import { cn } from '@/lib/utils'
 
 import { Providers } from './providers'
 
@@ -104,8 +107,16 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className={satoshi.variable}>
-      <body className="bg-background min-h-screen font-sans antialiased">
-        <Providers>{children}</Providers>
+      <body
+        className={cn(
+          'bg-background min-h-screen font-sans antialiased',
+          process.env.NEXT_PUBLIC_APP_ENV === 'staging' ? 'pt-6' : '',
+        )}
+      >
+        <StagingBanner />
+        <PostHogProvider>
+          <Providers>{children}</Providers>
+        </PostHogProvider>
         <Analytics />
         <SpeedInsights />
         <CookieConsent />

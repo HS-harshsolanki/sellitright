@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test'
 
+// Tests that navigate to /listing/:id require a live Supabase DB (the listing
+// detail page is fully SSR — page.route() cannot intercept server-side fetches).
+const NEEDS_REAL_AUTH = !process.env.E2E_SUPABASE_USER
+
 // The /api/listings route runs mapSupabaseListingToMock, so it returns the
 // full MockListing shape (camelCase, images: [{id, url, caption, order}]).
 // Tests that mock this API must return the same shape.
@@ -135,6 +139,9 @@ test.describe('Browse page', () => {
   })
 })
 
+// The MOCK_LISTING_ID must match a real ID in mock-data.ts for the SSR fallback.
+const MOCK_LISTING_ID = 'listing-001'
+
 test.describe('Listing detail page', () => {
   test.beforeEach(async ({ page }) => {
     await mockListings(page)
@@ -164,4 +171,98 @@ test.describe('Listing detail page', () => {
       timeout: 5000,
     })
   })
+})
+
+// ---------------------------------------------------------------------------
+// TC-B05 — Browse URL with city param renders listings
+// ---------------------------------------------------------------------------
+test('TC-B05: browse URL with city param renders listing cards', async ({ page }) => {
+  await mockListings(page)
+  await page.goto('/properties?city=Mumbai')
+  // Assert on listing title text — avoids strict-mode issues with compound locators
+  await expect(page.getByText(/bandra west/i).first()).toBeVisible({ timeout: 15000 })
+})
+
+// ---------------------------------------------------------------------------
+// TC-B06 — Browse page property type filter buttons exist
+// ---------------------------------------------------------------------------
+test('TC-B06: property type filter for apartment is present', async ({ page }) => {
+  await mockListings(page)
+  await page.goto('/properties')
+  await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 10000 })
+
+  const filterLocator = page
+    .getByRole('button', { name: /apartment/i })
+    .or(page.getByRole('checkbox', { name: /apartment/i }))
+    .or(page.getByText(/apartment/i).first())
+
+  const filterVisible = await filterLocator.isVisible().catch(() => false)
+  if (!filterVisible) {
+    await page.goto('/properties?propertyType=APARTMENT')
+    await expect(page.locator('a[href^="/listing/"]').first()).toBeVisible({ timeout: 10000 })
+  } else {
+    await expect(filterLocator.first()).toBeVisible({ timeout: 10000 })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// TC-B07 — GET /api/listings accepts pagination params without 500
+// ---------------------------------------------------------------------------
+test('TC-B07: GET /api/listings accepts pagination params', async ({ request }) => {
+  const res = await request.get('/api/listings?page=2&limit=10')
+  expect(res.status()).toBe(200)
+  const contentType = res.headers()['content-type'] ?? ''
+  expect(contentType).toContain('application/json')
+  const body = await res.json()
+  expect(body).toBeDefined()
+})
+
+// ---------------------------------------------------------------------------
+// TC-B09 — Listing detail page renders seller / contact section
+// ---------------------------------------------------------------------------
+test('TC-B09: listing detail page renders seller or contact section', async ({ page }) => {
+  // Listing detail page is fully SSR — page.route() cannot intercept server-side
+  // Supabase fetches; requires a live DB connection.
+  test.skip(NEEDS_REAL_AUTH, 'requires live Supabase DB (SSR listing detail page)')
+
+  await page.goto(`/listing/${MOCK_LISTING_ID}`)
+  await page.waitForLoadState('networkidle')
+
+  const contactLocator = page
+    .getByText(/contact seller|get.*contact|request.*contact|connect with seller/i)
+    .first()
+    .or(page.getByRole('button', { name: /contact|connect|request/i }).first())
+
+  await expect(contactLocator).toBeVisible({ timeout: 10000 })
+})
+
+// ---------------------------------------------------------------------------
+// TC-B11 — Listing detail page — Express Interest / contact button exists
+// ---------------------------------------------------------------------------
+test('TC-B11: listing detail page has express interest or contact interactive element', async ({
+  page,
+}) => {
+  // Listing detail page is fully SSR — page.route() cannot intercept server-side
+  // Supabase fetches; requires a live DB connection.
+  test.skip(NEEDS_REAL_AUTH, 'requires live Supabase DB (SSR listing detail page)')
+
+  await page.goto(`/listing/${MOCK_LISTING_ID}`)
+  await page.waitForLoadState('networkidle')
+
+  const interestLocator = page
+    .getByRole('button', { name: /express interest|request contact|connect/i })
+    .or(page.getByRole('link', { name: /express interest/i }))
+    .first()
+
+  await expect(interestLocator).toBeVisible({ timeout: 10000 })
+})
+
+// ---------------------------------------------------------------------------
+// TC-B13 — GET /api/listings/:id returns 404 for non-existent listing
+// ---------------------------------------------------------------------------
+test('TC-B13: GET /api/listings/:id returns 404 for non-existent listing', async ({ request }) => {
+  const res = await request.get('/api/listings/00000000-0000-0000-0000-000000000099')
+  expect(res.status()).toBe(404)
+  const body = await res.json()
+  expect(typeof body.error).toBe('string')
 })

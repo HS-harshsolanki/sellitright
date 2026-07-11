@@ -1,0 +1,74 @@
+# [Manual Steps Required]
+# Before this workflow can run, add the following secrets in GitHub:
+#   Repository → Settings → Secrets and variables → Actions → New repository secret
+#
+#   FLY_STAGING_API_TOKEN       — Fly.io API token scoped to the chapternew-staging app
+#                                 (fly.io dashboard → Account Settings → Access Tokens)
+#   STAGING_SUPABASE_URL        — Supabase project URL for the staging project
+#   STAGING_SUPABASE_ANON_KEY   — Supabase anon/public key for the staging project
+#   STAGING_RAZORPAY_KEY_ID     — Razorpay TEST mode key ID (rzp_test_...)
+#
+# Also ensure the Fly.io app "chapternew-staging" has been created:
+#   fly apps create chapternew-staging --org personal
+# And that runtime secrets (non-build-time) are set on the app:
+#   fly secrets set SUPABASE_SERVICE_ROLE_KEY=... RAZORPAY_KEY_SECRET=... \
+#     RAZORPAY_WEBHOOK_SECRET=... ADMIN_SECRET_KEY=... ADMIN_SESSION_SECRET=... \
+#     OTP_HMAC_SECRET=... FIREBASE_ADMIN_PROJECT_ID=... \
+#     FIREBASE_ADMIN_CLIENT_EMAIL=... FIREBASE_ADMIN_PRIVATE_KEY=... \
+#     --app chapternew-staging
+
+name: Deploy (Staging)
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual staging deploy'
+        required: false
+        default: 'Manual deploy'
+
+jobs:
+  deploy-staging:
+    name: Deploy to Fly.io (Staging)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@v3
+
+      - name: Deploy to staging
+        run: |
+          flyctl deploy --remote-only \
+            --config fly.staging.toml \
+            --app chapternew-staging \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL="${{ secrets.STAGING_SUPABASE_URL }}" \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.STAGING_SUPABASE_ANON_KEY }}" \
+            --build-arg NEXT_PUBLIC_APP_URL="https://staging.chapternew.com" \
+            --build-arg NEXT_PUBLIC_APP_ENV="staging" \
+            --build-arg NEXT_PUBLIC_RAZORPAY_KEY_ID="${{ secrets.STAGING_RAZORPAY_KEY_ID }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_STAGING_API_TOKEN }}
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "## Deployed to staging" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://staging.chapternew.com" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ github.event.inputs.reason }}" ]; then
+            echo "**Reason:** ${{ github.event.inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Staging app: https://staging.chapternew.com"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "## Deploy to staging FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "Check Fly.io dashboard for details: https://fly.io/apps/chapternew-staging" >> $GITHUB_STEP_SUMMARY

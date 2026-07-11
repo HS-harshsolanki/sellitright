@@ -48,6 +48,22 @@ function sanitiseNext(raw: string): string {
 }
 
 export async function middleware(request: NextRequest) {
+  // Beta access gate — only active on staging when BETA_ACCESS_CODE is set
+  if (process.env.NEXT_PUBLIC_APP_ENV === 'staging' && process.env.BETA_ACCESS_CODE) {
+    const betaCookie = request.cookies.get('beta_access')?.value
+    const { isValidBetaCookie } = await import('@/lib/beta-access')
+    const pathname = request.nextUrl.pathname
+    // Allow the beta access page and API itself
+    if (
+      pathname !== '/beta' &&
+      !pathname.startsWith('/api/beta/') &&
+      !pathname.startsWith('/_next/') &&
+      !isValidBetaCookie(betaCookie)
+    ) {
+      return NextResponse.redirect(new URL('/beta', request.url))
+    }
+  }
+
   // Skip auth enforcement when Supabase is not yet configured (local dev before setup)
   if (!isSupabaseConfigured()) {
     return NextResponse.next({ request })

@@ -33,6 +33,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  env: {
+    NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV ?? 'production',
+  },
   compiler: { removeConsole: { exclude: ['error'] } },
   // firebase-admin uses Node.js built-ins — must not be bundled by webpack
   serverExternalPackages: ['firebase-admin'],
