@@ -217,14 +217,8 @@ test('TC-B05: browse URL with city param renders listing cards', async ({ page }
   })
 
   await page.goto('/properties?city=Mumbai')
-  // Wait for loading state to clear, then assert on listing card content or link
-  await expect(
-    page
-      .locator('a[href^="/listing/"]')
-      .first()
-      .or(page.getByText(/bandra west/i).first())
-      .or(page.getByText(/andheri/i).first()),
-  ).toBeVisible({ timeout: 15000 })
+  // Assert on listing title from mock data — avoids strict-mode with compound locators
+  await expect(page.getByText(/bandra west/i).first()).toBeVisible({ timeout: 15000 })
 })
 
 // ---------------------------------------------------------------------------
