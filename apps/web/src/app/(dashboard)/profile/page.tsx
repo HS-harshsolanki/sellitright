@@ -232,7 +232,7 @@ export default function ProfilePage() {
     const normalized = normalizePhone(phoneInput)
     const digits = otpInput.replace(/\D/g, '').slice(0, 6)
     if (digits.length !== 6) {
-      setPhoneError('Enter the 6-digit OTP from the SMS.')
+      setPhoneError('Enter the 6-digit OTP from WhatsApp.')
       return
     }
     setFlowState('verifying')
@@ -459,7 +459,7 @@ export default function ProfilePage() {
                 />
               </div>
               <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-                We&apos;ll send a one-time code via SMS to this number.
+                We&apos;ll send a one-time code via WhatsApp to this number.
               </p>
             </div>
 
@@ -470,7 +470,7 @@ export default function ProfilePage() {
                   htmlFor="otp-input"
                   className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
                 >
-                  6-digit SMS code
+                  6-digit WhatsApp OTP
                 </label>
                 <div className="flex gap-3">
                   <div
@@ -550,7 +550,7 @@ export default function ProfilePage() {
 
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)]">
                   <Phone className="h-3.5 w-3.5" />
-                  Check your SMS messages for a 6-digit code. Valid for 5 minutes.
+                  Check your WhatsApp messages for a 6-digit code. Valid for 5 minutes.
                 </p>
               </div>
             )}
@@ -578,7 +578,7 @@ export default function ProfilePage() {
                 ) : (
                   <>
                     <Phone className="h-4 w-4" />
-                    Send OTP via SMS
+                    Send OTP via WhatsApp
                   </>
                 )}
               </button>

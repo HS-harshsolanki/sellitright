@@ -255,7 +255,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
           <div>
             <h3 className="text-sm font-semibold text-amber-900">Verify your phone to publish</h3>
             <p className="mt-0.5 text-xs text-amber-700">
-              We&apos;ll send a 6-digit OTP via SMS — buyers need a way to reach you.
+              We&apos;ll send a 6-digit OTP via WhatsApp — buyers need a way to reach you.
             </p>
           </div>
         </div>
@@ -335,7 +335,7 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
       <div ref={recaptchaContainerRef} />
 
       <p id="otp-hint" className="mb-3 text-xs text-amber-800">
-        OTP sent via SMS to{' '}
+        OTP sent via WhatsApp to{' '}
         <span className="font-semibold tracking-wide">+91 {maskPhone(normalized)}</span>
       </p>
 

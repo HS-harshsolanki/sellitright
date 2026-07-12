@@ -3,7 +3,7 @@ import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logger } from '@/lib/logger'
-import { sendSmsOtp } from '@/lib/msg91'
+import { isWhatsAppConfigured, sendWhatsAppOtp } from '@/lib/whatsapp'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 // phone_otp_requests is a new table not yet in the generated Supabase types.
@@ -104,26 +104,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to initiate verification.' }, { status: 500 })
   }
 
-  let devOtp: string | undefined
   try {
-    const result = await sendSmsOtp(phone, otp)
-    devOtp = result.devOtp
+    if (isWhatsAppConfigured()) {
+      await sendWhatsAppOtp(phone, otp)
+    } else {
+      // Dev fallback — log OTP to server console, no message sent
+      logger.info(`[send-otp dev] OTP for +91${phone}: ${otp}`)
+    }
   } catch (err) {
-    logger.error('[send-otp] SMS send failed', {
+    logger.error('[send-otp] WhatsApp send failed', {
       error: err instanceof Error ? err.message : String(err),
     })
     // Clean up the OTP row so the rate limit isn't consumed on a failed send
     await otpTable(admin).delete().eq('otp_hash', otpHash)
-    return NextResponse.json(
-      { error: 'Failed to send OTP SMS. Please try again.' },
-      { status: 502 },
-    )
+    return NextResponse.json({ error: 'Failed to send OTP. Please try again.' }, { status: 502 })
   }
 
   return NextResponse.json({
-    message: `OTP sent via SMS to +91 ${phone.slice(0, 5)}XXXXX`,
+    message: `OTP sent via WhatsApp to +91 ${phone.slice(0, 5)}XXXXX`,
     expiresInMinutes: OTP_TTL_MINUTES,
-    // Only set in development — lets devs verify without real SMS
-    ...(devOtp ? { devOtp } : {}),
   })
 }
