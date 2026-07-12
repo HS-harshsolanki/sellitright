@@ -28,21 +28,19 @@ function isSupabaseConfigured() {
 
 function sanitiseNext(raw: string): string {
   try {
-    const decoded = decodeURIComponent(raw)
+    // Delegate normalisation to the URL parser — catches encoded backslashes
+    // like /%5C that blocklist string checks miss.
+    const resolved = new URL(decodeURIComponent(raw), 'https://x')
     if (
-      decoded.startsWith('/') &&
-      !decoded.startsWith('//') &&
-      !decoded.includes('://') &&
-      !decoded.includes('@') &&
-      !decoded.includes('\n') &&
-      !decoded.includes('\r') &&
-      decoded !== '/login' &&
-      decoded !== '/register'
+      resolved.origin === 'https://x' &&
+      resolved.pathname.startsWith('/') &&
+      resolved.pathname !== '/login' &&
+      resolved.pathname !== '/register'
     ) {
-      return decoded
+      return resolved.pathname + resolved.search
     }
   } catch {
-    // decodeURIComponent threw — malformed encoding, reject
+    // malformed encoding — reject
   }
   return '/'
 }

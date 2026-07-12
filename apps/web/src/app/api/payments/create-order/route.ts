@@ -32,6 +32,10 @@ export async function POST(request: NextRequest) {
   if (typeof interestId !== 'string' || !interestId) {
     return NextResponse.json({ error: 'interestId is required.' }, { status: 400 })
   }
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(interestId)) {
+    return NextResponse.json({ error: 'Invalid interestId format.' }, { status: 400 })
+  }
 
   // ── Verify this buyer's interest is ACCEPTED ──────────────────────────────
   const { data: interest, error: interestErr } = await supabase

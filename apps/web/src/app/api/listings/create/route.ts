@@ -105,12 +105,14 @@ export async function POST(request: NextRequest) {
     let data, error
 
     if (draftId) {
-      // Promote existing draft → PENDING_REVIEW
+      // Promote existing draft → PENDING_REVIEW — only allowed from DRAFT or REJECTED
+      // to prevent a seller from resetting an ACTIVE/PENDING_REVIEW listing.
       ;({ data, error } = await supabase
         .from('listings')
         .update(record)
         .eq('id', draftId)
         .eq('seller_id', user.id)
+        .in('status', ['DRAFT', 'REJECTED'])
         .select('id, status, created_at')
         .single())
     } else {
@@ -125,6 +127,14 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('[listings/create] supabase error:', error.message, error.code)
       return NextResponse.json({ error: 'Failed to save listing' }, { status: 500 })
+    }
+
+    if (!data) {
+      // draftId was not in DRAFT/REJECTED state — no row was updated
+      return NextResponse.json(
+        { error: 'Listing not found or cannot be submitted in its current state.' },
+        { status: 404 },
+      )
     }
 
     return NextResponse.json(data, { status: 201 })

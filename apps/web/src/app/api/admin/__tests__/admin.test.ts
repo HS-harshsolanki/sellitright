@@ -3,20 +3,29 @@
  * Tests: auth, listings (search/filter/paginate), approve, reject, note, audit log
  */
 
+import crypto from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const VALID_KEY = 'test-admin-key-abc123'
+const COOKIE_NAME = 'sir_admin_session'
+
+function makeSessionCookie(): string {
+  const ts = Date.now()
+  const hmac = crypto.createHmac('sha256', VALID_KEY)
+  hmac.update(`admin:${ts}`)
+  return `${ts}.${hmac.digest('hex')}`
+}
 
 function makeReq(
   url: string,
-  opts: { method?: string; body?: unknown; key?: string | null } = {},
+  opts: { method?: string; body?: unknown; authed?: boolean } = {},
 ): NextRequest {
-  const { method = 'GET', body, key = VALID_KEY } = opts
+  const { method = 'GET', body, authed = true } = opts
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (key !== null) headers['x-admin-key'] = key
+  if (authed) headers['cookie'] = `${COOKIE_NAME}=${makeSessionCookie()}`
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method,
     headers,
@@ -35,13 +44,13 @@ describe('GET /api/admin/listings', () => {
 
   it('returns 401 when no key provided', async () => {
     const { GET } = await import('../listings/route')
-    const res = await GET(makeReq('http://localhost/api/admin/listings', { key: null }))
+    const res = await GET(makeReq('http://localhost/api/admin/listings', { authed: false }))
     expect(res.status).toBe(401)
   })
 
   it('returns 401 with wrong key', async () => {
     const { GET } = await import('../listings/route')
-    const res = await GET(makeReq('http://localhost/api/admin/listings', { key: 'wrong-key' }))
+    const res = await GET(makeReq('http://localhost/api/admin/listings', { authed: false }))
     expect(res.status).toBe(401)
   })
 
@@ -117,7 +126,7 @@ describe('POST /api/admin/listings/[id]/approve', () => {
     const res = await POST(
       makeReq('http://localhost/api/admin/listings/listing-010/approve', {
         method: 'POST',
-        key: null,
+        authed: false,
       }),
       { params: Promise.resolve({ id: 'listing-010' }) },
     )
@@ -158,7 +167,7 @@ describe('POST /api/admin/listings/[id]/reject', () => {
     const res = await POST(
       makeReq('http://localhost/api/admin/listings/listing-011/reject', {
         method: 'POST',
-        key: null,
+        authed: false,
       }),
       { params: Promise.resolve({ id: 'listing-011' }) },
     )
@@ -212,7 +221,7 @@ describe('GET /api/admin/audit-log', () => {
 
   it('returns 401 without key', async () => {
     const { GET } = await import('../audit-log/route')
-    const res = await GET(makeReq('http://localhost/api/admin/audit-log', { key: null }))
+    const res = await GET(makeReq('http://localhost/api/admin/audit-log', { authed: false }))
     expect(res.status).toBe(401)
   })
 
@@ -251,7 +260,7 @@ describe('POST /api/admin/listings/[id]/note', () => {
     const res = await POST(
       makeReq('http://localhost/api/admin/listings/listing-001/note', {
         method: 'POST',
-        key: null,
+        authed: false,
       }),
       { params: Promise.resolve({ id: 'listing-001' }) },
     )
@@ -295,7 +304,7 @@ describe('POST /api/admin/listings/[id]/delete', () => {
     const res = await POST(
       makeReq('http://localhost/api/admin/listings/listing-001/delete', {
         method: 'POST',
-        key: null,
+        authed: false,
       }),
       { params: Promise.resolve({ id: 'listing-001' }) },
     )
@@ -307,7 +316,7 @@ describe('POST /api/admin/listings/[id]/delete', () => {
     const res = await POST(
       makeReq('http://localhost/api/admin/listings/listing-001/delete', {
         method: 'POST',
-        key: 'bad-key',
+        authed: false,
       }),
       { params: Promise.resolve({ id: 'listing-001' }) },
     )

@@ -8,21 +8,18 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/properties'
 
   if (code) {
-    // Validate redirect path before building the response
+    // Validate redirect path — delegate normalisation to URL parser so encoded
+    // backslashes like /%5C don't slip through a string-based blocklist.
     let safePath = '/'
     try {
-      const decoded = decodeURIComponent(next)
+      const resolved = new URL(decodeURIComponent(next), 'https://x')
       if (
-        decoded.startsWith('/') &&
-        !decoded.startsWith('//') &&
-        !decoded.includes('://') &&
-        !decoded.includes('@') &&
-        !decoded.includes('\n') &&
-        !decoded.includes('\r') &&
-        decoded !== '/login' &&
-        decoded !== '/register'
+        resolved.origin === 'https://x' &&
+        resolved.pathname.startsWith('/') &&
+        resolved.pathname !== '/login' &&
+        resolved.pathname !== '/register'
       ) {
-        safePath = decoded
+        safePath = resolved.pathname + resolved.search
       }
     } catch {
       // malformed encoding — keep '/'

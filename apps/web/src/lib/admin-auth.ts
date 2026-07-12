@@ -35,18 +35,11 @@ export function isAuthorized(request: NextRequest): boolean {
     'unknown'
   if (isRateLimited(ip)) return false
 
-  // 1. Check httpOnly session cookie (preferred)
+  // Check httpOnly session cookie
   const sessionCookie = request.cookies.get(COOKIE_NAME)?.value
   if (sessionCookie && verifySessionToken(sessionCookie)) return true
 
-  // 2. Fallback: x-admin-key header (legacy — kept for in-flight requests during deploy)
-  const provided = request.headers.get('x-admin-key') ?? ''
-  if (provided.length !== ADMIN_KEY.length) return false
-  try {
-    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))
-  } catch {
-    return false
-  }
+  return false
 }
 
 export async function logAdminAction(
