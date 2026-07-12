@@ -87,7 +87,7 @@ function groupByDay(
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function GlobalMessagesBubble() {
-  const { user, loading: authLoading } = useAuth()
+  const { user } = useAuth()
   const pathname = usePathname()
 
   const [open, setOpen] = useState(false)

@@ -2,8 +2,8 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 
 import { StepDetails } from '@/components/forms/step-details'
 import { StepLocation } from '@/components/forms/step-location'

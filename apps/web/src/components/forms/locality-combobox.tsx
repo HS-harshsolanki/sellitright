@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertCircle, Check, ChevronDown, PenLine, X } from 'lucide-react'
+import { Check, ChevronDown, PenLine, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { filterLocalities, type LocalityOption } from '@/lib/localities'

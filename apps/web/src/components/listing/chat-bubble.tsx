@@ -415,7 +415,7 @@ export function ChatBubble({
         if (!opts?.silent) setLoading(false)
       }
     },
-    [threadId],
+    [threadId, myUserId],
   )
 
   // Initial load + poll every 10s while open

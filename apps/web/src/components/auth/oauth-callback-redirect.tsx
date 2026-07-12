@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 // If the Supabase dashboard Site URL is set to chapternew.com/ and the OAuth
 // redirect lands here instead of /auth/callback, forward it client-side so

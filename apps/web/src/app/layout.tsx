@@ -1,7 +1,7 @@
-import type { Metadata, Viewport } from 'next'
-import localFont from 'next/font/local'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import type { Metadata, Viewport } from 'next'
+import localFont from 'next/font/local'
 
 import { CookieConsent } from '@/components/cookie-consent'
 

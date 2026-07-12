@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { logger } from '@/lib/logger'
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
+import { logger } from '@/lib/logger'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 const INDIAN_MOBILE_RE = /^[6-9]\d{9}$/

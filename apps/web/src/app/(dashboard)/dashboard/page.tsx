@@ -11,8 +11,6 @@ import {
   Users,
   Phone,
   Mail,
-  CheckCircle,
-  PauseCircle,
   PlayCircle,
   Undo2,
   ExternalLink,

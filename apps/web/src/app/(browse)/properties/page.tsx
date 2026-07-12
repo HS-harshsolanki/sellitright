@@ -1,5 +1,5 @@
-import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { type MockListing } from '@/lib/mock-data'

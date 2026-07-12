@@ -1,5 +1,6 @@
 'use client'
 
+import type { ConfirmationResult, RecaptchaVerifier as RV } from 'firebase/auth'
 import { AlertCircle, CheckCircle2, Loader2, Phone } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -7,8 +8,6 @@ import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase/client'
 import { INDIAN_MOBILE_RE, normalizePhone } from '@/lib/phone'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-
-import type { ConfirmationResult, RecaptchaVerifier as RV } from 'firebase/auth'
 
 const RESEND_COOLDOWN = 30
 

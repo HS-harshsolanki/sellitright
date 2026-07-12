@@ -1,8 +1,8 @@
 import { ArrowRight, BadgeCheck, CheckCircle2, Lock, Search, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 
-import { FAQItem, FadeIn, Reveal, ScrollChevron, Stagger } from '@/components/landing/reveal'
 import { OAuthCallbackRedirect } from '@/components/auth/oauth-callback-redirect'
+import { FAQItem, FadeIn, Reveal, ScrollChevron, Stagger } from '@/components/landing/reveal'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
