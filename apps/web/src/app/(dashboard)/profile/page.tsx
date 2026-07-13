@@ -1,6 +1,5 @@
 'use client'
 
-import type { ConfirmationResult, RecaptchaVerifier as RV } from 'firebase/auth'
 import {
   AlertCircle,
   CheckCircle2,
@@ -15,7 +14,6 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase/client'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -41,9 +39,6 @@ export default function ProfilePage() {
   const router = useRouter()
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null)
-  const verifierRef = useRef<RV | null>(null)
-  const confirmationRef = useRef<ConfirmationResult | null>(null)
 
   const [displayName, setDisplayName] = useState('')
   const [saving, setSaving] = useState(false)
@@ -116,29 +111,6 @@ export default function ProfilePage() {
     }, 1000)
   }
 
-  async function initVerifier(): Promise<RV> {
-    if (verifierRef.current) {
-      try {
-        verifierRef.current.clear()
-      } catch {
-        /* ignore */
-      }
-      verifierRef.current = null
-    }
-    const { RecaptchaVerifier } = await import('firebase/auth')
-    const container = recaptchaContainerRef.current!
-    container.innerHTML = ''
-    const anchor = document.createElement('div')
-    container.appendChild(anchor)
-    const auth = getFirebaseAuth()
-    if (!auth) throw new Error('Firebase not available')
-    const verifier = new RecaptchaVerifier(auth, anchor, {
-      size: 'invisible',
-    })
-    verifierRef.current = verifier
-    return verifier
-  }
-
   async function handleSendOtp() {
     setPhoneError('')
     const normalized = normalizePhone(phoneInput)
@@ -148,82 +120,22 @@ export default function ProfilePage() {
     }
     setFlowState('sending')
     try {
-      if (!isFirebaseConfigured()) {
-        // Fallback: MSG91 route when Firebase keys not yet set
-        const res = await fetch('/api/phone/send-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: normalized }),
-        })
-        const data = (await res.json()) as { error?: string }
-        if (!res.ok) {
-          setPhoneError(data.error ?? 'Failed to send OTP. Please try again.')
-          setFlowState('idle')
-          return
-        }
-        setFlowState('otp-sent')
-        startCooldown(30)
+      const res = await fetch('/api/phone/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: normalized }),
+      })
+      const data = (await res.json()) as { error?: string }
+      if (!res.ok) {
+        setPhoneError(data.error ?? 'Failed to send OTP. Please try again.')
+        setFlowState('idle')
         return
       }
-
-      const { signInWithPhoneNumber } = await import('firebase/auth')
-      const verifier = await initVerifier()
-      const TIMEOUT_MS = 15_000
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
-          () =>
-            reject(new Error('OTP request timed out. Please check your connection and try again.')),
-          TIMEOUT_MS,
-        ),
-      )
-      const confirmation = await Promise.race([
-        signInWithPhoneNumber(getFirebaseAuth()!, `+91${normalized}`, verifier),
-        timeoutPromise,
-      ])
-      confirmationRef.current = confirmation
       setFlowState('otp-sent')
       startCooldown(30)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (
-        (msg.includes('provider-already-linked') || msg.includes('credential-already-in-use')) &&
-        getFirebaseAuth()?.currentUser
-      ) {
-        // Already linked — just update Supabase metadata
-        try {
-          const idToken = await getFirebaseAuth()!.currentUser!.getIdToken(/* forceRefresh */ true)
-          const res = await fetch('/api/phone/firebase-verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-          })
-          if (res.ok) {
-            await createClient().auth.refreshSession()
-            setFlowState('verified')
-            setOtpInput('')
-          } else {
-            const data = (await res.json()) as { error?: string }
-            setPhoneError(data.error ?? 'Verification failed.')
-            setFlowState('idle')
-          }
-        } catch {
-          setPhoneError('Verification failed. Please try again.')
-          setFlowState('idle')
-        }
-        return
-      }
-      console.error('[Firebase OTP] sendOTP error:', err)
-      const isTooMany = msg.includes('too-many-requests')
-      const friendlyMsg = isTooMany
-        ? 'Too many attempts. Please wait 5 minutes and try again.'
-        : msg.includes('invalid-phone-number')
-          ? "That doesn't look like a valid phone number."
-          : 'Failed to send OTP. Please try again.'
-      setPhoneError(friendlyMsg)
-      if (isTooMany) startCooldown(300)
+    } catch {
+      setPhoneError('Failed to send OTP. Please check your connection.')
       setFlowState('idle')
-      verifierRef.current?.clear()
-      verifierRef.current = null
     }
   }
 
@@ -232,36 +144,15 @@ export default function ProfilePage() {
     const normalized = normalizePhone(phoneInput)
     const digits = otpInput.replace(/\D/g, '').slice(0, 6)
     if (digits.length !== 6) {
-      setPhoneError('Enter the 6-digit OTP from WhatsApp.')
+      setPhoneError('Enter the 6-digit OTP from SMS.')
       return
     }
     setFlowState('verifying')
     try {
-      if (!isFirebaseConfigured() || !confirmationRef.current) {
-        // Fallback: MSG91 verify
-        const res = await fetch('/api/phone/verify-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: normalized, otp: digits }),
-        })
-        const data = (await res.json()) as { error?: string }
-        if (!res.ok) {
-          setPhoneError(data.error ?? 'Verification failed. Please try again.')
-          setFlowState('otp-sent')
-          return
-        }
-        await createClient().auth.refreshSession()
-        setFlowState('verified')
-        setOtpInput('')
-        return
-      }
-
-      const result = await confirmationRef.current.confirm(digits)
-      const idToken = await result.user.getIdToken(/* forceRefresh */ true)
-      const res = await fetch('/api/phone/firebase-verify', {
+      const res = await fetch('/api/phone/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify({ phone: normalized, otp: digits }),
       })
       const data = (await res.json()) as { error?: string }
       if (!res.ok) {
@@ -272,13 +163,8 @@ export default function ProfilePage() {
       await createClient().auth.refreshSession()
       setFlowState('verified')
       setOtpInput('')
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('invalid-verification-code') || msg.includes('code-expired')) {
-        setPhoneError('Incorrect or expired OTP. Please try again.')
-      } else {
-        setPhoneError('Network error — please check your connection.')
-      }
+    } catch {
+      setPhoneError('Network error — please check your connection.')
       setFlowState('otp-sent')
     }
   }
@@ -339,9 +225,6 @@ export default function ProfilePage() {
           Manage your account details
         </p>
       </div>
-
-      {/* Invisible reCAPTCHA anchor for Firebase phone auth */}
-      <div ref={recaptchaContainerRef} />
 
       {flowState !== 'verified' && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
@@ -409,7 +292,6 @@ export default function ProfilePage() {
                 setPhoneInput('')
                 setOtpInput('')
                 setPhoneError('')
-                confirmationRef.current = null
               }}
               className="ml-2 text-xs underline opacity-60 hover:opacity-100"
             >
@@ -459,7 +341,7 @@ export default function ProfilePage() {
                 />
               </div>
               <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-                We&apos;ll send a one-time code via WhatsApp to this number.
+                We&apos;ll send a one-time code via SMS to this number.
               </p>
             </div>
 
@@ -470,7 +352,7 @@ export default function ProfilePage() {
                   htmlFor="otp-input"
                   className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]"
                 >
-                  6-digit WhatsApp OTP
+                  6-digit SMS OTP
                 </label>
                 <div className="flex gap-3">
                   <div
@@ -522,7 +404,6 @@ export default function ProfilePage() {
                       setFlowState('idle')
                       setOtpInput('')
                       setPhoneError('')
-                      confirmationRef.current = null
                     }}
                     className="text-xs text-[var(--color-muted-foreground)] underline hover:text-[var(--color-foreground)]"
                   >
@@ -550,7 +431,7 @@ export default function ProfilePage() {
 
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)]">
                   <Phone className="h-3.5 w-3.5" />
-                  Check your WhatsApp messages for a 6-digit code. Valid for 5 minutes.
+                  Check your SMS messages for a 6-digit code. Valid for 10 minutes.
                 </p>
               </div>
             )}
@@ -578,7 +459,7 @@ export default function ProfilePage() {
                 ) : (
                   <>
                     <Phone className="h-4 w-4" />
-                    Send OTP via WhatsApp
+                    Send OTP via SMS
                   </>
                 )}
               </button>

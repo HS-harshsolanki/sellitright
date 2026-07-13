@@ -3,7 +3,7 @@ import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logger } from '@/lib/logger'
-import { isWhatsAppConfigured, sendWhatsAppOtp } from '@/lib/whatsapp'
+import { isMsg91Configured, sendSmsOtp } from '@/lib/msg91'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 // phone_otp_requests is a new table not yet in the generated Supabase types.
@@ -105,14 +105,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    if (isWhatsAppConfigured()) {
-      await sendWhatsAppOtp(phone, otp)
+    if (isMsg91Configured()) {
+      await sendSmsOtp(phone, otp)
     } else {
       // Dev fallback — log OTP to server console, no message sent
       logger.info(`[send-otp dev] OTP for +91${phone}: ${otp}`)
     }
   } catch (err) {
-    logger.error('[send-otp] WhatsApp send failed', {
+    logger.error('[send-otp] SMS send failed', {
       error: err instanceof Error ? err.message : String(err),
     })
     // Clean up the OTP row so the rate limit isn't consumed on a failed send
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({
-    message: `OTP sent via WhatsApp to +91 ${phone.slice(0, 5)}XXXXX`,
+    message: `OTP sent via SMS to +91 ${phone.slice(0, 5)}XXXXX`,
     expiresInMinutes: OTP_TTL_MINUTES,
   })
 }

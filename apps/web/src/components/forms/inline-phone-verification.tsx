@@ -1,10 +1,8 @@
 'use client'
 
-import type { ConfirmationResult, RecaptchaVerifier as RV } from 'firebase/auth'
 import { AlertCircle, CheckCircle2, Loader2, Phone } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase/client'
 import { INDIAN_MOBILE_RE, normalizePhone } from '@/lib/phone'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -29,10 +27,6 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
   const [isLoading, setIsLoading] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
 
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null)
-  const verifierRef = useRef<RV | null>(null)
-  const confirmationRef = useRef<ConfirmationResult | null>(null)
-
   const normalized = normalizePhone(inlinePhone)
   const phoneValid = INDIAN_MOBILE_RE.test(normalized)
 
@@ -42,36 +36,6 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
     return () => clearTimeout(t)
   }, [resendCooldown])
 
-  useEffect(() => {
-    return () => {
-      verifierRef.current?.clear()
-      verifierRef.current = null
-    }
-  }, [])
-
-  async function initVerifier(): Promise<RV> {
-    if (verifierRef.current) {
-      try {
-        verifierRef.current.clear()
-      } catch {
-        /* ignore */
-      }
-      verifierRef.current = null
-    }
-    const { RecaptchaVerifier } = await import('firebase/auth')
-    // Create a fresh inner div inside the stable React-managed container.
-    // Never replace the container itself — that detaches it from React's fiber tree.
-    const container = recaptchaContainerRef.current!
-    container.innerHTML = ''
-    const anchor = document.createElement('div')
-    container.appendChild(anchor)
-    const auth = getFirebaseAuth()
-    if (!auth) throw new Error('Firebase not available')
-    const verifier = new RecaptchaVerifier(auth, anchor, { size: 'invisible' })
-    verifierRef.current = verifier
-    return verifier
-  }
-
   async function handleSendOtp() {
     if (!phoneValid || resendCooldown > 0) return
     setIsLoading(true)
@@ -79,65 +43,22 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
     setError(null)
 
     try {
-      if (!isFirebaseConfigured()) {
-        // Firebase not yet configured — fall back to MSG91 route
-        const res = await fetch('/api/phone/send-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: normalized }),
-        })
-        const data = (await res.json()) as { error?: string; devOtp?: string }
-        if (!res.ok) {
-          setError(data.error ?? 'Failed to send OTP. Try again.')
-          setFlowState('idle')
-        } else {
-          setFlowState('otp_sent')
-          setResendCooldown(RESEND_COOLDOWN)
-        }
-        return
+      const res = await fetch('/api/phone/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: normalized }),
+      })
+      const data = (await res.json()) as { error?: string }
+      if (!res.ok) {
+        setError(data.error ?? 'Failed to send OTP. Try again.')
+        setFlowState('idle')
+      } else {
+        setFlowState('otp_sent')
+        setResendCooldown(RESEND_COOLDOWN)
       }
-
-      const { signInWithPhoneNumber } = await import('firebase/auth')
-      const verifier = await initVerifier()
-      const TIMEOUT_MS = 15_000
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
-          () =>
-            reject(new Error('OTP request timed out. Please check your connection and try again.')),
-          TIMEOUT_MS,
-        ),
-      )
-      const confirmation = await Promise.race([
-        signInWithPhoneNumber(getFirebaseAuth()!, `+91${normalized}`, verifier),
-        timeoutPromise,
-      ])
-      confirmationRef.current = confirmation
-      setFlowState('otp_sent')
-      setResendCooldown(RESEND_COOLDOWN)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      const fbUser = getFirebaseAuth()?.currentUser
-      if (msg.includes('provider-already-linked') || msg.includes('credential-already-in-use')) {
-        if (!fbUser) {
-          setError('Authentication session expired. Please refresh and try again.')
-          setFlowState('idle')
-          return
-        }
-        await markVerifiedInSupabase(normalized, fbUser)
-        return
-      }
-      console.error('[Firebase OTP] sendOTP error:', err)
-      const isTooMany = msg.includes('too-many-requests')
-      const friendlyMsg = isTooMany
-        ? 'Too many attempts. Please wait 5 minutes and try again.'
-        : msg.includes('invalid-phone-number')
-          ? "That doesn't look like a valid phone number."
-          : 'Failed to send OTP. Please try again.'
-      setError(friendlyMsg)
-      if (isTooMany) setResendCooldown(300)
+    } catch {
+      setError('Failed to send OTP. Please check your connection.')
       setFlowState('idle')
-      verifierRef.current?.clear()
-      verifierRef.current = null
     } finally {
       setIsLoading(false)
     }
@@ -149,68 +70,19 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
     setError(null)
 
     try {
-      if (!isFirebaseConfigured() || !confirmationRef.current) {
-        // Fallback to MSG91 verify
-        const res = await fetch('/api/phone/verify-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: normalized, otp }),
-        })
-        const data = (await res.json()) as { error?: string; phone?: string }
-        if (!res.ok) {
-          setError(data.error ?? 'Wrong OTP. Please try again.')
-        } else {
-          await finalizeVerification(data.phone ?? normalized)
-        }
-        return
-      }
-
-      const result = await confirmationRef.current.confirm(otp)
-      const idToken = await result.user.getIdToken(/* forceRefresh */ true)
-      const res = await fetch('/api/phone/firebase-verify', {
+      const res = await fetch('/api/phone/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify({ phone: normalized, otp }),
       })
       const data = (await res.json()) as { error?: string; phone?: string }
       if (!res.ok) {
-        setError(data.error ?? 'Verification failed. Please try again.')
+        setError(data.error ?? 'Wrong OTP. Please try again.')
       } else {
         await finalizeVerification(data.phone ?? normalized)
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('invalid-verification-code') || msg.includes('code-expired')) {
-        setError('Incorrect or expired OTP. Please try again.')
-      } else {
-        setError('Verification failed. Please try again.')
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  async function markVerifiedInSupabase(
-    phone: string,
-    firebaseUser: { getIdToken(forceRefresh?: boolean): Promise<string> },
-  ) {
-    try {
-      const idToken = await firebaseUser.getIdToken(/* forceRefresh */ true)
-      const res = await fetch('/api/phone/firebase-verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      })
-      const data = (await res.json()) as { error?: string; phone?: string }
-      if (res.ok) {
-        await finalizeVerification(data.phone ?? phone)
-      } else {
-        setError(data.error ?? 'Verification failed.')
-        setFlowState('idle')
-      }
     } catch {
       setError('Verification failed. Please try again.')
-      setFlowState('idle')
     } finally {
       setIsLoading(false)
     }
@@ -247,15 +119,12 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
           {isSending ? 'Sending OTP, please wait.' : ''}
         </span>
 
-        {/* Invisible reCAPTCHA anchor — no visible UI */}
-        <div ref={recaptchaContainerRef} />
-
         <div className="mb-3 flex items-start gap-2.5">
           <Phone className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
           <div>
             <h3 className="text-sm font-semibold text-amber-900">Verify your phone to publish</h3>
             <p className="mt-0.5 text-xs text-amber-700">
-              We&apos;ll send a 6-digit OTP via WhatsApp — buyers need a way to reach you.
+              We&apos;ll send a 6-digit OTP via SMS — buyers need a way to reach you.
             </p>
           </div>
         </div>
@@ -332,10 +201,8 @@ export function InlinePhoneVerification({ onVerified }: InlinePhoneVerificationP
 
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
-      <div ref={recaptchaContainerRef} />
-
       <p id="otp-hint" className="mb-3 text-xs text-amber-800">
-        OTP sent via WhatsApp to{' '}
+        OTP sent via SMS to{' '}
         <span className="font-semibold tracking-wide">+91 {maskPhone(normalized)}</span>
       </p>
 
