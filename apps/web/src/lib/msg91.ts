@@ -5,18 +5,6 @@ export function isMsg91Configured(): boolean {
   return !!(AUTH_KEY && WIDGET_ID)
 }
 
-// env debug — remove after confirming production works
-export function getMsg91Config() {
-  return {
-    hasAuthKey: !!AUTH_KEY,
-    hasWidgetId: !!WIDGET_ID,
-    widgetIdPrefix: WIDGET_ID.slice(0, 6) || 'MISSING',
-    authKeyPrefix: AUTH_KEY.slice(0, 6) || 'MISSING',
-    widgetIdLen: WIDGET_ID.length,
-    authKeyLen: AUTH_KEY.length,
-  }
-}
-
 /**
  * Send OTP via MSG91 Widget API (no DLT registration required).
  * MSG91 generates and sends the OTP; returns a reqId used for verification.
@@ -32,8 +20,6 @@ export async function sendSmsOtp(toPhone: string): Promise<{ reqId: string }> {
     headers: {
       'Content-Type': 'application/json',
       authkey: AUTH_KEY,
-      Origin: process.env.NEXT_PUBLIC_APP_URL ?? 'https://chapternew.com',
-      Referer: process.env.NEXT_PUBLIC_APP_URL ?? 'https://chapternew.com',
     },
     body: JSON.stringify({
       widgetId: WIDGET_ID,

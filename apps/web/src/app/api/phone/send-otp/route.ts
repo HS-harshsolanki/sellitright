@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logger } from '@/lib/logger'
-import { getMsg91Config, isMsg91Configured, sendSmsOtp } from '@/lib/msg91'
+import { isMsg91Configured, sendSmsOtp } from '@/lib/msg91'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 // phone_otp_requests is a new table not yet in the generated Supabase types.
@@ -56,11 +56,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!isMsg91Configured()) {
-    const cfg = getMsg91Config()
-    return NextResponse.json(
-      { error: 'Verification service not configured.', debug: cfg },
-      { status: 503 },
-    )
+    return NextResponse.json({ error: 'Verification service not configured.' }, { status: 503 })
   }
 
   const admin = createServiceClient()
@@ -91,10 +87,7 @@ export async function POST(request: NextRequest) {
     const errMsg = err instanceof Error ? err.message : String(err)
     logger.error('[send-otp] MSG91 send failed', { error: errMsg })
     // TODO: remove debug detail before final production hardening
-    return NextResponse.json(
-      { error: 'Failed to send OTP. Please try again.', debug: errMsg, cfg: getMsg91Config() },
-      { status: 502 },
-    )
+    return NextResponse.json({ error: 'Failed to send OTP. Please try again.' }, { status: 502 })
   }
 
   // Store reqId in otp_hash column (reused as generic text store for the request token)
