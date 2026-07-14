@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     logger.error('[send-otp] MSG91 send failed', { error: errMsg })
     // TODO: remove debug detail before final production hardening
     return NextResponse.json(
-      { error: 'Failed to send OTP. Please try again.', debug: errMsg },
+      { error: 'Failed to send OTP. Please try again.', debug: errMsg, cfg: getMsg91Config() },
       { status: 502 },
     )
   }
