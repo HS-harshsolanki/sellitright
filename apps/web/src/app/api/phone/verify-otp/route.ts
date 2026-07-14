@@ -81,19 +81,8 @@ export async function POST(request: NextRequest) {
 
   const { id: rowId, otp_hash: reqId } = rows[0] as { id: string; otp_hash: string }
 
-  // Delegate verification to MSG91 widget (it is the authoritative OTP source)
-  const { valid, message } = await verifyOtpWithWidget(otp, reqId)
-  if (!valid) {
-    return NextResponse.json(
-      { error: message ?? 'Incorrect or expired OTP. Please try again.' },
-      { status: 422 },
-    )
-  }
-
-  // Mark the OTP request as used so it can't be replayed
-  await otpTable(admin).update({ used: true }).eq('id', rowId)
-
-  // Block if another verified account already holds this phone number.
+  // Block if another verified account already holds this phone number BEFORE consuming the OTP.
+  // Doing this first ensures a 409 doesn't waste the user's OTP.
   // .neq('id', user.id) allows the same user to re-verify their own number.
   const { data: existingHolder, error: uniquenessError } = await (admin as any)
     .from('profiles')
@@ -121,6 +110,18 @@ export async function POST(request: NextRequest) {
       { status: 409 },
     )
   }
+
+  // Delegate verification to MSG91 widget (it is the authoritative OTP source)
+  const { valid, message } = await verifyOtpWithWidget(otp, reqId)
+  if (!valid) {
+    return NextResponse.json(
+      { error: message ?? 'Incorrect or expired OTP. Please try again.' },
+      { status: 422 },
+    )
+  }
+
+  // Mark the OTP request as used so it can't be replayed
+  await otpTable(admin).update({ used: true }).eq('id', rowId)
 
   // Persist verified phone to user metadata
   const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
