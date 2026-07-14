@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logger } from '@/lib/logger'
-import { isMsg91Configured, verifyOtpWithWidget } from '@/lib/msg91'
+import { verifyOtpWithWidget } from '@/lib/msg91'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 const INDIAN_MOBILE_RE = /^[6-9]\d{9}$/
@@ -13,9 +13,15 @@ function normalizePhone(raw: string): string {
   return digits
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function otpTable(client: ReturnType<typeof createServiceClient>): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client as any).from('phone_otp_requests')
+}
+
 // POST /api/phone/verify-otp
 // Body: { phone: string, otp: string }
-// Validates the OTP via MSG91 widget and sets user_metadata.phone + phone_verified: true on success.
+// Looks up the most recent reqId for this phone, then verifies via MSG91 widget.
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const {
@@ -50,12 +56,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'OTP must be 6 digits.' }, { status: 422 })
   }
 
-  // Verify OTP via MSG91 widget (authoritative check — no local hash needed)
-  if (!isMsg91Configured()) {
-    return NextResponse.json({ error: 'Verification service not configured.' }, { status: 503 })
+  const admin = createServiceClient()
+  if (!admin) {
+    return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
   }
 
-  const { valid, message } = await verifyOtpWithWidget(phone, otp)
+  // Find the most recent unexpired, unused OTP request for this user+phone
+  const now = new Date().toISOString()
+  const { data: rows } = await otpTable(admin)
+    .select('id, otp_hash')
+    .eq('user_id', user.id)
+    .eq('phone', phone)
+    .eq('used', false)
+    .gt('expires_at', now)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (!rows || rows.length === 0) {
+    return NextResponse.json(
+      { error: 'No valid OTP found. Please request a new one.' },
+      { status: 404 },
+    )
+  }
+
+  const { id: rowId, otp_hash: reqId } = rows[0] as { id: string; otp_hash: string }
+
+  // Delegate verification to MSG91 widget (it is the authoritative OTP source)
+  const { valid, message } = await verifyOtpWithWidget(otp, reqId)
   if (!valid) {
     return NextResponse.json(
       { error: message ?? 'Incorrect or expired OTP. Please try again.' },
@@ -63,12 +90,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // OTP correct — persist verified phone to user metadata
-  const admin = createServiceClient()
-  if (!admin) {
-    return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
-  }
+  // Mark the OTP request as used so it can't be replayed
+  await otpTable(admin).update({ used: true }).eq('id', rowId)
 
+  // Persist verified phone to user metadata
   const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
     user_metadata: {
       ...user.user_metadata,

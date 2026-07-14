@@ -4,24 +4,23 @@ export function isMsg91Configured(): boolean {
 
 /**
  * Send OTP via MSG91 Widget API (no DLT registration required).
- * MSG91 handles template + sender routing internally.
+ * MSG91 generates and sends the OTP; returns a reqId used for verification.
  */
-export async function sendSmsOtp(toPhone: string, otp: string): Promise<void> {
+export async function sendSmsOtp(toPhone: string): Promise<{ reqId: string }> {
   if (!isMsg91Configured()) {
-    console.log(`[SMS OTP dev] → +91${toPhone}  OTP: ${otp}`)
-    return
+    // Dev fallback — return a fake reqId so the caller can store it
+    return { reqId: `dev-${toPhone}-${Date.now()}` }
   }
 
-  const res = await fetch('https://control.msg91.com/api/v5/widget/sendOtp', {
+  const res = await fetch('https://api.msg91.com/api/v5/widget/sendOtp', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       authkey: process.env.MSG91_AUTH_KEY!,
     },
     body: JSON.stringify({
-      mobile: `91${toPhone}`,
       widgetId: process.env.MSG91_WIDGET_ID!,
-      otp,
+      identifier: `91${toPhone}`,
     }),
   })
 
@@ -35,33 +34,41 @@ export async function sendSmsOtp(toPhone: string, otp: string): Promise<void> {
     throw new Error(`MSG91 widget error: ${data.message}`)
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[SMS OTP dev] → +91${toPhone}  OTP: ${otp}`)
+  // MSG91 returns the reqId in the `message` field on success
+  const reqId = data.message
+  if (!reqId) {
+    throw new Error('MSG91 widget returned no reqId')
   }
+
+  return { reqId }
 }
 
 /**
- * Verify OTP via MSG91 Widget API.
- * Returns true if valid, false if wrong/expired.
+ * Verify OTP via MSG91 Widget API using the reqId from sendSmsOtp.
  */
 export async function verifyOtpWithWidget(
-  toPhone: string,
   otp: string,
+  reqId: string,
 ): Promise<{ valid: boolean; message?: string }> {
   if (!isMsg91Configured()) {
     return { valid: false, message: 'MSG91 not configured' }
   }
 
-  const res = await fetch('https://control.msg91.com/api/v5/widget/verifyOtp', {
+  // Dev fallback — reqId starts with "dev-" in local mode; accept any 6-digit OTP
+  if (reqId.startsWith('dev-')) {
+    return { valid: otp.length === 6 }
+  }
+
+  const res = await fetch('https://api.msg91.com/api/v5/widget/verifyOtp', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       authkey: process.env.MSG91_AUTH_KEY!,
     },
     body: JSON.stringify({
-      mobile: `91${toPhone}`,
-      otp,
       widgetId: process.env.MSG91_WIDGET_ID!,
+      otp,
+      reqId,
     }),
   })
 
