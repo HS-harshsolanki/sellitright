@@ -21,6 +21,7 @@ import {
   Bath,
   Maximize2,
   MessageSquare,
+  Trash2,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -244,7 +245,7 @@ function ListingCard({
 
   return (
     <article className="group overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm transition-all duration-200 hover:shadow-md">
-      {/* ── Image — 16:9 ratio matching Deli-Prop ── */}
+      {/* ── Image — 16:9 ratio ── */}
       <div className="relative aspect-video overflow-hidden bg-[var(--color-muted)]">
         {cover ? (
           <Image
@@ -290,7 +291,7 @@ function ListingCard({
         </span>
       </div>
 
-      {/* ── Body — tight padding ── */}
+      {/* ── Body ── */}
       <div className="p-3">
         {/* Title + price */}
         <div className="flex items-start justify-between gap-2">
@@ -310,15 +311,15 @@ function ListingCard({
           </span>
         </div>
 
-        {/* Rejection reason */}
+        {/* Rejection reason — prominent, above actions */}
         {listing.status === 'REJECTED' && listing.rejectionReason && (
-          <div className="mt-2 flex items-start gap-1 rounded-lg bg-red-50 px-2.5 py-2 text-[11px] text-red-700">
+          <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] text-red-700">
             <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
-            <span>{listing.rejectionReason}</span>
+            <span className="leading-relaxed">{listing.rejectionReason}</span>
           </div>
         )}
 
-        {/* Metadata strip — Deli-Prop style with Lucide icons */}
+        {/* Metadata strip */}
         {(listing.bhkType ?? listing.builtUpArea) && (
           <div className="mt-2.5 flex items-center gap-3 border-t border-[var(--color-border)] pt-2.5 text-[11px] text-[var(--color-muted-foreground)]">
             {listing.bhkType && (
@@ -342,310 +343,321 @@ function ListingCard({
           </div>
         )}
 
-        {/* ── Primary action row ── */}
-        <div className="mt-3 flex gap-1.5">
+        {/* ── Action area ── */}
+        <div className="mt-3 space-y-2">
+          {/* ── ACTIVE ── */}
           {listing.status === 'ACTIVE' && (
             <>
-              <Link
-                href={`/listing/${listing.id}`}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
-                title="View public listing"
-              >
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-              </Link>
+              {/* Primary: Edit */}
               <Link
                 href={`/dashboard/listings/${listing.id}/edit`}
-                className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-foreground)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
               >
                 <Pencil className="h-3 w-3" aria-hidden="true" />
-                Edit
+                Edit listing
               </Link>
-            </>
-          )}
 
-          {listing.status === 'DRAFT' && (
-            <Link
-              href={`/sell?draftId=${listing.id}`}
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
-            >
-              Resume Draft
-            </Link>
-          )}
+              {/* Secondary row */}
+              <div className="flex items-center gap-1">
+                {/* View listing — icon button */}
+                <Link
+                  href={`/listing/${listing.id}`}
+                  title="View public listing"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="sr-only">View public listing</span>
+                </Link>
 
-          {listing.status === 'INACTIVE' && (
-            <>
-              <Link
-                href={`/listing/${listing.id}`}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
-                title="View listing"
-              >
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-              </Link>
-              <button
-                type="button"
-                disabled={isBusy}
-                onClick={() => void onStatusChange(listing.id, 'REACTIVATE')}
-                className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-green-400 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-50 disabled:opacity-50"
-              >
-                {isBusy ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                {/* Pause */}
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => void onStatusChange(listing.id, 'PAUSE')}
+                  className="flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-border)] text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+                >
+                  {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Pause'}
+                </button>
+
+                {/* Mark sold — confirm inline */}
+                {confirmSold ? (
+                  <div className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-2">
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => {
+                        setConfirmSold(false)
+                        void onStatusChange(listing.id, 'SOLD')
+                      }}
+                      className="text-xs font-semibold text-blue-700 disabled:opacity-50"
+                    >
+                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm sold'}
+                    </button>
+                    <span className="text-blue-300" aria-hidden="true">
+                      ·
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmSold(false)}
+                      className="text-xs text-[var(--color-muted-foreground)]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 ) : (
-                  <PlayCircle className="h-3 w-3" aria-hidden="true" />
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => setConfirmSold(true)}
+                    className="flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-border)] text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
+                  >
+                    Mark sold
+                  </button>
                 )}
-                Reactivate
-              </button>
+              </div>
             </>
           )}
 
-          {listing.status === 'REJECTED' && (
+          {/* ── DRAFT ── */}
+          {listing.status === 'DRAFT' && (
             <>
-              <Link
-                href={`/listing/${listing.id}`}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
-                title="View listing"
-              >
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-              </Link>
+              {/* Primary: Resume Draft */}
               <Link
                 href={`/sell?draftId=${listing.id}`}
-                className="flex flex-1 items-center justify-center rounded-lg bg-[var(--color-foreground)] py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-foreground)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
               >
-                Edit &amp; Resubmit
+                Resume Draft
               </Link>
-            </>
-          )}
 
-          {listing.status === 'PENDING_REVIEW' && (
-            <button
-              type="button"
-              disabled={isBusy}
-              onClick={() => void onStatusChange(listing.id, 'WITHDRAW_REVIEW')}
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] disabled:opacity-50"
-            >
-              {isBusy ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Undo2 className="h-3 w-3" aria-hidden="true" />
-              )}
-              Withdraw
-            </button>
-          )}
-
-          {listing.status === 'SOLD' && (
-            <Link
-              href={`/listing/${listing.id}`}
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
-            >
-              <ExternalLink className="h-3 w-3" aria-hidden="true" />
-              View listing
-            </Link>
-          )}
-        </div>
-
-        {/* ── Secondary row ── */}
-        {(listing.status === 'ACTIVE' ||
-          listing.status === 'INACTIVE' ||
-          listing.status === 'DRAFT' ||
-          listing.status === 'REJECTED') && (
-          <div className="mt-2.5 flex items-center gap-3 border-t border-[var(--color-border)] pt-2.5">
-            {listing.status === 'ACTIVE' &&
-              (confirmSold ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--color-muted-foreground)]">
-                    Mark as sold?
-                  </span>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => {
-                      setConfirmSold(false)
-                      void onStatusChange(listing.id, 'SOLD')
-                    }}
-                    className="text-xs font-semibold text-blue-600 hover:underline disabled:opacity-50"
-                  >
-                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmSold(false)}
-                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => setConfirmSold(true)}
-                    className="text-xs text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] disabled:opacity-50"
-                  >
-                    Mark sold
-                  </button>
-                  <span className="text-[var(--color-border)]" aria-hidden="true">
-                    ·
-                  </span>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => void onStatusChange(listing.id, 'PAUSE')}
-                    className="text-xs text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] disabled:opacity-50"
-                  >
-                    Pause
-                  </button>
-                </>
-              ))}
-
-            {listing.status === 'INACTIVE' &&
-              (confirmDelete ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--color-muted-foreground)]">Delete?</span>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => {
-                      setConfirmDelete(false)
-                      onDelete(listing.id)
-                    }}
-                    className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
-                  >
-                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(false)}
-                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : confirmSold ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--color-muted-foreground)]">
-                    Mark as sold?
-                  </span>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => {
-                      setConfirmSold(false)
-                      void onStatusChange(listing.id, 'SOLD')
-                    }}
-                    className="text-xs font-semibold text-blue-600 hover:underline disabled:opacity-50"
-                  >
-                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmSold(false)}
-                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => setConfirmSold(true)}
-                    className="text-xs text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)] disabled:opacity-50"
-                  >
-                    Mark sold
-                  </button>
-                  <span className="text-[var(--color-border)]" aria-hidden="true">
-                    ·
-                  </span>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => setConfirmDelete(true)}
-                    className="text-xs text-red-400 transition-colors hover:text-red-600 disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
-                </>
-              ))}
-
-            {listing.status === 'DRAFT' &&
-              (confirmDelete ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--color-muted-foreground)]">
-                    Delete draft?
-                  </span>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => {
-                      setConfirmDelete(false)
-                      onDelete(listing.id)
-                    }}
-                    className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
-                  >
-                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(false)}
-                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
-                  >
-                    Cancel
-                  </button>
+              {/* Secondary: Delete — destructive with confirm */}
+              {confirmDelete ? (
+                <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                  <span className="text-xs text-red-700">Delete this draft?</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => {
+                        setConfirmDelete(false)
+                        onDelete(listing.id)
+                      }}
+                      className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
+                    >
+                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Delete'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(false)}
+                      className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <button
                   type="button"
                   disabled={isBusy}
                   onClick={() => setConfirmDelete(true)}
-                  className="text-xs text-red-400 transition-colors hover:text-red-600 disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-red-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                 >
+                  <Trash2 className="h-3 w-3" aria-hidden="true" />
                   Delete draft
                 </button>
-              ))}
+              )}
+            </>
+          )}
 
-            {listing.status === 'REJECTED' &&
-              (confirmDelete ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--color-muted-foreground)]">Delete?</span>
+          {/* ── INACTIVE (Paused) ── */}
+          {listing.status === 'INACTIVE' && (
+            <>
+              {/* Primary: Resume */}
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => void onStatusChange(listing.id, 'REACTIVATE')}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-green-500 bg-green-50 py-2 text-xs font-semibold text-green-700 transition-colors hover:bg-green-100 disabled:opacity-50"
+              >
+                {isBusy ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <PlayCircle className="h-3 w-3" aria-hidden="true" />
+                )}
+                Resume listing
+              </button>
+
+              {/* Secondary row */}
+              <div className="flex items-center gap-1">
+                {/* View icon */}
+                <Link
+                  href={`/listing/${listing.id}`}
+                  title="View listing"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="sr-only">View listing</span>
+                </Link>
+
+                {/* Edit */}
+                <Link
+                  href={`/dashboard/listings/${listing.id}/edit`}
+                  className="flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-border)] text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
+                >
+                  Edit
+                </Link>
+
+                {/* Mark sold — confirm inline */}
+                {confirmSold ? (
+                  <div className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-2">
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => {
+                        setConfirmSold(false)
+                        void onStatusChange(listing.id, 'SOLD')
+                      }}
+                      className="text-xs font-semibold text-blue-700 disabled:opacity-50"
+                    >
+                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm sold'}
+                    </button>
+                    <span className="text-blue-300" aria-hidden="true">
+                      ·
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmSold(false)}
+                      className="text-xs text-[var(--color-muted-foreground)]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
                     disabled={isBusy}
-                    onClick={() => {
-                      setConfirmDelete(false)
-                      onDelete(listing.id)
-                    }}
-                    className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
+                    onClick={() => setConfirmSold(true)}
+                    className="flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-border)] text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
                   >
-                    {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
+                    Mark sold
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(false)}
-                    className="text-xs text-[var(--color-muted-foreground)] hover:underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {listing.rejectionReason && (
-                    <span className="flex-1 text-xs text-[var(--color-muted-foreground)]">
-                      Address the reason before resubmitting.
-                    </span>
-                  )}
+                )}
+
+                {/* Delete — confirm inline */}
+                {confirmDelete ? (
+                  <div className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2">
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => {
+                        setConfirmDelete(false)
+                        onDelete(listing.id)
+                      }}
+                      className="text-xs font-semibold text-red-600 disabled:opacity-50"
+                    >
+                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Delete?'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(false)}
+                      className="text-xs text-[var(--color-muted-foreground)]"
+                    >
+                      No
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
                     disabled={isBusy}
                     onClick={() => setConfirmDelete(true)}
-                    className="ml-auto text-xs text-red-400 transition-colors hover:text-red-600 disabled:opacity-50"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-red-400 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                    title="Delete listing"
                   >
-                    Delete
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="sr-only">Delete listing</span>
                   </button>
-                </>
-              ))}
-          </div>
-        )}
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── REJECTED ── */}
+          {listing.status === 'REJECTED' && (
+            <>
+              {/* Primary: Edit & Resubmit */}
+              <Link
+                href={`/sell?draftId=${listing.id}`}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-foreground)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              >
+                Edit &amp; Resubmit
+              </Link>
+
+              {/* Secondary: Delete — destructive with confirm */}
+              {confirmDelete ? (
+                <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                  <span className="text-xs text-red-700">Permanently delete this listing?</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => {
+                        setConfirmDelete(false)
+                        onDelete(listing.id)
+                      }}
+                      className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
+                    >
+                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Delete'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(false)}
+                      className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => setConfirmDelete(true)}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-red-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                >
+                  <Trash2 className="h-3 w-3" aria-hidden="true" />
+                  Delete listing
+                </button>
+              )}
+            </>
+          )}
+
+          {/* ── PENDING_REVIEW ── */}
+          {listing.status === 'PENDING_REVIEW' && (
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => void onStatusChange(listing.id, 'WITHDRAW_REVIEW')}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-2 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] disabled:opacity-50"
+            >
+              {isBusy ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Undo2 className="h-3 w-3" aria-hidden="true" />
+              )}
+              Withdraw from review
+            </button>
+          )}
+
+          {/* ── SOLD ── */}
+          {listing.status === 'SOLD' && (
+            <Link
+              href={`/listing/${listing.id}`}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-2 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+            >
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
+              View listing
+            </Link>
+          )}
+        </div>
       </div>
     </article>
   )
