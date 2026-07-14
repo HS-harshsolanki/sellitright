@@ -87,7 +87,7 @@ function groupByDay(
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function GlobalMessagesBubble() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const pathname = usePathname()
 
   const [open, setOpen] = useState(false)
@@ -130,11 +130,9 @@ export function GlobalMessagesBubble() {
   // Tracks accumulated offense count seeded from GET load — used so client-side blocks show correct badge
   const priorOffenseRef = useRef<number>(0)
 
-  // Show on all pages for authenticated users, except:
-  // - /messages/* (they're already in the full chat UI — no need for the bubble)
-  // - /login, /signup, homepage (unauthenticated flow)
-  const shouldShow =
-    !!user &&
+  // Whether this path is allowed to show the bubble at all.
+  // Does NOT depend on auth state — evaluated independently.
+  const pathAllowed =
     !pathname.startsWith('/messages') &&
     pathname !== '/' &&
     !pathname.startsWith('/login') &&
@@ -476,9 +474,13 @@ export function GlobalMessagesBubble() {
     void loadThreads()
   }
 
-  if (!shouldShow) return null
+  // Path is excluded — never show the bubble here.
+  if (!pathAllowed) return null
 
-  // Logged-out users see the pill with a sign-in prompt
+  // Auth is still resolving — stay invisible rather than flashing the sign-in pill.
+  if (authLoading) return null
+
+  // Logged-out users see the pill with a sign-in prompt.
   if (!user) {
     return (
       <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
