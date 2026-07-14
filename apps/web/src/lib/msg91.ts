@@ -32,6 +32,8 @@ export async function sendSmsOtp(toPhone: string): Promise<{ reqId: string }> {
     headers: {
       'Content-Type': 'application/json',
       authkey: AUTH_KEY,
+      Origin: process.env.NEXT_PUBLIC_APP_URL ?? 'https://chapternew.com',
+      Referer: process.env.NEXT_PUBLIC_APP_URL ?? 'https://chapternew.com',
     },
     body: JSON.stringify({
       widgetId: WIDGET_ID,
