@@ -728,7 +728,7 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
         <div className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
           <IndianRupee className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-hidden="true" />
           <p className="text-xs font-medium text-blue-700">
-            Awaiting buyer payment — contact details visible once they pay ₹49
+            Awaiting buyer payment — contact details visible once they pay ₹99
           </p>
         </div>
       )}

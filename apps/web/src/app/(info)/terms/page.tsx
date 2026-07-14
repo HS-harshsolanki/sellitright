@@ -30,7 +30,7 @@ const SECTIONS = [
   {
     id: '5',
     title: 'Payment and refunds',
-    body: "The platform charges a one-time connection fee of ₹49 (inclusive of applicable taxes) to unlock seller contact details after a buyer's request is accepted. This fee is non-refundable once contact details are successfully delivered. If a technical failure prevents delivery of contact details, users may request a refund by emailing support@chapternew.com within 7 days of payment, with the Order ID. Refunds, if approved, will be processed within 7-10 business days to the original payment method.",
+    body: "The platform charges a one-time connection fee of ₹99 (inclusive of applicable taxes) to unlock seller contact details after a buyer's request is accepted. This fee is non-refundable once contact details are successfully delivered. If a technical failure prevents delivery of contact details, users may request a refund by emailing support@chapternew.com within 7 days of payment, with the Order ID. Refunds, if approved, will be processed within 7-10 business days to the original payment method.",
   },
   {
     id: '6',

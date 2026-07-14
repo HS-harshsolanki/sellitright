@@ -84,7 +84,7 @@ export function MobileBottomBar({
             className="flex shrink-0 items-center gap-2 rounded-xl bg-[#222] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
           >
             <Lock className="h-4 w-4" aria-hidden="true" />
-            Unlock — ₹49
+            Unlock — ₹99
           </button>
         ) : !isAuthenticated ? (
           <Link

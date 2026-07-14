@@ -19,7 +19,7 @@ create table if not exists public.payments (
   razorpay_payment_id text        unique,
   status              text        not null default 'PENDING'
                                   check (status in ('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED')),
-  amount              integer     not null default 4900,  -- in paise (₹49.00)
+  amount              integer     not null default 9900,  -- in paise (₹99.00)
   currency            text        not null default 'INR',
   paid_at             timestamptz,
   created_at          timestamptz default now()

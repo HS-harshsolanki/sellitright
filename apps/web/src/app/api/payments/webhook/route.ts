@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
   // Validate amount matches expected contact-unlock fee
   const paymentAmount = (event.payload?.payment?.entity as { amount?: number } | undefined)?.amount
-  if (typeof paymentAmount === 'number' && paymentAmount !== 4900) {
+  if (typeof paymentAmount === 'number' && paymentAmount !== 9900) {
     logger.warn('[webhook] unexpected payment amount', { paymentAmount })
     // Return 200 so Razorpay stops retrying — amount mismatch is logged but not fatal
     return NextResponse.json({ received: true, warning: 'Unexpected payment amount.' })
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
       admin,
       userId: payment.seller_id,
       title: 'Payment received',
-      message: 'A buyer paid ₹49 to unlock your contact details.',
+      message: 'A buyer paid ₹99 to unlock your contact details.',
       type: 'PaymentReceived',
       entityType: 'payment',
       entityId: payment.id,

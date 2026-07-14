@@ -108,7 +108,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <body className="bg-background min-h-screen font-sans antialiased">
         <Providers>
           {children}
-          <GlobalMessagesBubble />
+          <div className="hidden lg:block">
+            <GlobalMessagesBubble />
+          </div>
         </Providers>
         <Analytics />
         <SpeedInsights />

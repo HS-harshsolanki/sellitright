@@ -5,6 +5,7 @@ import {
   Bell,
   ClipboardList,
   LayoutGrid,
+  MessageSquare,
   Plus,
   Search,
   User,
@@ -179,15 +180,20 @@ const MOBILE_ITEMS = [
   },
   { href: '/sell', label: 'Post', icon: <Plus className="h-5 w-5" /> },
   {
-    href: '/notifications',
-    label: 'Alerts',
-    icon: <Bell className="h-5 w-5" />,
-    matchPath: '/notifications',
+    href: '/messages',
+    label: 'Messages',
+    icon: <MessageSquare className="h-5 w-5" />,
+    matchPath: '/messages',
+    matchMsg: true,
   },
   { href: '/profile', label: 'Profile', icon: <User className="h-5 w-5" /> },
 ]
 
-function MobileBottomNavInner() {
+interface MobileBottomNavProps {
+  totalUnread?: number | null
+}
+
+function MobileBottomNavInner({ totalUnread }: MobileBottomNavProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const activeTab = searchParams.get('tab')
@@ -221,7 +227,14 @@ function MobileBottomNavInner() {
                 : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
             )}
           >
-            {item.icon}
+            <span className="relative">
+              {item.icon}
+              {'matchMsg' in item && totalUnread && totalUnread > 0 ? (
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                  {totalUnread > 9 ? '9+' : totalUnread}
+                </span>
+              ) : null}
+            </span>
             <span className="text-[10px] font-medium">{item.label}</span>
           </Link>
         )
@@ -230,7 +243,7 @@ function MobileBottomNavInner() {
   )
 }
 
-function MobileBottomNav() {
+function MobileBottomNav({ totalUnread }: MobileBottomNavProps) {
   return (
     <Suspense
       fallback={
@@ -240,7 +253,7 @@ function MobileBottomNav() {
         />
       }
     >
-      <MobileBottomNavInner />
+      <MobileBottomNavInner totalUnread={totalUnread} />
     </Suspense>
   )
 }
@@ -251,6 +264,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [pendingBuyerCount, setPendingBuyerCount] = useState<number | null>(null)
+  const [totalUnread, setTotalUnread] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/dashboard/interests?status=PENDING&page=1')
@@ -270,6 +284,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       })
   }, [])
 
+  useEffect(() => {
+    fetch('/api/chat/threads')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { threads: Array<{ unreadCount: number }> } | null) => {
+        if (!data) return
+        setTotalUnread(data.threads.reduce((sum, t) => sum + t.unreadCount, 0))
+      })
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="flex min-h-screen bg-[var(--color-muted)]">
       <SidebarNav pendingBuyerCount={pendingBuyerCount} />
@@ -279,7 +303,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <main className="flex-1 px-4 py-6 pb-24 sm:px-6 lg:pb-8">{children}</main>
       </div>
 
-      <MobileBottomNav />
+      <MobileBottomNav totalUnread={totalUnread} />
     </div>
   )
 }

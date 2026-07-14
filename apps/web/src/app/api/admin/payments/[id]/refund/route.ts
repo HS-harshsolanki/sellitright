@@ -84,7 +84,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     userId: payment.buyer_id,
     title: 'Payment refunded',
     message:
-      'Your ₹49 payment has been refunded. It should appear in your account within 7-10 business days.',
+      'Your ₹99 payment has been refunded. It should appear in your account within 7-10 business days.',
     type: 'System',
     entityType: 'payment',
     entityId: id,

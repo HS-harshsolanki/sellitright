@@ -109,7 +109,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     title: action === 'ACCEPTED' ? 'Request accepted' : 'Request declined',
     message:
       action === 'ACCEPTED'
-        ? 'The owner accepted your request. Pay ₹49 to unlock their contact details.'
+        ? 'The owner accepted your request. Pay ₹99 to unlock their contact details.'
         : 'The owner declined your contact request.',
     type: action === 'ACCEPTED' ? 'Accepted' : 'Rejected',
     entityType: 'interest',

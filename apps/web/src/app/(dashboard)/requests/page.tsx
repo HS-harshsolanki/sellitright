@@ -234,14 +234,14 @@ function RequestCard({ item, onWithdraw, withdrawingId }: RequestCardProps) {
         {displayStatus === 'ACCEPTED_UNPAID' && (
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-[var(--color-muted-foreground)]">
-              Owner accepted · pay ₹49 to unlock their number
+              Owner accepted · pay ₹99 to unlock their number
             </p>
             <Link
               href={`/listing/${item.listingId}#unlock`}
               className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--color-foreground)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
             >
               <IndianRupee className="h-3.5 w-3.5" aria-hidden="true" />
-              Pay ₹49
+              Pay ₹99
             </Link>
           </div>
         )}
