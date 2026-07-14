@@ -93,6 +93,35 @@ export async function POST(request: NextRequest) {
   // Mark the OTP request as used so it can't be replayed
   await otpTable(admin).update({ used: true }).eq('id', rowId)
 
+  // Block if another verified account already holds this phone number.
+  // .neq('id', user.id) allows the same user to re-verify their own number.
+  const { data: existingHolder, error: uniquenessError } = await (admin as any)
+    .from('profiles')
+    .select('id')
+    .eq('phone', phone)
+    .eq('phone_verified', true)
+    .neq('id', user.id)
+    .maybeSingle()
+
+  if (uniquenessError) {
+    logger.error('[verify-otp] uniqueness check failed', { error: uniquenessError.message })
+    return NextResponse.json(
+      { error: 'Verification failed. Please try again or contact support.' },
+      { status: 500 },
+    )
+  }
+
+  if (existingHolder) {
+    return NextResponse.json(
+      {
+        error:
+          'This phone number is already linked to another account. If you believe this is a mistake, please contact support.',
+        code: 'PHONE_ALREADY_CLAIMED',
+      },
+      { status: 409 },
+    )
+  }
+
   // Persist verified phone to user metadata
   const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
     user_metadata: {

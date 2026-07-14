@@ -154,9 +154,15 @@ export default function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: normalized, otp: digits }),
       })
-      const data = (await res.json()) as { error?: string }
+      const data = (await res.json()) as { error?: string; code?: string }
       if (!res.ok) {
-        setPhoneError(data.error ?? 'Verification failed. Please try again.')
+        if (res.status === 409 || data.code === 'PHONE_ALREADY_CLAIMED') {
+          setPhoneError(
+            'This number is already registered to another account. If this is your number, please contact support.',
+          )
+        } else {
+          setPhoneError(data.error ?? 'Verification failed. Please try again.')
+        }
         setFlowState('otp-sent')
         return
       }
