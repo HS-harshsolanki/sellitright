@@ -59,7 +59,7 @@ export default function ChatThreadPage() {
   const [otherPartyName, setOtherPartyName] = useState<string | null>(null)
   const [messages, setMessages] = useState<DisplayMessage[]>([])
   const [myOffenseCount, setMyOffenseCount] = useState(0)
-  const [otherPartyOffenseCount, setOtherPartyOffenseCount] = useState(0)
+  const [otherPartyOffenseCount, setOtherPartyOffenseCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [input, setInput] = useState('')
@@ -85,13 +85,20 @@ export default function ChatThreadPage() {
       .catch(() => setFetchError('Conversation not available.'))
   }, [user, interestId])
 
+  const latestMessageAtRef = useRef<string | null>(null)
+
   const fetchMessages = useCallback(
     async (opts?: { silent?: boolean }) => {
       if (!threadId) return
       if (!opts?.silent) setLoading(true)
       setFetchError(null)
       try {
-        const res = await fetch(`/api/chat/threads/${threadId}/messages`)
+        // On poll ticks, only fetch messages newer than what we already have
+        const afterCursor = opts?.silent ? latestMessageAtRef.current : null
+        const url = afterCursor
+          ? `/api/chat/threads/${threadId}/messages?after=${encodeURIComponent(afterCursor)}`
+          : `/api/chat/threads/${threadId}/messages`
+        const res = await fetch(url)
         if (!res.ok) {
           const body = (await res.json()) as { error?: string }
           if (!opts?.silent) setFetchError(body.error ?? 'Failed to load messages.')
@@ -107,10 +114,26 @@ export default function ChatThreadPage() {
           otherPartyOffenseCount: number
           otherPartyIsPhoneBlocked: boolean
         }
-        setMessages((prev) => {
-          const warnings = prev.filter(isPhoneWarning)
-          return [...warnings, ...json.messages]
-        })
+
+        if (opts?.silent) {
+          // Append-only: add new messages, dedupe by id
+          if (json.messages.length > 0) {
+            setMessages((prev) => {
+              const existingIds = new Set(prev.map((m) => m.id))
+              const newMsgs = json.messages.filter((m) => !existingIds.has(m.id))
+              return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev
+            })
+            const last = json.messages[json.messages.length - 1]
+            if (last) latestMessageAtRef.current = last.createdAt
+          }
+        } else {
+          // Initial full load
+          const warnings: DisplayMessage[] = []
+          setMessages([...warnings, ...json.messages])
+          const last = json.messages[json.messages.length - 1]
+          if (last) latestMessageAtRef.current = last.createdAt
+        }
+
         setThreadStatus((json.threadStatus as 'active' | 'locked' | 'disabled') ?? 'active')
         setRole(json.role as 'buyer' | 'seller')
         setOtherPartyName(json.otherPartyName)
@@ -230,6 +253,7 @@ export default function ChatThreadPage() {
       if (json.message) {
         setMessages((prev) => [...prev, json.message!])
         recentSentRef.current = [...recentSentRef.current, trimmed].slice(-8)
+        latestMessageAtRef.current = json.message.createdAt
       }
       setInput('')
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
@@ -292,7 +316,7 @@ export default function ChatThreadPage() {
             <p className="truncate text-sm font-semibold text-[var(--color-foreground)]">
               {displayName}
             </p>
-            {role === 'seller' && otherPartyOffenseCount > 0 && (
+            {role === 'seller' && otherPartyOffenseCount !== null && otherPartyOffenseCount > 0 && (
               <WarningBadge
                 count={otherPartyOffenseCount}
                 tooltip="This buyer has phone-sharing violations"
@@ -377,10 +401,10 @@ export default function ChatThreadPage() {
                   (nextMsg as ChatMessage | undefined)?.senderId !== msg.senderId
                 return (
                   <div key={msg.id} className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
-                    <div>
+                    <div className="max-w-[75%]">
                       <div
                         className={cn(
-                          'max-w-[75%] rounded-2xl px-3 py-2 text-sm',
+                          'rounded-2xl px-3 py-2 text-sm',
                           isOwn
                             ? 'rounded-br-sm bg-[var(--color-foreground)] text-white'
                             : 'rounded-bl-sm bg-[var(--color-muted)] text-[var(--color-foreground)]',

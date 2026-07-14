@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 
 import { CookieConsent } from '@/components/cookie-consent'
+import { GlobalMessagesBubble } from '@/components/layout/global-messages-bubble'
 
 import { Providers } from './providers'
 
@@ -105,7 +106,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className={satoshi.variable}>
       <body className="bg-background min-h-screen font-sans antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <GlobalMessagesBubble />
+        </Providers>
         <Analytics />
         <SpeedInsights />
         <CookieConsent />

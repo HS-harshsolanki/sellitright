@@ -247,16 +247,18 @@ function MessageList({
               return (
                 <div key={msg.id}>
                   <div className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
-                    <div
-                      className={cn(
-                        'max-w-[78%] rounded-2xl px-3 py-2 text-sm',
-                        isOwn
-                          ? 'rounded-br-sm bg-[var(--color-foreground)] text-[var(--color-background)]'
-                          : 'rounded-bl-sm bg-[var(--color-muted)] text-[var(--color-foreground)]',
-                        msg.isDeleted && 'italic opacity-50',
-                      )}
-                    >
-                      {msg.content}
+                    <div className="max-w-[78%]">
+                      <div
+                        className={cn(
+                          'rounded-2xl px-3 py-2 text-sm',
+                          isOwn
+                            ? 'rounded-br-sm bg-[var(--color-foreground)] text-[var(--color-background)]'
+                            : 'rounded-bl-sm bg-[var(--color-muted)] text-[var(--color-foreground)]',
+                          msg.isDeleted && 'italic opacity-50',
+                        )}
+                      >
+                        {msg.content}
+                      </div>
                     </div>
                   </div>
                   {isLast && (

@@ -60,7 +60,8 @@ export async function GET(
   const { threadId } = await params
 
   const { searchParams } = new URL(request.url)
-  const beforeCursor = searchParams.get('before') // ISO string or null
+  const beforeCursor = searchParams.get('before') // ISO string or null — fetch messages older than this
+  const afterCursor = searchParams.get('after') // ISO string or null — fetch messages newer than this (for polling)
   const limitParam = Math.min(
     100,
     Math.max(1, parseInt(searchParams.get('limit') ?? String(PAGE_SIZE), 10)),
@@ -96,11 +97,14 @@ export async function GET(
   let query = chatTable(admin, 'chat_messages')
     .select('id, sender_id, content, is_deleted, created_at')
     .eq('thread_id', threadId)
-    .order('created_at', { ascending: false })
-    .limit(limitParam + 1) // fetch one extra to determine hasMore
+    .order('created_at', { ascending: afterCursor ? true : false })
+    .limit(afterCursor ? 100 : limitParam + 1) // poll fetches up to 100 new; paginated load fetches one extra to detect hasMore
 
   if (beforeCursor) {
     query = query.lt('created_at', beforeCursor)
+  }
+  if (afterCursor) {
+    query = query.gt('created_at', afterCursor)
   }
 
   const { data: rawMessages, error } = await query
@@ -419,19 +423,14 @@ export async function POST(
   const msg = msgRaw as any
 
   const unreadField = isBuyer ? 'seller_unread' : 'buyer_unread'
-  await chatTable(admin, 'chat_threads')
-    .update({ last_message_at: msg.created_at })
-    .eq('id', threadId)
-
-  const { data: currentThread } = await chatTable(admin, 'chat_threads')
-    .select(`${unreadField}`)
-    .eq('id', threadId)
-    .maybeSingle()
+  // Atomic update: increment unread counter and set last_message_at in one call via RPC
+  // (migration 014 creates the increment_unread_and_timestamp function)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentUnread = (currentThread as any)?.[unreadField] ?? 0
-  await chatTable(admin, 'chat_threads')
-    .update({ [unreadField]: currentUnread + 1 })
-    .eq('id', threadId)
+  await (admin as any).rpc('increment_unread_and_timestamp', {
+    p_thread_id: threadId,
+    p_unread_field: unreadField,
+    p_timestamp: msg.created_at,
+  })
 
   const recipientId = isBuyer ? thread.seller_id : thread.buyer_id
   const senderProfile = await admin

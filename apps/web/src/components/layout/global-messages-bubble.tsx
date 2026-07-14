@@ -130,12 +130,15 @@ export function GlobalMessagesBubble() {
   // Tracks accumulated offense count seeded from GET load — used so client-side blocks show correct badge
   const priorOffenseRef = useRef<number>(0)
 
-  // Only show the messaging bubble on properties/listing pages and dashboard routes.
-  // Never show on the homepage — it looks out of place for unauthenticated visitors.
+  // Show on all pages for authenticated users, except:
+  // - /messages/* (they're already in the full chat UI — no need for the bubble)
+  // - /login, /signup, homepage (unauthenticated flow)
   const shouldShow =
-    pathname === '/properties' ||
-    pathname.startsWith('/properties/') ||
-    /^\/listing\//.test(pathname)
+    !!user &&
+    !pathname.startsWith('/messages') &&
+    pathname !== '/' &&
+    !pathname.startsWith('/login') &&
+    !pathname.startsWith('/signup')
 
   // ── Load thread list ────────────────────────────────────────────────────
   const loadThreads = useCallback(async () => {
@@ -961,16 +964,18 @@ export function GlobalMessagesBubble() {
                                 <div
                                   className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}
                                 >
-                                  <div
-                                    className={cn(
-                                      'max-w-[85%] rounded-2xl px-3 py-1.5 text-xs leading-relaxed',
-                                      isOwn
-                                        ? 'rounded-br-sm bg-[var(--color-foreground)] text-[var(--color-background)]'
-                                        : 'rounded-bl-sm bg-[var(--color-muted)] text-[var(--color-foreground)]',
-                                      msg.isDeleted && 'italic opacity-50',
-                                    )}
-                                  >
-                                    {msg.content}
+                                  <div className="max-w-[85%]">
+                                    <div
+                                      className={cn(
+                                        'rounded-2xl px-3 py-1.5 text-xs leading-relaxed',
+                                        isOwn
+                                          ? 'rounded-br-sm bg-[var(--color-foreground)] text-[var(--color-background)]'
+                                          : 'rounded-bl-sm bg-[var(--color-muted)] text-[var(--color-foreground)]',
+                                        msg.isDeleted && 'italic opacity-50',
+                                      )}
+                                    >
+                                      {msg.content}
+                                    </div>
                                   </div>
                                 </div>
                                 {isLast && (
@@ -1120,10 +1125,10 @@ export function GlobalMessagesBubble() {
                     className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
                   >
                     <option value="">Select a reason…</option>
-                    <option value="SPAM_REQUESTS">Spam requests</option>
-                    <option value="BROKER_SUSPECTED">Suspected broker</option>
-                    <option value="ABUSIVE_BEHAVIOR">Abusive behavior</option>
-                    <option value="FAKE_DETAILS">Fake details</option>
+                    <option value="SPAM">Spam requests</option>
+                    <option value="SCAM">Suspected scam or fake details</option>
+                    <option value="ABUSIVE">Abusive behavior</option>
+                    <option value="SHARING_CONTACT">Sharing phone numbers</option>
                     <option value="OTHER">Other</option>
                   </select>
                 </div>
