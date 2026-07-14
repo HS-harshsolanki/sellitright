@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dialog'
 import { WarningBadge } from '@/components/ui/warning-badge'
 import type { ChatMessage, DisplayMessage } from '@/lib/chat-types'
-import { isPhoneWarning } from '@/lib/chat-types'
+import { buildLoadViolationWarning, isPhoneWarning } from '@/lib/chat-types'
 import { containsPhoneNumber, containsPhoneNumberInWindow } from '@/lib/phone-filter'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
@@ -198,12 +198,25 @@ export function GlobalMessagesBubble() {
           isPhoneBlocked: boolean
           otherPartyOffenseCount: number
           otherPartyIsPhoneBlocked: boolean
+          hasDeletedInThread: boolean
+          myThreadOffenseNumber: number
         }
-        // Preserve local phone-warning entries across polls
-        setMessages((prev) => {
-          const warnings = prev.filter(isPhoneWarning)
-          return [...warnings, ...data.messages]
-        })
+        if (opts?.silent) {
+          // Poll: append only non-deleted new messages, preserve existing warnings
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id))
+            const newMsgs = data.messages.filter((m) => !existingIds.has(m.id) && !m.isDeleted)
+            return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev
+          })
+        } else {
+          // Initial load: filter deleted, inject warning if applicable
+          const visibleMessages = data.messages.filter((m) => !m.isDeleted)
+          const warnings: DisplayMessage[] = []
+          if (data.hasDeletedInThread && data.myThreadOffenseNumber > 0) {
+            warnings.push(buildLoadViolationWarning(data.myThreadOffenseNumber, data.messages))
+          }
+          setMessages([...warnings, ...visibleMessages])
+        }
         setThreadStatus((data.threadStatus as 'active' | 'locked' | 'disabled') ?? 'active')
 
         // Always refresh DB-backed counts on every fetch (initial AND poll)

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { WarningBadge } from '@/components/ui/warning-badge'
 import type { ChatMessage, DisplayMessage } from '@/lib/chat-types'
-import { isPhoneWarning } from '@/lib/chat-types'
+import { buildLoadViolationWarning, isPhoneWarning } from '@/lib/chat-types'
 import { containsPhoneNumber, containsPhoneNumberInWindow } from '@/lib/phone-filter'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
@@ -113,14 +113,16 @@ export default function ChatThreadPage() {
           isPhoneBlocked: boolean
           otherPartyOffenseCount: number
           otherPartyIsPhoneBlocked: boolean
+          hasDeletedInThread: boolean
+          myThreadOffenseNumber: number
         }
 
         if (opts?.silent) {
-          // Append-only: add new messages, dedupe by id
+          // Append-only: add new messages, dedupe by id, skip deleted
           if (json.messages.length > 0) {
             setMessages((prev) => {
               const existingIds = new Set(prev.map((m) => m.id))
-              const newMsgs = json.messages.filter((m) => !existingIds.has(m.id))
+              const newMsgs = json.messages.filter((m) => !existingIds.has(m.id) && !m.isDeleted)
               return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev
             })
             const last = json.messages[json.messages.length - 1]
@@ -128,8 +130,12 @@ export default function ChatThreadPage() {
           }
         } else {
           // Initial full load
+          const visibleMessages = json.messages.filter((m) => !m.isDeleted)
           const warnings: DisplayMessage[] = []
-          setMessages([...warnings, ...json.messages])
+          if (json.hasDeletedInThread && json.myThreadOffenseNumber > 0) {
+            warnings.push(buildLoadViolationWarning(json.myThreadOffenseNumber, json.messages))
+          }
+          setMessages([...warnings, ...visibleMessages])
           const last = json.messages[json.messages.length - 1]
           if (last) latestMessageAtRef.current = last.createdAt
         }

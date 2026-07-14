@@ -32,3 +32,22 @@ export type DisplayMessage = ChatMessage | LocalPhoneWarning
 export function isPhoneWarning(m: DisplayMessage): m is LocalPhoneWarning {
   return (m as LocalPhoneWarning).isPhoneWarning === true
 }
+
+export function buildLoadViolationWarning(
+  offenseNumber: number,
+  allMessages: Array<{ isDeleted?: boolean; createdAt: string }>,
+): LocalPhoneWarning {
+  const lastDeletedAt =
+    allMessages.filter((m) => m.isDeleted).at(-1)?.createdAt ?? new Date().toISOString()
+  const isFinal = offenseNumber >= 3
+  const warningText = isFinal
+    ? 'Your account was restricted after 3 phone-sharing attempts. Some messages in this conversation were removed.'
+    : `Warning ${offenseNumber}/3: Some messages in this conversation were removed because a phone number was detected. Use the Call or WhatsApp buttons after unlocking contact.`
+  return {
+    id: `load-warn-${offenseNumber}-${lastDeletedAt}`,
+    isPhoneWarning: true as const,
+    warningText,
+    offenseNumber,
+    createdAt: lastDeletedAt,
+  }
+}

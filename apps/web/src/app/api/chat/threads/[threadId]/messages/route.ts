@@ -125,6 +125,7 @@ export async function GET(
     phoneBlockResult,
     otherPartyViolationResult,
     otherPartyBlockResult,
+    myThreadViolationResult,
   ] = await Promise.all([
     admin.from('profiles').select('full_name').eq('id', otherPartyId).maybeSingle(),
     chatTable(admin, 'chat_violations')
@@ -145,6 +146,13 @@ export async function GET(
       .eq('is_active', true)
       .limit(1)
       .maybeSingle(),
+    chatTable(admin, 'chat_violations')
+      .select('id, offense_number, created_at')
+      .eq('thread_id', threadId)
+      .eq('sender_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const otherPartyName =
@@ -153,6 +161,9 @@ export async function GET(
   const isPhoneBlocked = !!phoneBlockResult.data
   const otherPartyOffenseCount = otherPartyViolationResult.count ?? 0
   const otherPartyIsPhoneBlocked = !!otherPartyBlockResult.data
+  const hasDeletedInThread = myThreadViolationResult.data !== null
+  const myThreadOffenseNumber =
+    (myThreadViolationResult.data as { offense_number: number } | null)?.offense_number ?? 0
 
   type RawMessage = {
     id: string
@@ -188,6 +199,8 @@ export async function GET(
     isPhoneBlocked,
     otherPartyOffenseCount,
     otherPartyIsPhoneBlocked,
+    hasDeletedInThread,
+    myThreadOffenseNumber,
   })
 }
 
