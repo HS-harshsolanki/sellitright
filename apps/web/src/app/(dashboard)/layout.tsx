@@ -5,7 +5,6 @@ import {
   Bell,
   ClipboardList,
   LayoutGrid,
-  MessageSquare,
   Plus,
   Search,
   User,
@@ -32,12 +31,6 @@ const NAV_ITEMS = [
     label: 'My Requests',
     icon: <ClipboardList className="h-4 w-4" />,
     matchPath: '/dashboard/requests',
-  },
-  {
-    href: '/messages',
-    label: 'Messages',
-    icon: <MessageSquare className="h-4 w-4" />,
-    matchPath: '/messages',
   },
   {
     href: '/notifications',
@@ -169,8 +162,8 @@ function TopBar() {
   )
 }
 
-// 6-item mobile nav: Listings | Requests | Post | Messages | Alerts | Profile
-// Browse is accessible from the main header on all pages; Requests was unreachable on mobile.
+// 5-item mobile nav: Listings | Requests | Post | Alerts | Profile
+// Messages accessible via the floating bubble (bottom-right) on all pages
 const MOBILE_ITEMS = [
   {
     href: '/dashboard',
@@ -185,12 +178,6 @@ const MOBILE_ITEMS = [
     matchPath: '/dashboard/requests',
   },
   { href: '/sell', label: 'Post', icon: <Plus className="h-5 w-5" /> },
-  {
-    href: '/messages',
-    label: 'Messages',
-    icon: <MessageSquare className="h-5 w-5" />,
-    matchPath: '/messages',
-  },
   {
     href: '/notifications',
     label: 'Alerts',

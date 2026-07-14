@@ -41,12 +41,16 @@ export async function GET(request: NextRequest) {
   const unreadOnly = searchParams.get('unread_only') === 'true'
   const offset = (page - 1) * limit
 
+  // Chat messages have their own unread counter in the messaging bubble — exclude from bell
+  const BELL_EXCLUDED_TYPES = ['NewChatMessage', 'PhoneViolationWarning']
+
   let mainQuery = supabase
     .from('notifications')
     .select('id, title, message, type, entity_type, entity_id, read, created_at', {
       count: 'exact',
     })
     .eq('user_id', user.id)
+    .not('type', 'in', `(${BELL_EXCLUDED_TYPES.join(',')})`)
     .order('created_at', { ascending: false })
 
   if (unreadOnly) {
@@ -60,6 +64,7 @@ export async function GET(request: NextRequest) {
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('read', false)
+    .not('type', 'in', `(${BELL_EXCLUDED_TYPES.join(',')})`)
 
   const [{ data, error, count }, { count: unreadCount }] = await Promise.all([
     mainQuery,
