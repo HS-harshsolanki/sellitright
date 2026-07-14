@@ -1,20 +1,10 @@
-import crypto from 'node:crypto'
-
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logger } from '@/lib/logger'
+import { isMsg91Configured, verifyOtpWithWidget } from '@/lib/msg91'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
-// phone_otp_requests is a new table not yet in the generated Supabase types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function otpTable(client: ReturnType<typeof createServiceClient>): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (client as any).from('phone_otp_requests')
-}
-
 const INDIAN_MOBILE_RE = /^[6-9]\d{9}$/
-// Max failed verify attempts before the OTP row is invalidated
-const MAX_ATTEMPTS = 5
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -23,15 +13,9 @@ function normalizePhone(raw: string): string {
   return digits
 }
 
-function hashOtp(otp: string, phone: string, userId: string): string {
-  const secret = process.env.OTP_HMAC_SECRET
-  if (!secret) throw new Error('[otp] OTP_HMAC_SECRET is not configured')
-  return crypto.createHmac('sha256', secret).update(`${otp}:${phone}:${userId}`).digest('hex')
-}
-
 // POST /api/phone/verify-otp
 // Body: { phone: string, otp: string }
-// Validates the OTP and sets user_metadata.phone + phone_verified: true on success.
+// Validates the OTP via MSG91 widget and sets user_metadata.phone + phone_verified: true on success.
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const {
@@ -66,64 +50,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'OTP must be 6 digits.' }, { status: 422 })
   }
 
+  // Verify OTP via MSG91 widget (authoritative check — no local hash needed)
+  if (!isMsg91Configured()) {
+    return NextResponse.json({ error: 'Verification service not configured.' }, { status: 503 })
+  }
+
+  const { valid, message } = await verifyOtpWithWidget(phone, otp)
+  if (!valid) {
+    return NextResponse.json(
+      { error: message ?? 'Incorrect or expired OTP. Please try again.' },
+      { status: 422 },
+    )
+  }
+
+  // OTP correct — persist verified phone to user metadata
   const admin = createServiceClient()
   if (!admin) {
     return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
   }
 
-  // Find the most recent valid (unused, unexpired, under attempt limit) OTP for this user+phone
-  const { data: otpRow, error: fetchError } = await otpTable(admin)
-    .select('id, otp_hash, attempts, expires_at')
-    .eq('user_id', user.id)
-    .eq('phone', phone)
-    .eq('used', false)
-    .gt('expires_at', new Date().toISOString())
-    .lt('attempts', MAX_ATTEMPTS)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (fetchError) {
-    logger.error('[verify-otp] DB fetch error', { error: fetchError.message })
-    return NextResponse.json({ error: 'Verification failed. Please try again.' }, { status: 500 })
-  }
-
-  if (!otpRow) {
-    return NextResponse.json(
-      { error: 'No valid OTP found. Please request a new one.' },
-      { status: 404 },
-    )
-  }
-
-  const expectedHash = hashOtp(otp, phone, user.id)
-  const isValid = crypto.timingSafeEqual(
-    Buffer.from(expectedHash, 'hex'),
-    Buffer.from(otpRow.otp_hash, 'hex'),
-  )
-
-  if (!isValid) {
-    // Increment attempts counter
-    await otpTable(admin)
-      .update({ attempts: otpRow.attempts + 1 })
-      .eq('id', otpRow.id)
-
-    const remaining = MAX_ATTEMPTS - otpRow.attempts - 1
-    if (remaining <= 0) {
-      return NextResponse.json(
-        { error: 'Too many incorrect attempts. Please request a new OTP.' },
-        { status: 422 },
-      )
-    }
-    return NextResponse.json(
-      { error: `Incorrect OTP. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.` },
-      { status: 422 },
-    )
-  }
-
-  // OTP correct — mark as used
-  await otpTable(admin).update({ used: true }).eq('id', otpRow.id)
-
-  // Persist phone + verified flag to user_metadata via service role
   const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
     user_metadata: {
       ...user.user_metadata,

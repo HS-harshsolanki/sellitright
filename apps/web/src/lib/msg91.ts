@@ -1,19 +1,18 @@
 export function isMsg91Configured(): boolean {
-  return !!(process.env.MSG91_AUTH_KEY && process.env.MSG91_TEMPLATE_ID)
+  return !!(process.env.MSG91_AUTH_KEY && process.env.MSG91_WIDGET_ID)
 }
 
 /**
- * Send a 6-digit OTP via MSG91 SMS.
- * @returns devOtp — the plaintext OTP, only set in development (for UI display)
+ * Send OTP via MSG91 Widget API (no DLT registration required).
+ * MSG91 handles template + sender routing internally.
  */
-export async function sendSmsOtp(toPhone: string, otp: string): Promise<{ devOtp?: string }> {
+export async function sendSmsOtp(toPhone: string, otp: string): Promise<void> {
   if (!isMsg91Configured()) {
-    // Keys missing — log and surface OTP for local testing
     console.log(`[SMS OTP dev] → +91${toPhone}  OTP: ${otp}`)
-    return { devOtp: otp }
+    return
   }
 
-  const res = await fetch('https://control.msg91.com/api/v5/otp', {
+  const res = await fetch('https://control.msg91.com/api/v5/widget/sendOtp', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -21,33 +20,55 @@ export async function sendSmsOtp(toPhone: string, otp: string): Promise<{ devOtp
     },
     body: JSON.stringify({
       mobile: `91${toPhone}`,
-      template_id: process.env.MSG91_TEMPLATE_ID!,
+      widgetId: process.env.MSG91_WIDGET_ID!,
       otp,
-      otp_length: 6,
-      otp_expiry: 10,
     }),
   })
 
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`MSG91 API error ${res.status}: ${text}`)
+    throw new Error(`MSG91 widget API error ${res.status}: ${text}`)
   }
 
-  const data = (await res.json()) as { type?: string; message?: string; request_id?: string }
+  const data = (await res.json()) as { type?: string; message?: string }
   if (data.type === 'error') {
-    throw new Error(`MSG91 error: ${data.message}`)
+    throw new Error(`MSG91 widget error: ${data.message}`)
   }
 
-  // Log request_id for delivery tracing in MSG91 dashboard
-  if (data.request_id) {
-    console.log(`[SMS OTP] MSG91 request_id=${data.request_id} → +91${toPhone}`)
-  }
-
-  // In development, always surface the OTP so devs don't need real SMS
   if (process.env.NODE_ENV === 'development') {
     console.log(`[SMS OTP dev] → +91${toPhone}  OTP: ${otp}`)
-    return { devOtp: otp }
+  }
+}
+
+/**
+ * Verify OTP via MSG91 Widget API.
+ * Returns true if valid, false if wrong/expired.
+ */
+export async function verifyOtpWithWidget(
+  toPhone: string,
+  otp: string,
+): Promise<{ valid: boolean; message?: string }> {
+  if (!isMsg91Configured()) {
+    return { valid: false, message: 'MSG91 not configured' }
   }
 
-  return {}
+  const res = await fetch('https://control.msg91.com/api/v5/widget/verifyOtp', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      authkey: process.env.MSG91_AUTH_KEY!,
+    },
+    body: JSON.stringify({
+      mobile: `91${toPhone}`,
+      otp,
+      widgetId: process.env.MSG91_WIDGET_ID!,
+    }),
+  })
+
+  const data = (await res.json()) as { type?: string; message?: string }
+  if (!res.ok || data.type === 'error') {
+    return { valid: false, message: data.message }
+  }
+
+  return { valid: true }
 }
