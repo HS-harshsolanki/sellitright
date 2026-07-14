@@ -2,6 +2,15 @@ export function isMsg91Configured(): boolean {
   return !!(process.env.MSG91_AUTH_KEY && process.env.MSG91_WIDGET_ID)
 }
 
+// env debug — remove after confirming production works
+export function getMsg91Config() {
+  return {
+    hasAuthKey: !!process.env.MSG91_AUTH_KEY,
+    hasWidgetId: !!process.env.MSG91_WIDGET_ID,
+    widgetIdPrefix: process.env.MSG91_WIDGET_ID?.slice(0, 6) ?? 'MISSING',
+  }
+}
+
 /**
  * Send OTP via MSG91 Widget API (no DLT registration required).
  * MSG91 generates and sends the OTP; returns a reqId used for verification.

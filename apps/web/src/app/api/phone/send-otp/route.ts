@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { logger } from '@/lib/logger'
-import { isMsg91Configured, sendSmsOtp } from '@/lib/msg91'
+import { getMsg91Config, isMsg91Configured, sendSmsOtp } from '@/lib/msg91'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 // phone_otp_requests is a new table not yet in the generated Supabase types.
@@ -56,7 +56,11 @@ export async function POST(request: NextRequest) {
   }
 
   if (!isMsg91Configured()) {
-    return NextResponse.json({ error: 'Verification service not configured.' }, { status: 503 })
+    const cfg = getMsg91Config()
+    return NextResponse.json(
+      { error: 'Verification service not configured.', debug: cfg },
+      { status: 503 },
+    )
   }
 
   const admin = createServiceClient()
