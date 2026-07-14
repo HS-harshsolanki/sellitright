@@ -1,13 +1,19 @@
+const AUTH_KEY = process.env.MSG91_AUTH_KEY?.trim() ?? ''
+const WIDGET_ID = process.env.MSG91_WIDGET_ID?.trim() ?? ''
+
 export function isMsg91Configured(): boolean {
-  return !!(process.env.MSG91_AUTH_KEY && process.env.MSG91_WIDGET_ID)
+  return !!(AUTH_KEY && WIDGET_ID)
 }
 
 // env debug — remove after confirming production works
 export function getMsg91Config() {
   return {
-    hasAuthKey: !!process.env.MSG91_AUTH_KEY,
-    hasWidgetId: !!process.env.MSG91_WIDGET_ID,
-    widgetIdPrefix: process.env.MSG91_WIDGET_ID?.slice(0, 6) ?? 'MISSING',
+    hasAuthKey: !!AUTH_KEY,
+    hasWidgetId: !!WIDGET_ID,
+    widgetIdPrefix: WIDGET_ID.slice(0, 6) || 'MISSING',
+    authKeyPrefix: AUTH_KEY.slice(0, 6) || 'MISSING',
+    widgetIdLen: WIDGET_ID.length,
+    authKeyLen: AUTH_KEY.length,
   }
 }
 
@@ -25,10 +31,10 @@ export async function sendSmsOtp(toPhone: string): Promise<{ reqId: string }> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      authkey: process.env.MSG91_AUTH_KEY!,
+      authkey: AUTH_KEY,
     },
     body: JSON.stringify({
-      widgetId: process.env.MSG91_WIDGET_ID!,
+      widgetId: WIDGET_ID,
       identifier: `+91${toPhone}`,
     }),
   })
@@ -72,10 +78,10 @@ export async function verifyOtpWithWidget(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      authkey: process.env.MSG91_AUTH_KEY!,
+      authkey: AUTH_KEY,
     },
     body: JSON.stringify({
-      widgetId: process.env.MSG91_WIDGET_ID!,
+      widgetId: WIDGET_ID,
       otp,
       reqId,
     }),
