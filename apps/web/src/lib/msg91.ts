@@ -20,7 +20,7 @@ export async function sendSmsOtp(toPhone: string): Promise<{ reqId: string }> {
     },
     body: JSON.stringify({
       widgetId: process.env.MSG91_WIDGET_ID!,
-      identifier: `91${toPhone}`,
+      identifier: `+91${toPhone}`,
     }),
   })
 

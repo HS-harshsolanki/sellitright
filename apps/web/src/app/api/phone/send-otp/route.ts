@@ -84,10 +84,13 @@ export async function POST(request: NextRequest) {
     const result = await sendSmsOtp(phone)
     reqId = result.reqId
   } catch (err) {
-    logger.error('[send-otp] MSG91 send failed', {
-      error: err instanceof Error ? err.message : String(err),
-    })
-    return NextResponse.json({ error: 'Failed to send OTP. Please try again.' }, { status: 502 })
+    const errMsg = err instanceof Error ? err.message : String(err)
+    logger.error('[send-otp] MSG91 send failed', { error: errMsg })
+    // TODO: remove debug detail before final production hardening
+    return NextResponse.json(
+      { error: 'Failed to send OTP. Please try again.', debug: errMsg },
+      { status: 502 },
+    )
   }
 
   // Store reqId in otp_hash column (reused as generic text store for the request token)
