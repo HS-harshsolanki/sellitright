@@ -67,7 +67,7 @@ export default function AdminDashboardPage() {
       icon: Building2,
       color: 'border-yellow-200 bg-yellow-50 text-yellow-900',
       iconColor: 'text-yellow-600',
-      href: '/admin/listings',
+      href: '/admin/listings?tab=PENDING_REVIEW',
     },
     {
       label: 'Open Reports',
@@ -132,7 +132,7 @@ export default function AdminDashboardPage() {
       {/* Quick links row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: 'Review Listings', href: '/admin/listings' },
+          { label: 'Audit Log', href: '/admin/audit-log' },
           { label: 'Manage Reports', href: '/admin/reports' },
           { label: 'Search Payments', href: '/admin/payments' },
           { label: 'Manage Users', href: '/admin/users' },

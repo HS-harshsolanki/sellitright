@@ -1,7 +1,8 @@
 'use client'
 
 import NextImage from 'next/image'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
 import { useAdminAuth } from '@/components/admin/admin-auth-context'
 import { Button } from '@/components/ui/button'
@@ -624,11 +625,17 @@ function formatFullDate(dateStr: string): string {
 
 // ── Main Listings Page ─────────────────────────────────────────────────────────
 
-export default function AdminListingsPage() {
+function AdminListingsPageInner() {
   const { apiFetch } = useAdminAuth()
+  const searchParamsHook = useSearchParams()
+  const router = useRouter()
   const [listings, setListings] = useState<MockListing[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<TabValue>('PENDING_REVIEW')
+  const [activeTab, setActiveTab] = useState<TabValue>(() => {
+    const t = searchParamsHook.get('tab') as TabValue | null
+    const valid: TabValue[] = ['PENDING_REVIEW', 'ACTIVE', 'REJECTED', 'DELETED']
+    return valid.includes(t!) ? t! : 'PENDING_REVIEW'
+  })
   const [counts, setCounts] = useState<StatusCounts>({
     PENDING_REVIEW: 0,
     ACTIVE: 0,
@@ -645,8 +652,6 @@ export default function AdminListingsPage() {
   const [propertyTypeFilter, setPropertyTypeFilter] = useState('')
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [selectedListing, setSelectedListing] = useState<MockListing | null>(null)
-  const [rejectForms, setRejectForms] = useState<Record<string, string>>({})
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const fetchListings = useCallback(
@@ -700,55 +705,7 @@ export default function AdminListingsPage() {
     setTimeout(() => void fetchListings(true), 0)
   }
 
-  async function handleApprove(id: string) {
-    setActionLoading(id)
-    try {
-      const res = await apiFetch(`/api/admin/listings/${id}/approve`, {
-        method: 'POST',
-        body: JSON.stringify({}),
-      })
-      if (!res.ok) return
-      const updated = (await res.json()) as MockListing
-      setListings((prev) => prev.filter((l) => l.id !== updated.id))
-      setCounts((prev) => ({
-        ...prev,
-        PENDING_REVIEW: Math.max(0, prev.PENDING_REVIEW - 1),
-        ACTIVE: prev.ACTIVE + 1,
-      }))
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  async function handleReject(id: string) {
-    const reason = rejectForms[id]?.trim()
-    if (!reason) return
-    setActionLoading(id)
-    try {
-      const res = await apiFetch(`/api/admin/listings/${id}/reject`, {
-        method: 'POST',
-        body: JSON.stringify({ reason }),
-      })
-      if (!res.ok) return
-      const updated = (await res.json()) as MockListing
-      setListings((prev) => prev.filter((l) => l.id !== updated.id))
-      setCounts((prev) => ({
-        ...prev,
-        PENDING_REVIEW: Math.max(0, prev.PENDING_REVIEW - 1),
-        REJECTED: prev.REJECTED + 1,
-      }))
-      setRejectForms((prev) => {
-        const n = { ...prev }
-        delete n[id]
-        return n
-      })
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
   async function handleVerifyToggle(id: string, currentlyVerified: boolean) {
-    setActionLoading(id)
     try {
       const res = await apiFetch(`/api/admin/listings/${id}/verify`, {
         method: 'PATCH',
@@ -757,8 +714,8 @@ export default function AdminListingsPage() {
       if (!res.ok) return
       const updated = (await res.json()) as MockListing
       setListings((prev) => prev.map((l) => (l.id === updated.id ? updated : l)))
-    } finally {
-      setActionLoading(null)
+    } catch {
+      // ignore
     }
   }
 
@@ -859,6 +816,7 @@ export default function AdminListingsPage() {
             onClick={() => {
               setActiveTab('PENDING_REVIEW')
               setPage(1)
+              router.replace('/admin/listings?tab=PENDING_REVIEW')
             }}
             className={cn(
               'group rounded-xl border bg-white px-4 py-4 text-left transition-all',
@@ -881,6 +839,7 @@ export default function AdminListingsPage() {
             onClick={() => {
               setActiveTab('ACTIVE')
               setPage(1)
+              router.replace('/admin/listings?tab=ACTIVE')
             }}
             className={cn(
               'group rounded-xl border bg-white px-4 py-4 text-left transition-all',
@@ -903,6 +862,7 @@ export default function AdminListingsPage() {
             onClick={() => {
               setActiveTab('REJECTED')
               setPage(1)
+              router.replace('/admin/listings?tab=REJECTED')
             }}
             className={cn(
               'group rounded-xl border bg-white px-4 py-4 text-left transition-all',
@@ -925,6 +885,7 @@ export default function AdminListingsPage() {
             onClick={() => {
               setActiveTab('DELETED')
               setPage(1)
+              router.replace('/admin/listings?tab=DELETED')
             }}
             className={cn(
               'group rounded-xl border bg-white px-4 py-4 text-left transition-all',
@@ -1014,147 +975,69 @@ export default function AdminListingsPage() {
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
                   {listings.map((listing) => (
-                    <React.Fragment key={listing.id}>
-                      <tr
-                        className="cursor-pointer hover:bg-[var(--color-muted)]"
-                        onClick={() => setSelectedListing(listing)}
+                    <tr
+                      key={listing.id}
+                      className="cursor-pointer hover:bg-[var(--color-muted)]"
+                      onClick={() => setSelectedListing(listing)}
+                    >
+                      <td className="max-w-[220px] px-4 py-2.5">
+                        <p className="truncate font-medium text-[var(--color-foreground)]">
+                          {listing.title}
+                        </p>
+                        <p className="truncate text-xs text-[var(--color-muted-foreground)]">
+                          {formatBHK(listing.bhkType)} · {listing.propertyType.replace(/_/g, ' ')}
+                        </p>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-[var(--color-muted-foreground)]">
+                        {listing.locality}, {listing.city}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-2.5 font-medium text-[var(--color-foreground)]">
+                        {formatPrice(listing.price)}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <p className="text-sm text-[var(--color-foreground)]">
+                          {listing.seller.name}
+                        </p>
+                        <p className="text-xs text-[var(--color-muted-foreground)]">
+                          {listing.seller.phone}
+                        </p>
+                      </td>
+                      <td
+                        className="whitespace-nowrap px-4 py-2.5 text-xs text-[var(--color-muted-foreground)]"
+                        title={formatFullDate(listing.createdAt)}
                       >
-                        <td className="max-w-[220px] px-4 py-2.5">
-                          <p className="truncate font-medium text-[var(--color-foreground)]">
-                            {listing.title}
-                          </p>
-                          <p className="truncate text-xs text-[var(--color-muted-foreground)]">
-                            {formatBHK(listing.bhkType)} · {listing.propertyType.replace(/_/g, ' ')}
-                          </p>
-                        </td>
-                        <td className="px-4 py-2.5 text-xs text-[var(--color-muted-foreground)]">
-                          {listing.locality}, {listing.city}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 font-medium text-[var(--color-foreground)]">
-                          {formatPrice(listing.price)}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <p className="text-sm text-[var(--color-foreground)]">
-                            {listing.seller.name}
-                          </p>
-                          <p className="text-xs text-[var(--color-muted-foreground)]">
-                            {listing.seller.phone}
-                          </p>
-                        </td>
-                        <td
-                          className="whitespace-nowrap px-4 py-2.5 text-xs text-[var(--color-muted-foreground)]"
-                          title={formatFullDate(listing.createdAt)}
-                        >
-                          {formatRelativeTime(listing.createdAt)}
-                        </td>
-                        <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center gap-2">
-                            {listing.status === 'PENDING_REVIEW' && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  onClick={() => void handleApprove(listing.id)}
-                                  disabled={actionLoading === listing.id}
-                                >
-                                  {actionLoading === listing.id ? '...' : 'Approve'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-red-200 text-red-700 hover:bg-red-50"
-                                  onClick={() =>
-                                    setRejectForms((p) => ({
-                                      ...p,
-                                      [listing.id]:
-                                        p[listing.id] === undefined
-                                          ? ''
-                                          : (undefined as unknown as string),
-                                    }))
-                                  }
-                                >
-                                  Reject
-                                </Button>
-                              </>
-                            )}
-                            {listing.status !== 'DELETED' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className={
-                                  listing.isVerified
-                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                    : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                                }
-                                onClick={() =>
-                                  void handleVerifyToggle(listing.id, listing.isVerified)
-                                }
-                                disabled={actionLoading === listing.id}
-                              >
-                                {listing.isVerified ? '✓ Verified' : 'Verify'}
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                      {listing.id in rejectForms && (
-                        <tr className="bg-red-50">
-                          <td
-                            colSpan={6}
-                            className="px-4 py-3"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="flex items-center gap-3">
-                              <select
-                                value={rejectForms[listing.id]}
-                                onChange={(e) =>
-                                  setRejectForms((p) => ({ ...p, [listing.id]: e.target.value }))
-                                }
-                                className="flex-1 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm focus:outline-none"
-                              >
-                                <option value="">Select reason...</option>
-                                <option value="Fake or misleading listing">
-                                  Fake or misleading listing
-                                </option>
-                                <option value="Low quality or missing photos">
-                                  Low quality or missing photos
-                                </option>
-                                <option value="Incorrect price or details">
-                                  Incorrect price or details
-                                </option>
-                                <option value="Duplicate listing">Duplicate listing</option>
-                                <option value="Broker listing (direct owners only)">
-                                  Broker listing (direct owners only)
-                                </option>
-                                <option value="Other — see verification note">
-                                  Other — see verification note
-                                </option>
-                              </select>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => void handleReject(listing.id)}
-                                disabled={!rejectForms[listing.id]}
-                              >
-                                Confirm
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  setRejectForms((p) => {
-                                    const n = { ...p }
-                                    delete n[listing.id]
-                                    return n
-                                  })
-                                }
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
+                        {formatRelativeTime(listing.createdAt)}
+                      </td>
+                      <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          {listing.status === 'PENDING_REVIEW' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedListing(listing)}
+                            >
+                              Review →
+                            </Button>
+                          )}
+                          {listing.status !== 'DELETED' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={
+                                listing.isVerified
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                              }
+                              onClick={() =>
+                                void handleVerifyToggle(listing.id, listing.isVerified)
+                              }
+                            >
+                              {listing.isVerified ? '✓ Verified' : 'Verify'}
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -1238,5 +1121,13 @@ export default function AdminListingsPage() {
         )}
       </div>
     </>
+  )
+}
+
+export default function AdminListingsPage() {
+  return (
+    <Suspense>
+      <AdminListingsPageInner />
+    </Suspense>
   )
 }
