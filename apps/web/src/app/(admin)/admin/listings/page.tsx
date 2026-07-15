@@ -30,13 +30,6 @@ interface ListingsResponse {
   _mockFallback?: boolean
 }
 
-const STATUS_TABS: { label: string; value: TabValue }[] = [
-  { label: 'Pending Review', value: 'PENDING_REVIEW' },
-  { label: 'Active', value: 'ACTIVE' },
-  { label: 'Rejected', value: 'REJECTED' },
-  { label: 'Deleted', value: 'DELETED' },
-]
-
 const STATUS_BADGE: Record<ListingStatus, string> = {
   PENDING_REVIEW: 'bg-yellow-100 text-yellow-800',
   ACTIVE: 'bg-green-100 text-green-800',
@@ -608,6 +601,27 @@ function DetailModal({
   )
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatRelativeTime(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 30) return `${diffDays}d ago`
+  const diffMonths = Math.floor(diffDays / 30)
+  if (diffMonths < 12) return `${diffMonths}mo ago`
+  return `${Math.floor(diffMonths / 12)}y ago`
+}
+
+function formatFullDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
 // ── Main Listings Page ─────────────────────────────────────────────────────────
 
 export default function AdminListingsPage() {
@@ -838,54 +852,95 @@ export default function AdminListingsPage() {
           </div>
         )}
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-yellow-700">Pending</p>
-            <p className="mt-1 text-2xl font-bold text-yellow-900">{counts.PENDING_REVIEW}</p>
-          </div>
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-green-700">Active</p>
-            <p className="mt-1 text-2xl font-bold text-green-900">{counts.ACTIVE}</p>
-          </div>
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-red-700">Rejected</p>
-            <p className="mt-1 text-2xl font-bold text-red-900">{counts.REJECTED}</p>
-          </div>
-          <div className="rounded-xl border border-[var(--color-border)] bg-white px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+        {/* Status nav tiles — clicking selects the view */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {/* Pending */}
+          <button
+            onClick={() => {
+              setActiveTab('PENDING_REVIEW')
+              setPage(1)
+            }}
+            className={cn(
+              'group rounded-xl border bg-white px-4 py-4 text-left transition-all',
+              'border-l-[3px]',
+              activeTab === 'PENDING_REVIEW'
+                ? 'border-amber-300 border-l-amber-400 bg-amber-50/60 shadow-sm'
+                : 'border-[var(--color-border)] border-l-amber-400 hover:shadow-sm',
+            )}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+              Pending
+            </p>
+            <p className="mt-1.5 text-2xl font-bold text-[var(--color-foreground)]">
+              {counts.PENDING_REVIEW}
+            </p>
+          </button>
+
+          {/* Active */}
+          <button
+            onClick={() => {
+              setActiveTab('ACTIVE')
+              setPage(1)
+            }}
+            className={cn(
+              'group rounded-xl border bg-white px-4 py-4 text-left transition-all',
+              'border-l-[3px]',
+              activeTab === 'ACTIVE'
+                ? 'border-green-300 border-l-green-500 bg-green-50/60 shadow-sm'
+                : 'border-[var(--color-border)] border-l-green-500 hover:shadow-sm',
+            )}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+              Active
+            </p>
+            <p className="mt-1.5 text-2xl font-bold text-[var(--color-foreground)]">
+              {counts.ACTIVE}
+            </p>
+          </button>
+
+          {/* Rejected */}
+          <button
+            onClick={() => {
+              setActiveTab('REJECTED')
+              setPage(1)
+            }}
+            className={cn(
+              'group rounded-xl border bg-white px-4 py-4 text-left transition-all',
+              'border-l-[3px]',
+              activeTab === 'REJECTED'
+                ? 'border-red-300 border-l-red-500 bg-red-50/60 shadow-sm'
+                : 'border-[var(--color-border)] border-l-red-500 hover:shadow-sm',
+            )}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+              Rejected
+            </p>
+            <p className="mt-1.5 text-2xl font-bold text-[var(--color-foreground)]">
+              {counts.REJECTED}
+            </p>
+          </button>
+
+          {/* Deleted */}
+          <button
+            onClick={() => {
+              setActiveTab('DELETED')
+              setPage(1)
+            }}
+            className={cn(
+              'group rounded-xl border bg-white px-4 py-4 text-left transition-all',
+              'border-l-[3px]',
+              activeTab === 'DELETED'
+                ? 'bg-[var(--color-muted)]/60 border-[var(--color-border)] border-l-[var(--color-muted-foreground)] shadow-sm'
+                : 'border-[var(--color-border)] border-l-[var(--color-muted-foreground)] hover:shadow-sm',
+            )}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
               Deleted
             </p>
-            <p className="mt-1 text-2xl font-bold text-[var(--color-foreground)]">
+            <p className="mt-1.5 text-2xl font-bold text-[var(--color-foreground)]">
               {counts.DELETED}
             </p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-0 overflow-x-auto rounded-xl border border-[var(--color-border)] bg-white">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => {
-                setActiveTab(tab.value)
-                setPage(1)
-              }}
-              className={cn(
-                'flex-1 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors',
-                activeTab === tab.value
-                  ? 'border-b-2 border-[var(--color-foreground)] text-[var(--color-foreground)]'
-                  : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-              )}
-            >
-              {tab.label}
-              {tab.value === 'PENDING_REVIEW' && counts.PENDING_REVIEW > 0 && (
-                <span className="ml-1.5 rounded-full bg-yellow-100 px-1.5 py-0.5 text-xs font-bold text-yellow-800">
-                  {counts.PENDING_REVIEW}
-                </span>
-              )}
-            </button>
-          ))}
+          </button>
         </div>
 
         {/* Filters */}
@@ -949,13 +1004,12 @@ export default function AdminListingsPage() {
               <table className="hidden w-full text-sm md:table">
                 <thead className="bg-[var(--color-muted)] text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
                   <tr>
-                    <th className="px-4 py-3">Listing</th>
-                    <th className="px-4 py-3">Location</th>
-                    <th className="px-4 py-3">Price</th>
-                    <th className="px-4 py-3">Seller</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Submitted</th>
-                    <th className="px-4 py-3">Actions</th>
+                    <th className="px-4 py-2.5">Listing</th>
+                    <th className="px-4 py-2.5">Location</th>
+                    <th className="px-4 py-2.5">Price</th>
+                    <th className="px-4 py-2.5">Seller</th>
+                    <th className="px-4 py-2.5">Submitted</th>
+                    <th className="px-4 py-2.5">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
@@ -965,7 +1019,7 @@ export default function AdminListingsPage() {
                         className="cursor-pointer hover:bg-[var(--color-muted)]"
                         onClick={() => setSelectedListing(listing)}
                       >
-                        <td className="max-w-[220px] px-4 py-3">
+                        <td className="max-w-[220px] px-4 py-2.5">
                           <p className="truncate font-medium text-[var(--color-foreground)]">
                             {listing.title}
                           </p>
@@ -973,13 +1027,13 @@ export default function AdminListingsPage() {
                             {formatBHK(listing.bhkType)} · {listing.propertyType.replace(/_/g, ' ')}
                           </p>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[var(--color-muted-foreground)]">
+                        <td className="px-4 py-2.5 text-xs text-[var(--color-muted-foreground)]">
                           {listing.locality}, {listing.city}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 font-medium text-[var(--color-foreground)]">
+                        <td className="whitespace-nowrap px-4 py-2.5 font-medium text-[var(--color-foreground)]">
                           {formatPrice(listing.price)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-2.5">
                           <p className="text-sm text-[var(--color-foreground)]">
                             {listing.seller.name}
                           </p>
@@ -987,24 +1041,13 @@ export default function AdminListingsPage() {
                             {listing.seller.phone}
                           </p>
                         </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={cn(
-                              'rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                              STATUS_BADGE[listing.status],
-                            )}
-                          >
-                            {STATUS_LABEL[listing.status]}
-                          </span>
+                        <td
+                          className="whitespace-nowrap px-4 py-2.5 text-xs text-[var(--color-muted-foreground)]"
+                          title={formatFullDate(listing.createdAt)}
+                        >
+                          {formatRelativeTime(listing.createdAt)}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--color-muted-foreground)]">
-                          {new Date(listing.createdAt).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </td>
-                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-2">
                             {listing.status === 'PENDING_REVIEW' && (
                               <>
@@ -1056,7 +1099,7 @@ export default function AdminListingsPage() {
                       {listing.id in rejectForms && (
                         <tr className="bg-red-50">
                           <td
-                            colSpan={7}
+                            colSpan={6}
                             className="px-4 py-3"
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -1134,12 +1177,10 @@ export default function AdminListingsPage() {
                         </p>
                       </div>
                       <span
-                        className={cn(
-                          'shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                          STATUS_BADGE[listing.status],
-                        )}
+                        className="shrink-0 whitespace-nowrap text-xs text-[var(--color-muted-foreground)]"
+                        title={formatFullDate(listing.createdAt)}
                       >
-                        {STATUS_LABEL[listing.status]}
+                        {formatRelativeTime(listing.createdAt)}
                       </span>
                     </div>
                     <p className="mt-1 text-sm font-semibold text-[var(--color-foreground)]">
