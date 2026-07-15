@@ -13,7 +13,7 @@ import { StepPropertyType } from '@/components/forms/step-property-type'
 import { StepReview } from '@/components/forms/step-review'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { useAuth } from '@/lib/supabase/auth-context'
-import { isSupabaseConfigured } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { SELL_STEPS, STEP_LABELS, type SellStep, useSellFormStore } from '@/stores/sell-form.store'
 
@@ -200,6 +200,17 @@ export default function SellPage() {
       }
     })()
   }, [searchParams])
+
+  // Refresh the session when the review step is entered so that stale JWT metadata
+  // (e.g. phone_verified) is replaced with the latest server-side values.
+  // The SupabaseAuthProvider onAuthStateChange handler picks up the TOKEN_REFRESHED
+  // event and updates the shared `user` state automatically.
+  useEffect(() => {
+    if (currentStep !== 'review') return
+    createClient()
+      .auth.refreshSession()
+      .catch(() => {})
+  }, [currentStep])
 
   function canProceed(): boolean {
     switch (currentStep) {
