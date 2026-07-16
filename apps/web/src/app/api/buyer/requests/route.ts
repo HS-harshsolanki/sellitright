@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export interface BuyerRequestItem {
   id: string
@@ -28,21 +28,23 @@ interface SafeRow {
   seller_email: string | null
   created_at: string
   updated_at: string
-  listings: {
-    title: string
-    city: string
-    locality: string
-    price: number
-    image_urls: string[]
-    bhk_type: string | null
-  } | null
+}
+
+interface ListingRow {
+  id: string
+  title: string
+  city: string
+  locality: string
+  price: number
+  image_urls: string[]
+  bhk_type: string | null
 }
 
 // GET /api/buyer/requests
 // Returns all interest requests submitted by the authenticated buyer.
-// Queries buyer_interest_safe view (server-side contact masking) via `as any`
-// because the Supabase generated types don't include DB views until regenerated.
-// Falls back gracefully to JS-layer guard as belt-and-suspenders.
+// Queries buyer_interest_safe view for contact data, then fetches listing details
+// separately via service client (bypasses RLS so we can show info even for
+// non-ACTIVE listings the buyer has a connection to).
 export async function GET() {
   let supabase: Awaited<ReturnType<typeof createClient>>
   try {
@@ -64,7 +66,7 @@ export async function GET() {
   const { data, error } = await (supabase as any)
     .from('buyer_interest_safe')
     .select(
-      'id, listing_id, status, contact_unlocked, seller_phone, seller_email, created_at, updated_at, listings(title, city, locality, price, image_urls, bhk_type)',
+      'id, listing_id, status, contact_unlocked, seller_phone, seller_email, created_at, updated_at',
     )
     .eq('buyer_id', user.id)
     .not('status', 'eq', 'WITHDRAWN')
@@ -75,8 +77,27 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to load your requests.' }, { status: 500 })
   }
 
-  const requests: BuyerRequestItem[] = ((data as SafeRow[]) ?? []).map((row) => {
-    const l = Array.isArray(row.listings) ? row.listings[0] : row.listings
+  const rows = (data as SafeRow[]) ?? []
+
+  // Fetch listing details separately using the service client so we get data
+  // even for listings that are DRAFT/INACTIVE/REJECTED (buyer already has a connection).
+  const listingIds = [...new Set(rows.map((r) => r.listing_id).filter(Boolean))]
+  const listingMap = new Map<string, ListingRow>()
+
+  if (listingIds.length > 0) {
+    const admin = createServiceClient()
+    const { data: listings } = await admin
+      .from('listings')
+      .select('id, title, city, locality, price, image_urls, bhk_type')
+      .in('id', listingIds)
+
+    for (const l of listings ?? []) {
+      listingMap.set(l.id, l as ListingRow)
+    }
+  }
+
+  const requests: BuyerRequestItem[] = rows.map((row) => {
+    const l = listingMap.get(row.listing_id) ?? null
     const unlocked = row.contact_unlocked === true
 
     return {

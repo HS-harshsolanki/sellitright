@@ -164,9 +164,15 @@ function RequestCard({ item, onWithdraw, withdrawingId, onUnlocked }: RequestCar
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[var(--color-foreground)] sm:text-base">
-                {item.listingBhkType ? (BHK_LABEL[item.listingBhkType] ?? item.listingBhkType) : ''}
-                {item.listingBhkType ? ' · ' : ''}
-                {item.listingLocality}, {item.listingCity}
+                {[
+                  item.listingBhkType
+                    ? (BHK_LABEL[item.listingBhkType] ?? item.listingBhkType)
+                    : null,
+                  item.listingLocality || null,
+                  item.listingCity || null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || 'Property'}
               </p>
               <p className="mt-0.5 text-base font-bold text-[var(--color-foreground)]">
                 {formatPrice(item.listingPrice)}

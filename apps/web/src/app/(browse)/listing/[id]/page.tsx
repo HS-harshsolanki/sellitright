@@ -14,7 +14,7 @@ import { ShowAllAmenities } from '@/components/listing/show-all-amenities'
 import { formatPrice, formatBHK, formatArea, formatFloor } from '@/lib/format'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import type { MockListing } from '@/lib/mock-data'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export const revalidate = 300
 
@@ -86,13 +86,38 @@ export default async function ListingPage({ params }: ListingPageProps) {
       const isVisible = data.status === 'ACTIVE' || isOwner
       if (isVisible) {
         listingRaw = mapSupabaseListingToMock(data)
+      } else if (viewer) {
+        // Listing is not publicly visible — check if this buyer has an unlocked
+        // contact for it. If so, show the listing so they can reference it.
+        type InterestCheck = { contact_unlocked: boolean | null }
+        const { data: interest } = (await supabase
+          .from('buyer_interest')
+          .select('contact_unlocked')
+          .eq('listing_id', id)
+          .eq('buyer_id', viewer.id)
+          .eq('contact_unlocked', true)
+          .limit(1)
+          .maybeSingle()) as { data: InterestCheck | null; error: unknown }
+
+        if (interest?.contact_unlocked) {
+          // Load via service client to bypass RLS on non-ACTIVE listing
+          const admin = createServiceClient()
+          const { data: adminData } = await admin
+            .from('listings')
+            .select(
+              'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description',
+            )
+            .eq('id', id)
+            .single()
+          if (adminData) listingRaw = mapSupabaseListingToMock(adminData)
+        }
       }
     }
   } catch {
     // Supabase not configured or network error — fall through to notFound()
   }
 
-  // ── 2. 404 if Supabase returned nothing ──────────────────────────────────
+  // ── 2. 404 if listing not visible ────────────────────────────────────────
   if (!listingRaw) notFound()
 
   // notFound() throws (`never`), so listingRaw is defined beyond this point.
