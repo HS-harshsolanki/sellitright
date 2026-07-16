@@ -105,9 +105,11 @@ export async function POST(request: NextRequest) {
     let data, error
 
     if (draftId) {
-      // Promote existing draft → PENDING_REVIEW — only allowed from DRAFT or REJECTED
-      // to prevent a seller from resetting an ACTIVE/PENDING_REVIEW listing.
-      ;({ data, error } = await supabase
+      // Promote existing draft → PENDING_REVIEW — only allowed from DRAFT or REJECTED.
+      // Use service client: RLS USING clause only covers (DRAFT, PENDING_REVIEW, INACTIVE),
+      // so REJECTED rows are invisibilised by PostgREST on update → PGRST116 → 500.
+      // seller_id + status checks below make the service-role bypass safe.
+      ;({ data, error } = await admin
         .from('listings')
         .update(record)
         .eq('id', draftId)
@@ -148,6 +150,7 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
+    console.error('[listings/create] unhandled exception:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
