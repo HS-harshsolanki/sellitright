@@ -1,6 +1,6 @@
 'use client'
 
-import { Bed, Camera, ChevronLeft, ChevronRight, Heart, Maximize2, ShieldCheck } from 'lucide-react'
+import { Camera, ChevronLeft, ChevronRight, Heart, ShieldCheck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -94,10 +94,10 @@ export function ListingCard({
   const recency = recencyText(days)
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-all duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-xl">
-      <Link href={`/listing/${id}`} className="block p-3">
+    <div className="group relative flex w-full flex-col transition-transform duration-300">
+      <Link href={`/listing/${id}`} className="block w-full">
         {/* ── Image area ──────────────────────────────────────────────────────── */}
-        <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[var(--color-muted)]">
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-[var(--color-muted)]">
           {images[currentImage] && (
             <Image
               src={images[currentImage].url}
@@ -105,21 +105,21 @@ export function ListingCard({
               fill
               priority={priorityImage}
               loading={priorityImage ? undefined : 'lazy'}
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              className="cubic-bezier(0.4, 0, 0.2, 1) object-cover transition-transform duration-500 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
           )}
 
           {/* Gradient fade — bottom — anchors overlaid badges */}
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-20"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.38) 0%, transparent 100%)' }}
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-16"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 100%)' }}
             aria-hidden="true"
           />
 
           {/* Photo count badge — top-left */}
           {total > 0 && (
-            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-md">
               <Camera className="h-3 w-3" aria-hidden="true" />
               {total}
             </span>
@@ -132,7 +132,7 @@ export function ListingCard({
                 type="button"
                 onClick={prev}
                 aria-label="Previous photo"
-                className="absolute left-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 opacity-0 shadow-md transition-opacity focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100 sm:flex"
+                className="absolute left-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 opacity-0 shadow-sm transition-opacity focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100 sm:flex"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -140,7 +140,7 @@ export function ListingCard({
                 type="button"
                 onClick={next}
                 aria-label="Next photo"
-                className="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 opacity-0 shadow-md transition-opacity focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100 sm:flex"
+                className="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 opacity-0 shadow-sm transition-opacity focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100 sm:flex"
               >
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -149,7 +149,7 @@ export function ListingCard({
 
           {/* Image dots */}
           {total > 1 && (
-            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1">
+            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
               {Array.from({ length: total }).map((_, idx) => (
                 <button
                   key={idx}
@@ -159,12 +159,12 @@ export function ListingCard({
                     setCurrentImage(idx)
                   }}
                   aria-label={`View photo ${idx + 1}`}
-                  className="flex h-11 min-w-[44px] items-center justify-center px-1"
+                  className="flex h-6 min-w-[12px] items-center justify-center"
                 >
                   <span
                     className={cn(
                       'block h-1.5 rounded-full transition-all duration-200',
-                      idx === currentImage ? 'w-3.5 bg-white' : 'w-1.5 bg-white/55',
+                      idx === currentImage ? 'w-3.5 bg-white' : 'w-1.5 bg-white/60',
                     )}
                   />
                 </button>
@@ -174,8 +174,8 @@ export function ListingCard({
 
           {/* Verified badge — bottom-left, above gradient */}
           {isVerified && (
-            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-gray-900 shadow-sm backdrop-blur-sm">
-              <ShieldCheck className="h-3 w-3 text-emerald-600" aria-hidden="true" />
+            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 shadow-sm backdrop-blur-md">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
               Verified
             </span>
           )}
@@ -192,51 +192,34 @@ export function ListingCard({
           }}
           aria-label={isFavorited ? 'Remove from favourites' : 'Save to favourites'}
           aria-pressed={isFavorited}
-          className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
         >
           <Heart
             className={cn(
               'h-3.5 w-3.5 transition-colors duration-200',
-              isFavorited ? 'text-[var(--color-accent)]' : 'text-gray-600',
+              isFavorited ? 'text-[var(--color-accent)]' : 'text-gray-700',
             )}
             style={isFavorited ? { fill: 'var(--color-accent)' } : undefined}
           />
         </button>
 
         {/* ── Content area ────────────────────────────────────────────────────── */}
-        <div className="mt-2 px-1">
-          {/* Location — primary identity, deserves prominence */}
-          <p className="truncate text-[15px] font-semibold leading-snug text-[var(--color-foreground)]">
+        <div className="mt-2.5 px-0.5">
+          {/* Location — primary identity */}
+          <p className="truncate text-[15px] font-semibold leading-snug text-gray-900">
             {locality}, {city}
           </p>
 
-          {/* Specs with icons — scanned 60k× faster than text-only */}
-          <div className="mt-1.5 flex items-center gap-2 text-sm text-[var(--color-muted-foreground)]">
-            <span className="inline-flex items-center gap-1">
-              <Bed className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
-              {formatBHK(bhkType)}
-            </span>
-            <span className="text-[var(--color-border)]" aria-hidden="true">
-              |
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Maximize2 className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
-              {formatArea(builtUpArea)}
-            </span>
-          </div>
-
-          {/* Divider — visual breathing room before price */}
-          <div className="mb-2.5 mt-3 h-px bg-[var(--color-border)]" aria-hidden="true" />
-
-          {/* Price — the decision-maker, must command the eye */}
-          <p className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
-            {formatPrice(price)}
+          {/* Specs inline — clean, modern, no heavy borders/dividers */}
+          <p className="mt-0.5 text-[13px] font-medium text-gray-500">
+            {formatBHK(bhkType)} &middot; {formatArea(builtUpArea)}
           </p>
 
-          {/* Recency — only when fresh, otherwise silence */}
-          {recency && (
-            <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">{recency}</p>
-          )}
+          {/* Price — decision-maker */}
+          <p className="mt-1 text-base font-bold text-gray-900">{formatPrice(price)}</p>
+
+          {/* Recency — if fresh */}
+          {recency && <p className="mt-0.5 text-xs font-normal text-gray-400">{recency}</p>}
         </div>
       </Link>
     </div>

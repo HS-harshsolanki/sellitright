@@ -284,11 +284,11 @@ export function BrowseClient({
       )}
 
       {/* ── Listings section ────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
         {/* Count + sort row */}
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-gray-500">
-            <span className="font-medium text-gray-800">
+            <span className="font-semibold text-gray-800">
               {isLoading ? '…' : `${totalCount} ${totalCount === 1 ? 'property' : 'properties'}`}
             </span>
             {searchQuery && <span> for &ldquo;{searchQuery}&rdquo;</span>}
@@ -299,11 +299,11 @@ export function BrowseClient({
             <button
               type="button"
               onClick={() => setSortOpen((o) => !o)}
-              className="flex items-center gap-1 rounded text-sm font-medium text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+              className="flex min-h-[38px] items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-white px-4 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-400 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
               aria-haspopup="listbox"
               aria-expanded={sortOpen}
             >
-              {SORT_LABELS[sort]}
+              <span className="font-normal text-gray-400">Sort:</span> {SORT_LABELS[sort]}
               <ChevronDown
                 className={`h-3.5 w-3.5 text-gray-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`}
               />
@@ -313,7 +313,7 @@ export function BrowseClient({
               <ul
                 role="listbox"
                 aria-label="Sort options"
-                className="absolute right-0 z-10 mt-2 min-w-[200px] rounded-xl border border-[var(--color-border)] bg-white py-1 shadow-lg"
+                className="animate-in fade-in slide-in-from-top-2 absolute right-0 z-10 mt-2 min-w-[200px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-white py-1 shadow-lg duration-150"
               >
                 {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
                   <li key={key} role="option" aria-selected={sort === key}>
@@ -324,7 +324,7 @@ export function BrowseClient({
                         setSortOpen(false)
                       }}
                       className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 ${
-                        sort === key ? 'font-semibold text-gray-900' : 'text-gray-600'
+                        sort === key ? 'bg-gray-50/50 font-semibold text-gray-900' : 'text-gray-600'
                       }`}
                     >
                       {SORT_LABELS[key]}
@@ -394,7 +394,7 @@ export function BrowseClient({
             </button>
           </div>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {listings.map((listing, idx) => (
               <ListingCard
                 key={listing.id}
