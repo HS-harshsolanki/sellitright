@@ -86,13 +86,15 @@ export async function GET() {
 
   if (listingIds.length > 0) {
     const admin = createServiceClient()
-    const { data: listings } = await admin
-      .from('listings')
-      .select('id, title, city, locality, price, image_urls, bhk_type')
-      .in('id', listingIds)
+    if (admin) {
+      const { data: listings } = await admin
+        .from('listings')
+        .select('id, title, city, locality, price, image_urls, bhk_type')
+        .in('id', listingIds)
 
-    for (const l of listings ?? []) {
-      listingMap.set(l.id, l as ListingRow)
+      for (const l of listings ?? []) {
+        listingMap.set(l.id, l as ListingRow)
+      }
     }
   }
 

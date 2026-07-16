@@ -102,14 +102,16 @@ export default async function ListingPage({ params }: ListingPageProps) {
         if (interest?.contact_unlocked) {
           // Load via service client to bypass RLS on non-ACTIVE listing
           const admin = createServiceClient()
-          const { data: adminData } = await admin
-            .from('listings')
-            .select(
-              'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description',
-            )
-            .eq('id', id)
-            .single()
-          if (adminData) listingRaw = mapSupabaseListingToMock(adminData)
+          if (admin) {
+            const { data: adminData } = await admin
+              .from('listings')
+              .select(
+                'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description',
+              )
+              .eq('id', id)
+              .single()
+            if (adminData) listingRaw = mapSupabaseListingToMock(adminData)
+          }
         }
       }
     }
