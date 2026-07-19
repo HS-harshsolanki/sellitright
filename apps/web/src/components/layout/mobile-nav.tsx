@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Search, PlusSquare, User, LayoutDashboard, Bell } from 'lucide-react'
+import { Home, Search, PlusSquare, User, LayoutDashboard, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -16,7 +16,7 @@ export function MobileNav() {
         { href: '/', label: 'Home', icon: Home },
         { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
         { href: '/sell', label: 'Sell', icon: PlusSquare },
-        { href: '/notifications', label: 'Alerts', icon: Bell, matchHref: '/notifications' },
+        { href: '/messages', label: 'Messages', icon: MessageSquare, matchHref: '/messages' },
         { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, matchHref: '/dashboard' },
       ]
     : [

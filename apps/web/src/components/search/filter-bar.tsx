@@ -357,8 +357,8 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* Filter chips row */}
-      <div className="flex flex-wrap items-center gap-2 pb-1">
+      {/* Filter chips row — scrollable on mobile so pills never wrap */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Budget */}
         <div className="relative">
           <FilterButton

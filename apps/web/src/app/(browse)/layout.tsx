@@ -6,7 +6,8 @@ export default function BrowseLayout({ children }: { children: React.ReactNode }
   return (
     <>
       <Header />
-      <main className="min-h-screen pb-20 md:pb-0">{children}</main>
+      {/* pb-24 on mobile covers h-16 nav + safe-area inset (up to ~34px on iPhone X) */}
+      <main className="min-h-screen pb-24 md:pb-0">{children}</main>
       <Footer />
       <MobileNav />
     </>

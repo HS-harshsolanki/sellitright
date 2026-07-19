@@ -43,7 +43,7 @@ export function MobileBottomBar({
   return (
     <>
       <div
-        className="bg-[var(--color-background)]/95 pb-safe fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-t border-[var(--color-border)] px-4 py-4 backdrop-blur-sm lg:hidden"
+        className="bg-[var(--color-background)]/95 pb-safe fixed bottom-16 left-0 right-0 z-50 flex items-center justify-between gap-4 border-t border-[var(--color-border)] px-4 py-4 backdrop-blur-sm md:bottom-0 lg:hidden"
         aria-label="Contact seller bar"
       >
         {/* Price + title */}
