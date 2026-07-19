@@ -534,7 +534,7 @@ export function GlobalMessagesBubble({ children }: { children?: React.ReactNode 
     return (
       <MessagingContext.Provider value={{ openChatForInterest }}>
         {children}
-        <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
+        <div className="fixed bottom-16 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl md:bottom-0">
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -611,7 +611,7 @@ export function GlobalMessagesBubble({ children }: { children?: React.ReactNode 
   return (
     <MessagingContext.Provider value={{ openChatForInterest }}>
       {children}
-      <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
+      <div className="fixed bottom-16 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl md:bottom-0">
         {/* ── Pill / header — ALWAYS FIRST so it sits at the top when open ── */}
         <button
           type="button"
