@@ -4,15 +4,15 @@ import {
   ArrowUpRight,
   Bell,
   ClipboardList,
+  Compass,
   LayoutGrid,
   MessageSquare,
   Plus,
-  Search,
   User,
   Users,
 } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 
 import { SignOutButton } from '@/components/auth/sign-out-button'
@@ -49,8 +49,6 @@ interface SidebarNavProps {
 
 function SidebarNavInner({ pendingBuyerCount }: SidebarNavProps) {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const activeTab = searchParams.get('tab')
 
   return (
     <aside className="hidden w-56 shrink-0 border-r border-[var(--color-border)] bg-white lg:flex lg:flex-col">
@@ -107,7 +105,7 @@ function SidebarNavInner({ pendingBuyerCount }: SidebarNavProps) {
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
           )}
         >
-          <Search className="h-4 w-4" />
+          <Compass className="h-4 w-4" />
           <span className="flex-1">Browse marketplace</span>
           <ArrowUpRight className="h-3.5 w-3.5 opacity-50" aria-hidden="true" />
         </Link>
@@ -144,48 +142,39 @@ function SidebarNav(props: SidebarNavProps) {
 }
 
 function TopBar() {
+  // No "List property" CTA here — Post is already the centre tab in the bottom nav.
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-4 backdrop-blur-sm lg:hidden">
+    <header className="sticky top-0 z-40 flex h-14 items-center border-b border-[var(--color-border)] bg-white/95 px-4 backdrop-blur-sm lg:hidden">
       <ChapterNewLogo size="sm" />
-      <Link
-        href="/sell"
-        className={cn(
-          'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white',
-          'bg-[var(--color-foreground)] transition-opacity hover:opacity-90',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
-        )}
-      >
-        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-        List property
-      </Link>
     </header>
   )
 }
 
-// 5-item mobile nav: Listings | Requests | Post | Alerts | Profile
-// Messages accessible via the floating bubble (bottom-right) on all pages
+// Unified 5-item mobile nav — identical labels/icons to the browse MobileNav so
+// users see the same bottom bar on every logged-in page (browse + dashboard).
+// Browse | My Activity | Post | Inbox | Me
 const MOBILE_ITEMS = [
   {
-    href: '/dashboard',
-    label: 'Listings',
-    icon: <LayoutGrid className="h-5 w-5" />,
-    matchDash: true,
+    href: '/properties',
+    label: 'Browse',
+    icon: <Compass className="h-5 w-5" />,
+    matchPath: '/properties',
   },
   {
-    href: '/dashboard/requests',
-    label: 'Requests',
-    icon: <ClipboardList className="h-5 w-5" />,
-    matchPath: '/dashboard/requests',
+    href: '/dashboard',
+    label: 'My Activity',
+    icon: <LayoutGrid className="h-5 w-5" />,
+    matchDash: true,
   },
   { href: '/sell', label: 'Post', icon: <Plus className="h-5 w-5" /> },
   {
     href: '/messages',
-    label: 'Messages',
+    label: 'Inbox',
     icon: <MessageSquare className="h-5 w-5" />,
     matchPath: '/messages',
     matchMsg: true,
   },
-  { href: '/profile', label: 'Profile', icon: <User className="h-5 w-5" /> },
+  { href: '/profile', label: 'Me', icon: <User className="h-5 w-5" /> },
 ]
 
 interface MobileBottomNavProps {
@@ -194,8 +183,6 @@ interface MobileBottomNavProps {
 
 function MobileBottomNavInner({ totalUnread }: MobileBottomNavProps) {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const activeTab = searchParams.get('tab')
 
   return (
     <nav
@@ -204,13 +191,15 @@ function MobileBottomNavInner({ totalUnread }: MobileBottomNavProps) {
     >
       {MOBILE_ITEMS.map((item) => {
         const isActive =
-          'matchPath' in item
-            ? item.matchPath !== undefined && pathname.startsWith(item.matchPath)
-            : 'matchDash' in item
-              ? (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) &&
-                !pathname.startsWith('/dashboard/requests') &&
-                !pathname.startsWith('/dashboard/buyers')
-              : pathname.startsWith(item.href)
+          'matchDash' in item
+            ? // My Activity: active on all /dashboard/** routes
+              pathname === '/dashboard' || pathname.startsWith('/dashboard/')
+            : 'matchPath' in item && item.matchPath === '/properties'
+              ? // Browse: active on /properties and /property/* detail pages
+                pathname.startsWith('/properties') || pathname.startsWith('/property')
+              : 'matchPath' in item
+                ? item.matchPath !== undefined && pathname.startsWith(item.matchPath)
+                : pathname.startsWith(item.href)
         return (
           <Link
             key={item.label}

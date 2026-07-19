@@ -1,30 +1,74 @@
 'use client'
 
-import { Home, Search, PlusSquare, User, LayoutDashboard, MessageSquare } from 'lucide-react'
+import { Compass, LayoutGrid, MessageSquare, Plus, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
 
+// Logged-in nav: unified for both browse and dashboard surfaces.
+// Matches the dashboard mobile bottom nav so the user sees the same 5 tabs everywhere.
+const LOGGED_IN_TABS = [
+  {
+    href: '/properties',
+    label: 'Browse',
+    icon: Compass,
+    matchHref: '/properties',
+  },
+  {
+    href: '/dashboard',
+    label: 'My Activity',
+    icon: LayoutGrid,
+    matchHref: '/dashboard',
+  },
+  {
+    href: '/sell',
+    label: 'Post',
+    icon: Plus,
+    matchHref: '/sell',
+  },
+  {
+    href: '/messages',
+    label: 'Inbox',
+    icon: MessageSquare,
+    matchHref: '/messages',
+  },
+  {
+    href: '/profile',
+    label: 'Me',
+    icon: User,
+    matchHref: '/profile',
+  },
+] as const
+
+// Logged-out nav: minimal — no dashboard, no inbox
+const LOGGED_OUT_TABS = [
+  {
+    href: '/properties',
+    label: 'Browse',
+    icon: Compass,
+    matchHref: '/properties',
+  },
+  {
+    href: '/sell',
+    label: 'Sell',
+    icon: Plus,
+    matchHref: '/sell',
+  },
+  {
+    href: '/login',
+    label: 'Sign In',
+    icon: User,
+    matchHref: '/login',
+  },
+] as const
+
 export function MobileNav() {
   const pathname = usePathname()
   const { user } = useAuth()
 
-  const tabs = user
-    ? [
-        { href: '/', label: 'Home', icon: Home },
-        { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
-        { href: '/sell', label: 'Sell', icon: PlusSquare },
-        { href: '/messages', label: 'Messages', icon: MessageSquare, matchHref: '/messages' },
-        { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, matchHref: '/dashboard' },
-      ]
-    : [
-        { href: '/', label: 'Home', icon: Home },
-        { href: '/properties', label: 'Search', icon: Search, matchHref: '/properties' },
-        { href: '/sell', label: 'Sell', icon: PlusSquare },
-        { href: '/login', label: 'Profile', icon: User },
-      ]
+  const tabs = user ? LOGGED_IN_TABS : LOGGED_OUT_TABS
 
   return (
     <nav
@@ -33,8 +77,22 @@ export function MobileNav() {
     >
       <ul className="flex h-16 items-stretch" role="list">
         {tabs.map(({ href, label, icon: Icon, matchHref }) => {
-          const checkHref = matchHref ?? href
-          const isActive = checkHref === '/' ? pathname === '/' : pathname.startsWith(checkHref)
+          const isActive =
+            matchHref === '/properties'
+              ? // active on /properties and any property detail page
+                pathname.startsWith('/properties') || pathname.startsWith('/property')
+              : matchHref === '/dashboard'
+                ? // active on all /dashboard/** routes
+                  pathname.startsWith('/dashboard')
+                : matchHref === '/sell'
+                  ? pathname.startsWith('/sell')
+                  : matchHref === '/messages'
+                    ? pathname.startsWith('/messages')
+                    : matchHref === '/profile'
+                      ? pathname.startsWith('/profile')
+                      : matchHref === '/login'
+                        ? pathname.startsWith('/login')
+                        : pathname === href
 
           return (
             <li key={label} className="flex-1">
