@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 import type { MockListing } from '@/lib/mock-data'
 
-export type PropertyType = 'APARTMENT' | 'VILLA' | 'INDEPENDENT_HOUSE' | 'PLOT' | 'PENTHOUSE'
+export type PropertyType = 'APARTMENT' | 'PENTHOUSE'
 export type BHKType = 'ONE_BHK' | 'TWO_BHK' | 'THREE_BHK' | 'FOUR_BHK' | 'FIVE_PLUS_BHK'
 export type Furnishing = 'FURNISHED' | 'SEMI_FURNISHED' | 'UNFURNISHED'
 export type Parking = 'COVERED' | 'OPEN' | 'BOTH' | 'NONE'
@@ -203,7 +203,7 @@ export const useSellFormStore = create<SellFormState>()(
         set({
           currentStep: 'property-type',
           draftId: listing.id,
-          propertyType: listing.propertyType,
+          propertyType: (listing.propertyType as PropertyType) ?? null,
           location: {
             city: listing.city,
             state: listing.state,
@@ -246,6 +246,7 @@ export const useSellFormStore = create<SellFormState>()(
         photos: state.photos,
         pricing: state.pricing,
         draftId: state.draftId,
+        submitted: state.submitted,
       }),
     },
   ),

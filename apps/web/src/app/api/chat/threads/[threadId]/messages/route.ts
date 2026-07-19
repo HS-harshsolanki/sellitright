@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import type { ChatMessage } from '@/lib/chat-types'
+
+export const maxDuration = 15
+
 import { logger } from '@/lib/logger'
 import {
   containsPhoneNumber,
@@ -114,7 +117,8 @@ export async function GET(
   }
 
   const unreadField = isBuyer ? 'buyer_unread' : 'seller_unread'
-  await chatTable(admin, 'chat_threads')
+  // Best-effort counter reset — non-blocking so pool contention here never delays message delivery
+  void chatTable(admin, 'chat_threads')
     .update({ [unreadField]: 0 })
     .eq('id', threadId)
 

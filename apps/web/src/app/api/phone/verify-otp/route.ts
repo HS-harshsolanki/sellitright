@@ -121,7 +121,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Mark the OTP request as used so it can't be replayed
-  await otpTable(admin).update({ used: true }).eq('id', rowId)
+  const { error: markUsedError } = await otpTable(admin).update({ used: true }).eq('id', rowId)
+  if (markUsedError) {
+    logger.error('[verify-otp] failed to mark OTP used', { error: markUsedError.message, rowId })
+  }
 
   // Persist verified phone to user metadata
   const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {

@@ -140,28 +140,36 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     )
   }
 
-  // Notify seller + log activity — fire-and-forget
+  // Notify seller + log activity — fire-and-forget, never block the response
   const admin = createServiceClient()
   if (admin) {
-    await createNotification({
-      admin,
-      userId: listing.seller_id,
-      title: 'New interest request',
-      message: `${validated.fullName} is interested in your property.`,
-      type: 'InterestRequest',
-      entityType: 'interest',
-      entityId: interest.id,
-    })
+    try {
+      await createNotification({
+        admin,
+        userId: listing.seller_id,
+        title: 'New interest request',
+        message: `${validated.fullName} is interested in your property.`,
+        type: 'InterestRequest',
+        entityType: 'interest',
+        entityId: interest.id,
+      })
+    } catch (err) {
+      console.error('[interest] notification fire failed:', err)
+    }
 
     // Log the activity so rate-limit counters and risk scoring work
-    await logActivity(admin, {
-      userId: user.id,
-      action: 'interest_request',
-      entityType: 'listing',
-      entityId: listingId,
-      ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined,
-      metadata: { message: validated.message ?? '' },
-    })
+    try {
+      await logActivity(admin, {
+        userId: user.id,
+        action: 'interest_request',
+        entityType: 'listing',
+        entityId: listingId,
+        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined,
+        metadata: { message: validated.message ?? '' },
+      })
+    } catch (err) {
+      console.error('[interest] logActivity failed:', err)
+    }
   }
 
   return NextResponse.json(

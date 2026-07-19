@@ -1,14 +1,22 @@
+import type { ReactNode } from 'react'
+
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata, Viewport } from 'next'
+import dynamic from 'next/dynamic'
 import localFont from 'next/font/local'
 
 import { CookieConsent } from '@/components/cookie-consent'
-import { GlobalMessagesBubble } from '@/components/layout/global-messages-bubble'
 
 import { Providers } from './providers'
 
 import './globals.css'
+
+const GlobalMessagesBubble = dynamic(() =>
+  import('@/components/layout/global-messages-bubble').then((m) => ({
+    default: m.GlobalMessagesBubble,
+  })),
+)
 
 const satoshi = localFont({
   src: [
@@ -76,6 +84,7 @@ export const metadata: Metadata = {
     title: 'ChapterNew — Find Your Next Place in Life',
     description: 'Verified properties. Zero broker fees. Connect directly with owners.',
     site: '@chapternew',
+    images: [{ url: '/opengraph-image' }],
   },
   robots: {
     index: true,
@@ -99,18 +108,27 @@ export const metadata: Metadata = {
 }
 
 interface RootLayoutProps {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className={satoshi.variable}>
-      <body className="bg-background min-h-screen font-sans antialiased">
+      <head>
+        <link
+          rel="preconnect"
+          href="https://nbescpowbgfqiuctqcfp.supabase.co"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://nbescpowbgfqiuctqcfp.supabase.co" />
+        <link rel="preconnect" href="https://va.vercel-scripts.com" />
+        <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
+        <link rel="preconnect" href="https://checkout.razorpay.com" />
+        <link rel="dns-prefetch" href="https://checkout.razorpay.com" />
+      </head>
+      <body className="bg-background min-h-screen font-sans antialiased" suppressHydrationWarning>
         <Providers>
-          {children}
-          <div className="hidden lg:block">
-            <GlobalMessagesBubble />
-          </div>
+          <GlobalMessagesBubble>{children}</GlobalMessagesBubble>
         </Providers>
         <Analytics />
         <SpeedInsights />

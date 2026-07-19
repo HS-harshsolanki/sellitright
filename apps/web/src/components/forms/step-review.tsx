@@ -9,9 +9,6 @@ import { useSellFormStore } from '@/stores/sell-form.store'
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   APARTMENT: 'Apartment',
-  VILLA: 'Villa',
-  INDEPENDENT_HOUSE: 'Independent House',
-  PLOT: 'Plot / Land',
   PENTHOUSE: 'Penthouse',
 }
 
@@ -348,9 +345,6 @@ export function StepReview({ draftId, hasPhone = true, onPhoneVerified }: StepRe
         <div className="flex items-center gap-3">
           <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg text-lg">
             {propertyType === 'APARTMENT' && '🏢'}
-            {propertyType === 'VILLA' && '🏡'}
-            {propertyType === 'INDEPENDENT_HOUSE' && '🏠'}
-            {propertyType === 'PLOT' && '🟫'}
             {propertyType === 'PENTHOUSE' && '✨'}
           </div>
           <p className="text-foreground font-semibold">

@@ -67,6 +67,13 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     .single()
 
   if (fetchErr || !interest) {
+    if (fetchErr && fetchErr.code !== 'PGRST116') {
+      console.error('[dashboard/interests/[id]] fetch error:', fetchErr.message, fetchErr.code)
+      return NextResponse.json(
+        { error: 'Failed to load request. Please try again.' },
+        { status: 500 },
+      )
+    }
     return NextResponse.json({ error: 'Request not found.' }, { status: 404 })
   }
 
@@ -109,7 +116,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     title: action === 'ACCEPTED' ? 'Request accepted' : 'Request declined',
     message:
       action === 'ACCEPTED'
-        ? 'The owner accepted your request. Pay ₹99 to unlock their contact details.'
+        ? 'The owner accepted your request. They will share their contact details with you shortly.'
         : 'The owner declined your contact request.',
     type: action === 'ACCEPTED' ? 'Accepted' : 'Rejected',
     entityType: 'interest',

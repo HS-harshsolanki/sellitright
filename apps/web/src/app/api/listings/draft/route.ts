@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-const PROPERTY_TYPES = ['APARTMENT', 'VILLA', 'PLOT', 'INDEPENDENT_HOUSE', 'PENTHOUSE'] as const
+const PROPERTY_TYPES = ['APARTMENT', 'PENTHOUSE'] as const
 const BHK_TYPES = ['ONE_BHK', 'TWO_BHK', 'THREE_BHK', 'FOUR_BHK', 'FIVE_PLUS_BHK'] as const
 const FURNISHING_TYPES = ['UNFURNISHED', 'SEMI_FURNISHED', 'FURNISHED'] as const
 
@@ -139,13 +139,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (input.id) {
-      // Update existing draft — verify ownership
-      const { data, error } = await supabase
+      // Update existing listing (draft or edit) — verify ownership.
+      // Exclude `status` from the update so we never downgrade ACTIVE → DRAFT on autosave.
+      // Use service client so RLS doesn't block updates to non-DRAFT rows.
+      const updateClient = createServiceClient() ?? supabase
+      const { status: _status, ...recordWithoutStatus } = record
+      const { data, error } = await updateClient
         .from('listings')
-        .update(record)
+        .update(recordWithoutStatus)
         .eq('id', input.id)
         .eq('seller_id', user.id)
-        .in('status', ['DRAFT', 'REJECTED'])
+        .in('status', ['DRAFT', 'REJECTED', 'ACTIVE', 'INACTIVE', 'PENDING_REVIEW'])
         .select('id, status, updated_at')
         .single()
 

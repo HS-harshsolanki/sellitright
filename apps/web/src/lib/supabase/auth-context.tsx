@@ -46,10 +46,18 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+      if (event === 'SIGNED_OUT') {
+        // Supabase fires SIGNED_OUT after a failed token refresh — redirect so
+        // the user is not stuck in a state where they appear logged-in but every
+        // mutation returns 401.
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login'
+        }
+      }
     })
 
     return () => subscription.unsubscribe()

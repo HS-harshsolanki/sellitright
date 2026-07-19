@@ -5,13 +5,15 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  IndianRupee,
+  // IndianRupee, /* PAYMENT_DISABLED */
+  LayoutGrid,
   Loader2,
   Phone,
   Mail,
   MessageSquare,
-  XCircle,
   Search,
+  Users,
+  XCircle,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -19,7 +21,6 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import type { BuyerRequestItem } from '@/app/api/buyer/requests/route'
-import { UnlockContactSection } from '@/components/listing/unlock-contact-section'
 import { formatPrice } from '@/lib/format'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
@@ -39,11 +40,12 @@ const BHK_LABEL: Record<string, string> = {
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
-type DisplayStatus = 'PENDING' | 'ACCEPTED_UNPAID' | 'CONTACT_UNLOCKED' | 'DECLINED'
+type DisplayStatus = 'PENDING' | 'ACCEPTED_PENDING_SHARE' | 'CONTACT_UNLOCKED' | 'DECLINED'
+// /* PAYMENT_DISABLED — was: 'ACCEPTED_UNPAID' */
 
 function getDisplayStatus(item: BuyerRequestItem): DisplayStatus {
   if (item.status === 'ACCEPTED' && item.contactUnlocked) return 'CONTACT_UNLOCKED'
-  if (item.status === 'ACCEPTED' && !item.contactUnlocked) return 'ACCEPTED_UNPAID'
+  if (item.status === 'ACCEPTED' && !item.contactUnlocked) return 'ACCEPTED_PENDING_SHARE'
   return item.status as 'PENDING' | 'DECLINED'
 }
 
@@ -57,11 +59,12 @@ const STATUS_CONFIG: Record<
     pill: 'bg-amber-50 text-amber-700 border-amber-200',
     icon: <Clock className="h-3.5 w-3.5" aria-hidden="true" />,
   },
-  ACCEPTED_UNPAID: {
-    label: 'Pay to unlock contact',
+  ACCEPTED_PENDING_SHARE: {
+    /* PAYMENT_DISABLED — was: 'Pay to unlock contact' with IndianRupee icon */
+    label: 'Contact coming soon',
     dot: 'bg-emerald-400',
     pill: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    icon: <IndianRupee className="h-3.5 w-3.5" aria-hidden="true" />,
+    icon: <Clock className="h-3.5 w-3.5" aria-hidden="true" />,
   },
   CONTACT_UNLOCKED: {
     label: 'Contact unlocked',
@@ -98,26 +101,16 @@ function pendingHoursLeft(createdAt: string): number {
   return Math.max(0, Math.round((slaMs - elapsed) / 3_600_000))
 }
 
-// Normalize phone to E.164 digits for WhatsApp deeplinks.
-// Supabase Auth stores phones as E.164 (+919876543210), so stripping non-digits
-// already gives a valid number. We only prepend '91' for bare 10-digit numbers.
-function toWhatsAppNumber(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  return digits.length >= 11 && digits.startsWith('91') ? digits : '91' + digits.replace(/^0/, '')
-}
-
 // ─── Request card ─────────────────────────────────────────────────────────────
 
 interface RequestCardProps {
   item: BuyerRequestItem
   onWithdraw: (id: string) => Promise<void>
   withdrawingId: string | null
-  onUnlocked: (id: string, phone: string, email: string | null) => void
 }
 
-function RequestCard({ item, onWithdraw, withdrawingId, onUnlocked }: RequestCardProps) {
+function RequestCard({ item, onWithdraw, withdrawingId }: RequestCardProps) {
   const [confirmWithdraw, setConfirmWithdraw] = useState(false)
-  const [paying, setPaying] = useState(false)
   const displayStatus = getDisplayStatus(item)
   const cfg = STATUS_CONFIG[displayStatus]
   const hoursLeft = displayStatus === 'PENDING' ? pendingHoursLeft(item.createdAt) : null
@@ -203,20 +196,14 @@ function RequestCard({ item, onWithdraw, withdrawingId, onUnlocked }: RequestCar
       <div className="border-t border-[var(--color-border)] px-4 py-3">
         {displayStatus === 'CONTACT_UNLOCKED' && (
           <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/messages/${item.id}`}
-              className="flex items-center gap-1.5 rounded-lg bg-[var(--color-foreground)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            >
-              <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
-              Message
-            </Link>
             {item.sellerPhone && (
               <a
-                href={`https://wa.me/${toWhatsAppNumber(item.sellerPhone)}`}
+                href={`https://wa.me/${item.sellerPhone.replace(/\D/g, '').replace(/^91/, '').replace(/^0/, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 rounded-lg bg-[#25D366] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
               >
+                <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
                 WhatsApp
               </a>
             )}
@@ -248,40 +235,13 @@ function RequestCard({ item, onWithdraw, withdrawingId, onUnlocked }: RequestCar
           </div>
         )}
 
-        {displayStatus === 'ACCEPTED_UNPAID' && !paying && (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-[var(--color-muted-foreground)]">
-              Owner accepted · pay ₹99 to unlock their number
+        {/* PAYMENT_DISABLED — was: "Pay ₹99" button */}
+        {displayStatus === 'ACCEPTED_PENDING_SHARE' && (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <Clock className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+            <p className="text-xs text-emerald-700">
+              Owner accepted — they&apos;ll share their contact details with you shortly.
             </p>
-            <button
-              type="button"
-              onClick={() => setPaying(true)}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--color-foreground)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            >
-              <IndianRupee className="h-3.5 w-3.5" aria-hidden="true" />
-              Pay ₹99
-            </button>
-          </div>
-        )}
-
-        {displayStatus === 'ACCEPTED_UNPAID' && paying && (
-          <div className="space-y-3 pt-1">
-            <button
-              type="button"
-              onClick={() => setPaying(false)}
-              className="flex items-center gap-1 text-xs text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)]"
-            >
-              <ArrowRight className="h-3 w-3 rotate-180" aria-hidden="true" />
-              Back
-            </button>
-            <UnlockContactSection
-              interestId={item.id}
-              listingTitle={item.listingTitle}
-              onUnlocked={(phone, email) => {
-                onUnlocked(item.id, phone, email)
-                setPaying(false)
-              }}
-            />
           </div>
         )}
 
@@ -380,44 +340,14 @@ function EmptyState() {
   )
 }
 
-// ─── Summary bar ──────────────────────────────────────────────────────────────
-
-function SummaryBar({ requests }: { requests: BuyerRequestItem[] }) {
-  const counts = {
-    pending: requests.filter((r) => r.status === 'PENDING').length,
-    accepted: requests.filter((r) => r.status === 'ACCEPTED' && !r.contactUnlocked).length,
-    unlocked: requests.filter((r) => r.contactUnlocked).length,
-    declined: requests.filter((r) => r.status === 'DECLINED').length,
-  }
-  const items = [
-    { label: 'Awaiting', count: counts.pending, color: 'text-amber-600' },
-    { label: 'Pay to unlock', count: counts.accepted, color: 'text-emerald-600' },
-    { label: 'Unlocked', count: counts.unlocked, color: 'text-emerald-700' },
-    { label: 'Declined', count: counts.declined, color: 'text-red-500' },
-  ].filter((i) => i.count > 0)
-
-  if (items.length === 0) return null
-
-  return (
-    <div className="flex flex-wrap gap-4 rounded-xl border border-[var(--color-border)] bg-white px-5 py-3.5">
-      {items.map((item) => (
-        <div key={item.label} className="flex items-baseline gap-1.5">
-          <span className={cn('text-xl font-bold tabular-nums', item.color)}>{item.count}</span>
-          <span className="text-xs text-[var(--color-muted-foreground)]">{item.label}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type StatusFilter = 'all' | 'pending' | 'accepted' | 'unlocked' | 'declined'
 
 const FILTER_TABS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'pending', label: 'Awaiting' },
-  { value: 'accepted', label: 'Pay to unlock' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'accepted', label: 'Accepted' },
   { value: 'unlocked', label: 'Unlocked' },
   { value: 'declined', label: 'Declined' },
 ]
@@ -428,8 +358,8 @@ export default function MyRequestsPage() {
   const [requests, setRequests] = useState<BuyerRequestItem[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
-  const [withdrawSuccessListingId, setWithdrawSuccessListingId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [sort, setSort] = useState<'newest' | 'oldest'>('newest')
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -455,14 +385,6 @@ export default function MyRequestsPage() {
       .finally(() => setLoading(false))
   }, [user])
 
-  function handleUnlocked(id: string, phone: string, email: string | null) {
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, contactUnlocked: true, sellerPhone: phone, sellerEmail: email } : r,
-      ),
-    )
-  }
-
   async function handleWithdraw(id: string) {
     const item = requests.find((r) => r.id === id)
     if (!item) return
@@ -470,7 +392,6 @@ export default function MyRequestsPage() {
     try {
       const res = await fetch(`/api/listings/${item.listingId}/interest`, { method: 'DELETE' })
       if (res.ok) {
-        setWithdrawSuccessListingId(item.listingId)
         setRequests((prev) => prev.filter((r) => r.id !== id))
       } else {
         setFetchError('Could not withdraw — please try again.')
@@ -482,34 +403,54 @@ export default function MyRequestsPage() {
     }
   }
 
-  const filtered = requests.filter((r) => {
-    const ds = getDisplayStatus(r)
-    if (statusFilter === 'all') return true
-    if (statusFilter === 'pending') return ds === 'PENDING'
-    if (statusFilter === 'accepted') return ds === 'ACCEPTED_UNPAID'
-    if (statusFilter === 'unlocked') return ds === 'CONTACT_UNLOCKED'
-    if (statusFilter === 'declined') return ds === 'DECLINED'
-    return true
-  })
+  const pendingCount = requests.filter((r) => r.status === 'PENDING').length
+  const activeCount = requests.filter((r) => r.status === 'ACCEPTED').length
 
-  // Count badges — only show for non-zero tabs
   const tabCounts: Record<StatusFilter, number> = {
     all: requests.length,
-    pending: requests.filter((r) => r.status === 'PENDING').length,
-    accepted: requests.filter((r) => r.status === 'ACCEPTED' && !r.contactUnlocked).length,
-    unlocked: requests.filter((r) => r.contactUnlocked).length,
-    declined: requests.filter((r) => r.status === 'DECLINED').length,
+    pending: requests.filter((r) => getDisplayStatus(r) === 'PENDING').length,
+    accepted: requests.filter((r) => getDisplayStatus(r) === 'ACCEPTED_PENDING_SHARE').length,
+    unlocked: requests.filter((r) => getDisplayStatus(r) === 'CONTACT_UNLOCKED').length,
+    declined: requests.filter((r) => getDisplayStatus(r) === 'DECLINED').length,
   }
 
-  const actionRequired = tabCounts.accepted
-  const visibleTabs = FILTER_TABS.filter(
-    (t) => t.value === 'all' || tabCounts[t.value] > 0 || statusFilter === t.value,
-  )
+  const filtered = requests
+    .filter((r) => {
+      const ds = getDisplayStatus(r)
+      if (statusFilter === 'all') return true
+      if (statusFilter === 'pending') return ds === 'PENDING'
+      if (statusFilter === 'accepted') return ds === 'ACCEPTED_PENDING_SHARE'
+      if (statusFilter === 'unlocked') return ds === 'CONTACT_UNLOCKED'
+      if (statusFilter === 'declined') return ds === 'DECLINED'
+      return true
+    })
+    .sort((a, b) =>
+      sort === 'newest'
+        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    )
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
+      <div className="space-y-3" aria-busy="true">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="animate-pulse rounded-2xl border border-[var(--color-border)] bg-white p-5"
+          >
+            <div className="flex gap-5">
+              <div className="h-28 w-36 shrink-0 rounded-xl bg-[var(--color-muted)]" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-48 rounded-full bg-[var(--color-muted)]" />
+                <div className="h-3 w-32 rounded-full bg-[var(--color-muted)]" />
+                <div className="flex gap-2">
+                  <div className="h-6 w-16 rounded-full bg-[var(--color-muted)]" />
+                  <div className="h-6 w-20 rounded-full bg-[var(--color-muted)]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -519,113 +460,166 @@ export default function MyRequestsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-foreground)] sm:text-2xl">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
             My Requests
           </h1>
           <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
             Properties you&apos;ve expressed interest in
           </p>
         </div>
-        {actionRequired > 0 && (
-          <div className="flex shrink-0 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
-            <span className="text-sm font-bold text-emerald-700">{actionRequired}</span>
-            <span className="text-xs text-emerald-700">
-              {actionRequired === 1 ? 'request' : 'requests'} accepted — pay to unlock
-            </span>
-          </div>
-        )}
+        <Link
+          href="/properties"
+          className="flex items-center gap-1.5 rounded-full bg-[var(--color-foreground)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          <Search className="h-4 w-4" aria-hidden="true" />
+          Browse
+        </Link>
       </div>
 
       {fetchError && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-          <span className="flex-1">{fetchError}</span>
-          <button
-            type="button"
-            onClick={() => setFetchError(null)}
-            className="shrink-0 text-xs text-red-600 hover:underline"
-          >
-            Dismiss
-          </button>
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          {fetchError}
         </div>
       )}
 
-      {withdrawSuccessListingId && (
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100">
+            <LayoutGrid className="h-[18px] w-[18px] text-violet-600" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
+              Total Requests
+            </p>
+            <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
+              {loading ? '—' : requests.length}
+            </p>
+            <p className="text-[11px] text-[var(--color-muted-foreground)]">All time</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+            <Clock className="h-[18px] w-[18px] text-amber-600" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
+              Awaiting Reply
+            </p>
+            <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
+              {loading ? '—' : pendingCount}
+            </p>
+            <p className="text-[11px] text-[var(--color-muted-foreground)]">Owner yet to respond</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100">
+            <MessageSquare className="h-[18px] w-[18px] text-green-600" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
+              Accepted
+            </p>
+            <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
+              {loading ? '—' : activeCount}
+            </p>
+            <p className="text-[11px] text-[var(--color-muted-foreground)]">Owner said yes</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100">
+            <Users className="h-[18px] w-[18px] text-sky-600" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
+              Contact Shared
+            </p>
+            <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
+              {loading ? '—' : tabCounts.unlocked}
+            </p>
+            <p className="text-[11px] text-[var(--color-muted-foreground)]">Ready to connect</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter pills + sort */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div
-          role="status"
-          className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Filter by status"
         >
-          <span className="flex-1">
-            Request withdrawn.{' '}
-            <Link
-              href={`/listing/${withdrawSuccessListingId}`}
-              className="font-medium underline underline-offset-2 hover:opacity-80"
-            >
-              Re-submit interest from the listing page.
-            </Link>
-          </span>
-          <button
-            type="button"
-            onClick={() => setWithdrawSuccessListingId(null)}
-            className="shrink-0 text-xs text-blue-600 hover:underline"
+          {FILTER_TABS.map((tab) => {
+            const isActive = statusFilter === tab.value
+            const count = tabCounts[tab.value]
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => setStatusFilter(tab.value)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition-all',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
+                  isActive
+                    ? 'border-[var(--color-foreground)] bg-[var(--color-foreground)] text-white'
+                    : 'border-[var(--color-border)] bg-white text-[var(--color-muted-foreground)] hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]',
+                )}
+              >
+                {tab.label}
+                {!loading && (
+                  <span
+                    className={cn(
+                      'flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold',
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-[var(--color-muted-foreground)]">Sort by:</span>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as 'newest' | 'oldest')}
+            className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
           >
-            Dismiss
-          </button>
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
         </div>
-      )}
-
-      {/* Summary bar — visible when there are requests */}
-      {!loading && requests.length > 0 && <SummaryBar requests={requests} />}
-
-      {/* Filter tabs */}
-      {!loading && requests.length > 0 && (
-        <div
-          role="tablist"
-          aria-label="Filter requests"
-          className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1"
-        >
-          {visibleTabs.map((tab) => (
-            <button
-              key={tab.value}
-              role="tab"
-              type="button"
-              aria-selected={statusFilter === tab.value}
-              onClick={() => setStatusFilter(tab.value)}
-              className={cn(
-                'flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
-                statusFilter === tab.value
-                  ? 'bg-white text-[var(--color-foreground)] shadow-sm'
-                  : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-              )}
-            >
-              {tab.label}
-              {tab.value !== 'all' && tabCounts[tab.value] > 0 ? (
-                <span
-                  className={cn(
-                    'flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none',
-                    tab.value === 'accepted'
-                      ? 'bg-emerald-500 text-white'
-                      : statusFilter === tab.value
-                        ? 'bg-[var(--color-foreground)] text-white'
-                        : 'bg-[var(--color-border)] text-[var(--color-muted-foreground)]',
-                  )}
-                >
-                  {tabCounts[tab.value]}
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-      )}
+      </div>
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
+        <div className="space-y-3" aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-2xl border border-[var(--color-border)] bg-white p-5"
+            >
+              <div className="flex gap-5">
+                <div className="h-28 w-36 shrink-0 rounded-xl bg-[var(--color-muted)]" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-48 rounded-full bg-[var(--color-muted)]" />
+                  <div className="h-3 w-32 rounded-full bg-[var(--color-muted)]" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : requests.length === 0 ? (
         <EmptyState />
@@ -650,7 +644,6 @@ export default function MyRequestsPage() {
               item={item}
               onWithdraw={handleWithdraw}
               withdrawingId={withdrawingId}
-              onUnlocked={handleUnlocked}
             />
           ))}
         </div>

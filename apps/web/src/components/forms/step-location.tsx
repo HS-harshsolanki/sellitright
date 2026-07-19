@@ -72,9 +72,11 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
     <div className="space-y-6">
       <div className="space-y-1">
         <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-          Where is your property?
+          Where is your home located?
         </h2>
-        <p className="text-muted-foreground">Help buyers find your property easily.</p>
+        <p className="text-muted-foreground">
+          We&apos;ll only show the location you choose to share publicly.
+        </p>
       </div>
 
       <div className="space-y-4">
@@ -165,9 +167,14 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
 
         {/* Full address */}
         <div className="space-y-1.5">
-          <label htmlFor="address" className={labelClass}>
-            Full Address
-          </label>
+          <div className="flex items-center gap-2">
+            <label htmlFor="address" className={labelClass}>
+              Full address
+            </label>
+            <span className="rounded-full bg-[var(--color-muted)] px-2 py-0.5 text-xs font-medium text-[var(--color-muted-foreground)]">
+              Private
+            </span>
+          </div>
           <textarea
             id="address"
             rows={3}
@@ -176,6 +183,9 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             onChange={(e) => setLocation({ address: e.target.value })}
             className={cn(inputBase, 'border-border focus:border-primary resize-none')}
           />
+          <p className="text-muted-foreground flex items-center gap-1 text-xs">
+            Only verified buyers will see your complete address.
+          </p>
         </div>
 
         {/* Pincode */}

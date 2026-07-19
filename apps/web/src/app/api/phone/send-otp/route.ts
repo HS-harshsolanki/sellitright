@@ -66,10 +66,18 @@ export async function POST(request: NextRequest) {
 
   // Rate limit: max SEND_RATE_LIMIT sends for this phone in the last hour
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-  const { count } = await otpTable(admin)
+  const { count, error: countError } = await otpTable(admin)
     .select('id', { count: 'exact', head: true })
     .eq('phone', phone)
     .gte('created_at', oneHourAgo)
+
+  if (countError) {
+    logger.error('[send-otp] rate-limit query failed', { error: countError.message })
+    return NextResponse.json(
+      { error: 'Verification service temporarily unavailable.' },
+      { status: 503 },
+    )
+  }
 
   if ((count ?? 0) >= SEND_RATE_LIMIT) {
     return NextResponse.json(

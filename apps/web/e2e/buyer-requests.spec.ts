@@ -96,7 +96,11 @@ const PENDING_ITEM = {
   updatedAt: new Date(Date.now() - 10 * 3_600_000).toISOString(),
 }
 
-const ACCEPTED_UNPAID_ITEM = {
+// /* PAYMENT_DISABLED — was: ACCEPTED_UNPAID_ITEM with "Pay ₹49/₹99" CTA */
+// Free-tier: ACCEPTED + contactUnlocked=false means owner has accepted but
+// has not yet clicked "Share Contact". The buyer sees a passive info chip:
+// "Owner accepted — they'll share their contact details with you shortly."
+const ACCEPTED_PENDING_SHARE_ITEM = {
   ...PENDING_ITEM,
   id: '00000000-0000-0000-0000-000000000010',
   status: 'ACCEPTED',
@@ -104,6 +108,9 @@ const ACCEPTED_UNPAID_ITEM = {
   sellerPhone: null,
   sellerEmail: null,
 }
+
+// Keep old name as alias so TC-REQ01/02 usage compiles without changes
+const ACCEPTED_UNPAID_ITEM = ACCEPTED_PENDING_SHARE_ITEM
 
 const CONTACT_UNLOCKED_ITEM = {
   ...PENDING_ITEM,
@@ -193,6 +200,36 @@ test.describe('TC-REQ02 — status tabs filter the request list', () => {
   })
 })
 
+// ── TC-REQ02b: "Waiting for contact" tab (free-tier replacement for "Pay to unlock") ─
+
+test.describe('TC-REQ02b — "Waiting for contact" filter tab shows accepted-pending-share items', () => {
+  test('"Waiting for contact" tab is visible and filters to ACCEPTED_PENDING_SHARE items', async ({
+    page,
+  }) => {
+    test.skip(NEEDS_REAL_AUTH, 'requires real Supabase session (middleware blocks)')
+    // /* PAYMENT_DISABLED — was: "Pay to unlock" tab; now "Waiting for contact" */
+    await mockSupabaseAuth(page)
+    await mockBuyerRequests(page, [
+      PENDING_ITEM,
+      ACCEPTED_PENDING_SHARE_ITEM,
+      CONTACT_UNLOCKED_ITEM,
+      DECLINED_ITEM,
+    ])
+
+    await page.goto('/requests')
+    await page.getByRole('heading', { name: /my requests/i }).waitFor()
+
+    // The filter tab label changed: "Pay to unlock" → "Waiting for contact"
+    const waitingTab = page.getByRole('tab', { name: /waiting for contact/i })
+    await expect(waitingTab).toBeVisible()
+    await waitingTab.click()
+
+    // Should display the accepted-pending-share card
+    const cards = page.getByRole('article')
+    await expect(cards.first()).toBeVisible()
+  })
+})
+
 // ── TC-REQ03: Pending card shows SLA countdown timer element ──────────────────
 
 test.describe('TC-REQ03 — pending card shows SLA countdown', () => {
@@ -230,24 +267,37 @@ test.describe('TC-REQ03 — pending card shows SLA countdown', () => {
   })
 })
 
-// ── TC-REQ04: Accepted-unpaid card shows "Pay ₹49" CTA ───────────────────────
+// ── TC-REQ04: Accepted-pending-share card shows "Contact coming soon" chip ─────
+//
+// /* PAYMENT_DISABLED — was: "accepted-unpaid card shows Pay ₹49 button" */
+//
+// In the free-tier model, when a buyer's request is ACCEPTED but the owner
+// has not yet clicked "Share Contact", the card shows a passive info chip
+// instead of a payment CTA. No button is shown — the buyer simply waits.
 
-test.describe('TC-REQ04 — accepted-unpaid card shows Pay ₹49 button', () => {
-  test('"Pay ₹49" link is visible for an ACCEPTED, not-yet-paid request', async ({ page }) => {
+test.describe('TC-REQ04 — accepted-pending-share card shows "Contact coming soon" chip', () => {
+  test('"Contact coming soon" info chip is visible for an ACCEPTED, not-yet-shared request', async ({
+    page,
+  }) => {
     test.skip(NEEDS_REAL_AUTH, 'requires real Supabase session (middleware blocks)')
     await mockSupabaseAuth(page)
-    await mockBuyerRequests(page, [ACCEPTED_UNPAID_ITEM])
+    await mockBuyerRequests(page, [ACCEPTED_PENDING_SHARE_ITEM])
 
     await page.goto('/requests')
     await page.getByRole('heading', { name: /my requests/i }).waitFor()
 
-    // The Pay ₹49 CTA is a Link rendered as an anchor
-    const payBtn = page.getByRole('link', { name: /pay ₹49/i })
-    await expect(payBtn).toBeVisible()
+    // Buyer sees a passive informational chip — no payment link present
+    // The chip text is "Owner accepted — they'll share their contact details with you shortly."
+    const contactChip = page.getByText(/owner accepted|share their contact|contact.*shortly/i)
+    await expect(contactChip).toBeVisible()
 
-    // It should point to the listing page with #unlock anchor
-    const href = await payBtn.getAttribute('href')
-    expect(href).toMatch(/\/listing\/.+#unlock/)
+    // Confirm there is NO "Pay" link of any kind
+    const payLinks = page.getByRole('link', { name: /pay/i })
+    await expect(payLinks).not.toBeVisible()
+
+    // Confirm there is NO rupee / ₹ text on the card
+    const rupeeText = page.getByText(/₹\d+/)
+    await expect(rupeeText).not.toBeVisible()
   })
 })
 

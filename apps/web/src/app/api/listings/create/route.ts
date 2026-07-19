@@ -25,11 +25,10 @@ export async function POST(request: NextRequest) {
     if (!admin) {
       return NextResponse.json({ error: 'Service not available.' }, { status: 503 })
     }
-    const { data: latestFlag } = await admin
-      .from('latest_user_flag')
-      .select('flag')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    const [{ data: latestFlag }, { data: sellerAuth }] = await Promise.all([
+      admin.from('latest_user_flag').select('flag').eq('user_id', user.id).maybeSingle(),
+      admin.auth.admin.getUserById(user.id),
+    ])
     if (latestFlag?.flag === 'SUSPENDED') {
       return NextResponse.json(
         { error: 'Your account is suspended. Contact support.' },
@@ -38,7 +37,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Phone gate — seller must have a verified phone number before posting
-    const { data: sellerAuth } = await admin.auth.admin.getUserById(user.id)
     const phoneVerified = sellerAuth.user?.user_metadata?.phone_verified === true
     const rawPhone = sellerAuth.user?.user_metadata?.phone ?? sellerAuth.user?.phone ?? null
     const normalizePhone = (raw: string) => {
@@ -105,18 +103,18 @@ export async function POST(request: NextRequest) {
     let data, error
 
     if (draftId) {
-      // Promote existing draft → PENDING_REVIEW — only allowed from DRAFT or REJECTED.
-      // Use the service client here because the RLS update policy excludes REJECTED rows
-      // (USING clause only covers DRAFT/PENDING_REVIEW/INACTIVE). seller_id check is
-      // enforced explicitly so service-role bypass is safe.
+      // Update any owned listing → PENDING_REVIEW (re-submission for admin approval).
+      // Allowed from all editable states: DRAFT, REJECTED, ACTIVE, INACTIVE, PENDING_REVIEW.
+      // Using service client because RLS update policy excludes REJECTED/ACTIVE rows.
+      // seller_id check is enforced explicitly so service-role bypass is safe.
       ;({ data, error } = await admin
         .from('listings')
         .update(record)
         .eq('id', draftId)
         .eq('seller_id', user.id)
-        .in('status', ['DRAFT', 'REJECTED'])
+        .in('status', ['DRAFT', 'REJECTED', 'ACTIVE', 'INACTIVE', 'PENDING_REVIEW'])
         .select('id, status, created_at')
-        .single())
+        .maybeSingle())
     } else {
       // New listing
       ;({ data, error } = await supabase

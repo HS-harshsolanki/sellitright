@@ -8,10 +8,16 @@ import { test, expect } from '@playwright/test'
  *
  *   1. Unauthenticated state at each step returns the correct status code
  *   2. API shapes are correct (correct fields, correct types)
- *   3. The pipeline is wired together (interest → dashboard → accept → payment gate)
+ *   3. The pipeline is wired together (interest → dashboard → accept → share-contact)
  *
- * Full authenticated happy-path (POST interest with real JWT → seller accepts →
- * buyer pays → contacts unlock) requires Supabase to be live and two real users
+ * Free-tier flow (no payment):
+ *   buyer submits interest → seller accepts → seller clicks "Share Contact"
+ *   → POST /api/dashboard/interests/:id/share-contact → contact_unlocked=true
+ *   → buyer sees contact details for free
+ *
+ * PAYMENT_DISABLED — Step 4 was "Buyer pays ₹49/₹99 to unlock contact".
+ *
+ * Full authenticated happy-path requires Supabase to be live and two real users
  * — those are covered by manual QA and are skipped here with ADMIN_KEY guard.
  */
 
@@ -118,7 +124,8 @@ test.describe('Golden path — Step 3: Seller views interest requests', () => {
 
   test('PATCH /api/dashboard/interests/:id validates action enum', async ({ request }) => {
     // Without auth → 401; we can't test validation layer without a session
-    // But verify the route exists and returns structured JSON
+    // But verify the route exists and returns structured JSON.
+    // Valid actions: ACCEPTED, DECLINED (no payment action in free-tier model).
     const res = await request.patch(`/api/dashboard/interests/${PHANTOM_UUID}`, {
       data: { action: 'INVALID_ACTION' },
     })
@@ -128,26 +135,37 @@ test.describe('Golden path — Step 3: Seller views interest requests', () => {
   })
 })
 
-// ── Step 4: Payment — auth required ──────────────────────────────────────────
+// ── Step 4: Owner shares contact — auth required ─────────────────────────────
+//
+// /* PAYMENT_DISABLED — was: "Buyer pays ₹49/₹99 to unlock contact" */
+//
+// In the free-tier model the owner (seller) initiates contact sharing.
+// The new endpoint is POST /api/dashboard/interests/:id/share-contact.
 
-test.describe('Golden path — Step 4: Buyer pays to unlock contact', () => {
-  test('POST /api/payments/create-order returns 401 without auth', async ({ request }) => {
-    const res = await request.post('/api/payments/create-order', {
-      data: { interestId: PHANTOM_UUID },
-    })
+test.describe('Golden path — Step 4: Owner shares contact (free-tier)', () => {
+  test('POST /api/dashboard/interests/:id/share-contact returns 401 without auth', async ({
+    request,
+  }) => {
+    const res = await request.post(`/api/dashboard/interests/${PHANTOM_UUID}/share-contact`)
     expect(res.status()).toBe(401)
+    const body = (await res.json()) as { error: string }
+    expect(typeof body.error).toBe('string')
   })
 
-  test('POST /api/payments/verify returns 401 without auth', async ({ request }) => {
-    const res = await request.post('/api/payments/verify', {
-      data: {
-        razorpay_order_id: 'order_test',
-        razorpay_payment_id: 'pay_test',
-        razorpay_signature: 'sig_test',
-        interestId: PHANTOM_UUID,
-      },
-    })
-    expect(res.status()).toBe(401)
+  test('POST /api/dashboard/interests/:id/share-contact with phantom UUID returns 401 or 404', async ({
+    request,
+  }) => {
+    // 401 without session; 404 with session but non-existent interest
+    const res = await request.post(`/api/dashboard/interests/${PHANTOM_UUID}/share-contact`)
+    expect([401, 404]).toContain(res.status())
+    const body = (await res.json()) as { error: string }
+    expect(typeof body.error).toBe('string')
+  })
+
+  test('POST /api/dashboard/interests/:id/share-contact does not 500', async ({ request }) => {
+    const res = await request.post(`/api/dashboard/interests/${PHANTOM_UUID}/share-contact`)
+    expect(res.status()).not.toBe(500)
+    expect(res.headers()['content-type']).toContain('application/json')
   })
 })
 

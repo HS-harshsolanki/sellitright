@@ -7,6 +7,7 @@ import {
   Mail,
   Phone,
   Save,
+  Shield,
   ShieldCheck,
   User,
 } from 'lucide-react'
@@ -15,7 +16,10 @@ import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/supabase/auth-context'
-import { createClient } from '@/lib/supabase/client'
+import {
+  createClient,
+  isSupabaseConfigured as isSupabaseConfiguredLocal,
+} from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 function Spinner({ className }: { className?: string }) {
@@ -49,7 +53,11 @@ export default function ProfilePage() {
   const [otpInput, setOtpInput] = useState('')
   const [flowState, setFlowState] = useState<PhoneFlowState>('idle')
   const [phoneError, setPhoneError] = useState('')
+  const [phoneAlreadyClaimed, setPhoneAlreadyClaimed] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
+  const [phoneAvailability, setPhoneAvailability] = useState<
+    'unknown' | 'checking' | 'available' | 'taken'
+  >('unknown')
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -59,6 +67,16 @@ export default function ProfilePage() {
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
       if (cooldownRef.current) clearInterval(cooldownRef.current)
     }
+  }, [])
+
+  // Refresh the session on mount so user_metadata reflects the latest server state.
+  // The cached JWT may be stale if phone was verified in a previous tab/session.
+  useEffect(() => {
+    if (!isSupabaseConfiguredLocal()) return
+    createClient()
+      .auth.refreshSession()
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -89,6 +107,14 @@ export default function ProfilePage() {
     ? (user.user_metadata?.phone ?? '')
     : ''
 
+  const memberSince = (() => {
+    const raw = user.created_at
+    if (!raw) return null
+    const d = new Date(raw)
+    if (isNaN(d.getTime())) return null
+    return d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+  })()
+
   const INDIAN_MOBILE_RE = /^[6-9]\d{9}$/
   function normalizePhone(raw: string): string {
     const digits = raw.replace(/\D/g, '')
@@ -111,8 +137,32 @@ export default function ProfilePage() {
     }, 1000)
   }
 
+  async function handlePhoneBlur() {
+    const normalized = normalizePhone(phoneInput)
+    if (!INDIAN_MOBILE_RE.test(normalized)) return
+    setPhoneAvailability('checking')
+    try {
+      const res = await fetch(`/api/phone/check-availability?phone=${normalized}`)
+      if (!res.ok) {
+        setPhoneAvailability('unknown')
+        return
+      }
+      const data = (await res.json()) as { available?: boolean }
+      if (data.available) {
+        setPhoneAvailability('available')
+      } else {
+        setPhoneAvailability('taken')
+        setPhoneAlreadyClaimed(true)
+        setPhoneError('taken')
+      }
+    } catch {
+      setPhoneAvailability('unknown')
+    }
+  }
+
   async function handleSendOtp() {
     setPhoneError('')
+    setPhoneAlreadyClaimed(false)
     const normalized = normalizePhone(phoneInput)
     if (!INDIAN_MOBILE_RE.test(normalized)) {
       setPhoneError('Enter a valid 10-digit Indian mobile number (e.g. 98765 43210)')
@@ -125,9 +175,15 @@ export default function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: normalized }),
       })
-      const data = (await res.json()) as { error?: string }
+      const data = (await res.json()) as { error?: string; code?: string }
       if (!res.ok) {
-        setPhoneError(data.error ?? 'Failed to send OTP. Please try again.')
+        if (res.status === 409 || data.code === 'PHONE_ALREADY_CLAIMED') {
+          setPhoneAvailability('taken')
+          setPhoneAlreadyClaimed(true)
+          setPhoneError('taken')
+        } else {
+          setPhoneError(data.error ?? 'Failed to send OTP. Please try again.')
+        }
         setFlowState('idle')
         return
       }
@@ -157,9 +213,8 @@ export default function ProfilePage() {
       const data = (await res.json()) as { error?: string; code?: string }
       if (!res.ok) {
         if (res.status === 409 || data.code === 'PHONE_ALREADY_CLAIMED') {
-          setPhoneError(
-            'This number is already registered to another account. If this is your number, please contact support.',
-          )
+          setPhoneAlreadyClaimed(true)
+          setPhoneError('taken')
         } else {
           setPhoneError(data.error ?? 'Verification failed. Please try again.')
         }
@@ -225,15 +280,19 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
+      {/* Page header */}
       <div>
-        <h1 className="text-xl font-bold text-[var(--color-foreground)] sm:text-2xl">My Profile</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
+          My Profile
+        </h1>
         <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
           Manage your account details
         </p>
       </div>
 
+      {/* Unverified phone banner */}
       {flowState !== 'verified' && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
           <Phone className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
           <p className="text-sm text-amber-800">
             <span className="font-semibold">Verify your phone number</span> to post properties and
@@ -252,21 +311,26 @@ export default function ProfilePage() {
             className="h-16 w-16 rounded-full object-cover"
           />
         ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-2xl font-bold text-white">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-2xl font-bold text-white">
             {initials}
           </div>
         )}
         <div className="min-w-0">
-          <p className="truncate font-semibold text-[var(--color-foreground)]">
+          <p className="truncate text-lg font-bold text-[var(--color-foreground)]">
             {displayName || email || 'Anonymous'}
           </p>
-          <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
-            Signed in via <span className="font-medium capitalize">{provider}</span>
-          </p>
+          {email && (
+            <p className="mt-0.5 truncate text-sm text-[var(--color-muted-foreground)]">{email}</p>
+          )}
           {flowState === 'verified' && verifiedPhone && (
-            <p className="mt-1 flex items-center gap-1 text-xs font-medium text-green-700">
+            <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-green-700">
               <ShieldCheck className="h-3.5 w-3.5" />
               +91 {verifiedPhone} verified
+            </p>
+          )}
+          {memberSince && (
+            <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+              Member since {memberSince}
             </p>
           )}
         </div>
@@ -275,7 +339,7 @@ export default function ProfilePage() {
       {/* Phone verification card */}
       <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white p-5">
         <div className="flex items-center gap-2">
-          <Phone className="h-5 w-5 text-[var(--color-primary)]" />
+          <Phone className="h-4 w-4 text-[var(--color-primary)]" />
           <h2 className="text-sm font-semibold text-[var(--color-foreground)]">
             Phone verification
           </h2>
@@ -288,21 +352,26 @@ export default function ProfilePage() {
         </div>
 
         {flowState === 'verified' ? (
-          <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
-            Your phone number <span className="font-semibold">+91 {verifiedPhone}</span> is
-            verified. Buyers can reach you directly after their request is accepted.
-            <button
-              type="button"
-              onClick={() => {
-                setFlowState('idle')
-                setPhoneInput('')
-                setOtpInput('')
-                setPhoneError('')
-              }}
-              className="ml-2 text-xs underline opacity-60 hover:opacity-100"
-            >
-              Change number
-            </button>
+          <div className="flex items-start gap-2 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-800">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-600" aria-hidden="true" />
+            <span>
+              Your phone number <span className="font-semibold">+91 {verifiedPhone}</span> is
+              verified. Buyers can reach you directly after their request is accepted.
+              <button
+                type="button"
+                onClick={() => {
+                  setFlowState('idle')
+                  setPhoneInput('')
+                  setOtpInput('')
+                  setPhoneError('')
+                  setPhoneAlreadyClaimed(false)
+                  setPhoneAvailability('unknown')
+                }}
+                className="ml-2 text-xs underline opacity-60 hover:opacity-100"
+              >
+                Change number
+              </button>
+            </span>
           </div>
         ) : (
           <>
@@ -316,7 +385,7 @@ export default function ProfilePage() {
               </label>
               <div
                 className={cn(
-                  'flex h-11 items-center overflow-hidden rounded-lg border',
+                  'flex h-11 items-center overflow-hidden rounded-xl border',
                   phoneError && flowState === 'idle'
                     ? 'border-[var(--color-destructive)]'
                     : 'border-[var(--color-border)]',
@@ -337,7 +406,10 @@ export default function ProfilePage() {
                   onChange={(e) => {
                     setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10))
                     setPhoneError('')
+                    setPhoneAlreadyClaimed(false)
+                    setPhoneAvailability('unknown')
                   }}
+                  onBlur={handlePhoneBlur}
                   disabled={
                     flowState === 'otp-sent' || flowState === 'verifying' || flowState === 'sending'
                   }
@@ -346,9 +418,16 @@ export default function ProfilePage() {
                   autoComplete="tel"
                 />
               </div>
-              <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-                We&apos;ll send a one-time code via SMS to this number.
-              </p>
+              {phoneAvailability === 'checking' ? (
+                <p className="mt-1 flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
+                  <Spinner className="h-3 w-3" />
+                  Checking availability…
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                  We&apos;ll send a one-time code via SMS to this number.
+                </p>
+              )}
             </div>
 
             {/* OTP input — shown after sending */}
@@ -363,7 +442,7 @@ export default function ProfilePage() {
                 <div className="flex gap-3">
                   <div
                     className={cn(
-                      'flex h-11 flex-1 items-center overflow-hidden rounded-lg border',
+                      'flex h-11 flex-1 items-center overflow-hidden rounded-xl border',
                       phoneError
                         ? 'border-[var(--color-destructive)]'
                         : 'border-[var(--color-border)]',
@@ -391,7 +470,7 @@ export default function ProfilePage() {
                     onClick={handleVerifyOtp}
                     disabled={isVerifying || otpInput.replace(/\D/g, '').length < 6}
                     className={cn(
-                      'flex h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white transition-all',
+                      'flex h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold text-white transition-all',
                       'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                       isVerifying || otpInput.replace(/\D/g, '').length < 6
                         ? 'bg-[var(--color-primary)]/50 cursor-not-allowed'
@@ -447,11 +526,11 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={handleSendOtp}
-                disabled={isSending || !phoneInputValid}
+                disabled={isSending || !phoneInputValid || phoneAvailability === 'taken'}
                 className={cn(
-                  'flex h-11 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold text-white transition-all',
+                  'flex h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-white transition-all',
                   'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                  isSending || !phoneInputValid
+                  isSending || !phoneInputValid || phoneAvailability === 'taken'
                     ? 'cursor-not-allowed opacity-50'
                     : 'active:scale-[0.98]',
                   'bg-[var(--color-primary)]',
@@ -477,19 +556,35 @@ export default function ProfilePage() {
                 role="alert"
               >
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                {phoneError}
+                {phoneAlreadyClaimed ? (
+                  <>
+                    This number is already registered to another account. If this is your number,{' '}
+                    <a
+                      href="mailto:support@chapternew.com?subject=Phone%20number%20conflict"
+                      className="underline hover:opacity-80"
+                    >
+                      contact support
+                    </a>
+                    .
+                  </>
+                ) : (
+                  phoneError
+                )}
               </p>
             )}
           </>
         )}
       </div>
 
-      {/* Display name form */}
+      {/* Account details form */}
       <form
         onSubmit={handleSaveName}
         className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white p-5"
       >
-        <h2 className="text-sm font-semibold text-[var(--color-foreground)]">Account details</h2>
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-[var(--color-primary)]" />
+          <h2 className="text-sm font-semibold text-[var(--color-foreground)]">Account details</h2>
+        </div>
         <div>
           <label
             htmlFor="display-name"
@@ -497,7 +592,7 @@ export default function ProfilePage() {
           >
             Display name
           </label>
-          <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] focus-within:ring-2 focus-within:ring-[var(--color-ring)]">
+          <div className="flex h-11 items-center overflow-hidden rounded-xl border border-[var(--color-border)] focus-within:ring-2 focus-within:ring-[var(--color-ring)]">
             <User
               className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
               aria-hidden="true"
@@ -518,7 +613,7 @@ export default function ProfilePage() {
             <p className="mb-1.5 block text-sm font-medium text-[var(--color-foreground)]">
               Email address
             </p>
-            <div className="flex h-11 items-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]">
+            <div className="flex h-11 items-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)]">
               <Mail
                 className="ml-3 h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
                 aria-hidden="true"
@@ -535,7 +630,11 @@ export default function ProfilePage() {
             {nameError}
           </p>
         )}
-        <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={saving}>
+        <Button
+          type="submit"
+          className="h-11 w-full rounded-full text-sm font-semibold"
+          disabled={saving}
+        >
           {saving ? (
             <span className="flex items-center gap-2">
               <Spinner className="h-4 w-4" />
@@ -557,11 +656,14 @@ export default function ProfilePage() {
 
       {/* Session */}
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-[var(--color-foreground)]">Session</h2>
+        <div className="mb-3 flex items-center gap-2">
+          <LogOut className="h-4 w-4 text-red-500" />
+          <h2 className="text-sm font-semibold text-[var(--color-foreground)]">Session</h2>
+        </div>
         <Button
           type="button"
           variant="outline"
-          className="h-11 w-full gap-2 border-[var(--color-destructive)] text-sm font-medium text-[var(--color-destructive)] hover:bg-red-50"
+          className="h-11 w-full gap-2 rounded-full border-[var(--color-destructive)] text-sm font-medium text-[var(--color-destructive)] hover:bg-red-50"
           onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4" aria-hidden="true" />
@@ -571,38 +673,44 @@ export default function ProfilePage() {
 
       {/* Data rights */}
       <section className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
-        <h2 className="mb-4 text-sm font-semibold text-[var(--color-foreground)]">Your data</h2>
+        <div className="mb-4 flex items-center gap-2">
+          <Shield className="h-4 w-4 text-[var(--color-primary)]" />
+          <h2 className="text-sm font-semibold text-[var(--color-foreground)]">Your data</h2>
+        </div>
         <div className="flex flex-col gap-3">
           <a
             href="/api/user/export"
             download
-            className="text-sm text-[var(--color-accent)] underline"
+            className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--color-border)] px-4 text-sm font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
           >
             Download all my data (JSON)
           </a>
           <button
+            type="button"
             onClick={() => setShowDeleteConfirm(true)}
-            className="text-left text-sm text-red-600 underline"
+            className="inline-flex h-9 items-center justify-center rounded-full border border-red-200 px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
           >
             Delete my account
           </button>
         </div>
         {showDeleteConfirm && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
             <p className="mb-3 text-sm text-red-800">
               This permanently deletes your account and all personal data. This cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="rounded border px-3 py-1 text-sm"
+                className="inline-flex h-9 items-center rounded-full border border-[var(--color-border)] bg-white px-4 text-sm font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleDeleteAccount}
                 disabled={isDeleting}
-                className="rounded bg-red-600 px-3 py-1 text-sm text-white disabled:opacity-60"
+                className="inline-flex h-9 items-center rounded-full bg-red-600 px-4 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-60"
               >
                 {isDeleting ? 'Deleting...' : 'Yes, delete my account'}
               </button>

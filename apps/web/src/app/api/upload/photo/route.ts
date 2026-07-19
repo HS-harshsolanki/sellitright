@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return NextResponse.json({ error: `File too large. Max size is 10MB.` }, { status: 400 })
+    return NextResponse.json({ error: `File too large. Max size is 10MB.` }, { status: 413 })
   }
 
   // Use service-role client so Storage RLS doesn't block the upload

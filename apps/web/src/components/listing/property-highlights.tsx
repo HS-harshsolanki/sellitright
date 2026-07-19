@@ -96,9 +96,9 @@ function buildHighlights(listing: PropertyHighlightsProps['listing']): Highlight
     title: ageYears === 0 ? 'Ready to move' : `${formatAge(ageYears)} old`,
     subtitle:
       ageYears === 0
-        ? 'Newly constructed — move in immediately'
+        ? 'Less than 1 year old — move-in ready'
         : ageYears !== null && ageYears <= 2
-          ? 'Relatively new construction'
+          ? 'Recently built — 1 to 2 years old'
           : 'Well-established property',
   })
 

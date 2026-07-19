@@ -28,10 +28,7 @@ const FURNISHING_MAP: Record<string, string> = {
 
 const PROPERTY_TYPE_MAP: Record<string, string> = {
   Apartment: 'APARTMENT',
-  Villa: 'VILLA',
   Penthouse: 'PENTHOUSE',
-  Plot: 'PLOT',
-  'Independent House': 'INDEPENDENT_HOUSE',
 }
 
 type SortOption = 'newest' | 'price_asc' | 'price_desc'

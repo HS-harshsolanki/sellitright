@@ -256,7 +256,6 @@ export function ListingGallery({ images, title }: ListingGalleryProps) {
                   src={img.url}
                   alt={img.caption ?? `${title} — photo ${pos + 1}`}
                   fill
-                  loading="lazy"
                   className={cn(
                     'object-cover transition duration-300 hover:scale-[1.02]',
                     isLastCell && images.length > 5 && 'brightness-75',

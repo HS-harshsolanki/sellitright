@@ -5,13 +5,7 @@ import { z } from 'zod'
 // the Prisma client on the edge / in shared code.
 // ---------------------------------------------------------------------------
 
-export const PropertyTypeEnum = z.enum([
-  'APARTMENT',
-  'VILLA',
-  'PLOT',
-  'INDEPENDENT_HOUSE',
-  'PENTHOUSE',
-])
+export const PropertyTypeEnum = z.enum(['APARTMENT', 'PENTHOUSE'])
 
 export const BHKTypeEnum = z.enum(['ONE_BHK', 'TWO_BHK', 'THREE_BHK', 'FOUR_BHK', 'FIVE_PLUS_BHK'])
 

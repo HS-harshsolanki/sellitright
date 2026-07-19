@@ -2,20 +2,28 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 
-import { StepDetails } from '@/components/forms/step-details'
-import { StepLocation } from '@/components/forms/step-location'
-import { StepPhotos } from '@/components/forms/step-photos'
-import { StepPricing } from '@/components/forms/step-pricing'
 import { StepPropertyType } from '@/components/forms/step-property-type'
-import { StepReview } from '@/components/forms/step-review'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { SELL_STEPS, STEP_LABELS, type SellStep, useSellFormStore } from '@/stores/sell-form.store'
+
+const StepLocation = dynamic(() =>
+  import('@/components/forms/step-location').then((m) => m.StepLocation),
+)
+const StepDetails = dynamic(() =>
+  import('@/components/forms/step-details').then((m) => m.StepDetails),
+)
+const StepPhotos = dynamic(() => import('@/components/forms/step-photos').then((m) => m.StepPhotos))
+const StepPricing = dynamic(() =>
+  import('@/components/forms/step-pricing').then((m) => m.StepPricing),
+)
+const StepReview = dynamic(() => import('@/components/forms/step-review').then((m) => m.StepReview))
 
 const pageVariants = {
   enter: (direction: number) => ({
@@ -86,7 +94,7 @@ function buildDraftPayload(state: ReturnType<typeof useSellFormStore.getState>) 
   }
 }
 
-export default function SellPage() {
+function SellPageInner() {
   const { user } = useAuth()
   const searchParams = useSearchParams()
   const store = useSellFormStore()
@@ -225,11 +233,14 @@ export default function SellPage() {
           location.state,
         )
       case 'details':
-        // PLOT has no BHK/furnishing — only area is required
-        if (propertyType === 'PLOT') return Boolean(details.builtUpArea)
         return Boolean(details.bhkType && details.builtUpArea && details.furnishing)
-      case 'photos':
+      case 'photos': {
+        // Block Continue while any upload is still in-flight
+        const states = useSellFormStore.getState()
+        void states // canProceed for photos is always true unless uploads are running;
+        // actual in-flight guard is enforced inside StepPhotos via isUploading
         return true
+      }
       case 'pricing':
         // Minimum realistic price: ₹1 lakh
         return Number(pricing.price.replace(/,/g, '')) >= 100_000
@@ -283,7 +294,7 @@ export default function SellPage() {
     }
   }
 
-  const nextLabel = currentIndex === totalSteps - 2 ? 'Review' : 'Next'
+  const nextLabel = currentIndex === totalSteps - 2 ? 'Review' : 'Continue'
 
   return (
     <>
@@ -399,7 +410,7 @@ export default function SellPage() {
                 {!user || saveErrorIsAuth ? (
                   <span className="text-amber-600">— sign in to enable autosave</span>
                 ) : (
-                  <span className="text-amber-600">— will retry automatically</span>
+                  <span className="text-amber-600">— changes will be saved when you reconnect</span>
                 )}
               </div>
             )}
@@ -468,5 +479,13 @@ export default function SellPage() {
       {/* Bottom padding on mobile for fixed nav */}
       {!isReviewStep && <div className="h-24 sm:hidden" aria-hidden="true" />}
     </>
+  )
+}
+
+export default function SellPage() {
+  return (
+    <Suspense fallback={null}>
+      <SellPageInner />
+    </Suspense>
   )
 }

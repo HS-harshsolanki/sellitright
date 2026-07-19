@@ -1,6 +1,17 @@
 'use client'
 
-import { CheckCircle2, ImagePlus, Link, Loader2, Star, Trash2, Upload, X } from 'lucide-react'
+import {
+  CheckCircle2,
+  ImageIcon,
+  ImagePlus,
+  Link,
+  Loader2,
+  ShieldCheck,
+  Star,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react'
 import { useRef, useState } from 'react'
 
 import { isSupabaseConfigured } from '@/lib/supabase/client'
@@ -11,6 +22,33 @@ const MAX_PHOTOS = 10
 const MAX_FILE_SIZE_MB = 10
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
+
+const TIPS = [
+  {
+    title: 'Use natural light',
+    description: 'Open curtains and shoot during the day.',
+  },
+  {
+    title: 'Declutter spaces',
+    description: 'Keep rooms clean and organized.',
+  },
+  {
+    title: 'Capture all key areas',
+    description: 'Show every important space.',
+  },
+  {
+    title: 'Use a wide-angle',
+    description: 'Helps show more of the room.',
+  },
+  {
+    title: 'Focus & steady shots',
+    description: 'Clear and sharp photos build trust.',
+  },
+]
+
+function formatFileSize(bytes: number): string {
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
 
 function isValidUrl(value: string): boolean {
   try {
@@ -38,6 +76,7 @@ export function StepPhotos() {
 
   const supabaseEnabled = isSupabaseConfigured()
   const canAdd = photos.length < MAX_PHOTOS
+  const isUploading = uploadStates.some((s) => s.progress !== null && s.progress < 100 && !s.error)
 
   function handleAdd() {
     const trimmed = inputValue.trim()
@@ -106,7 +145,7 @@ export function StepPhotos() {
       }
 
       updateState({ progress: 100 })
-      setPhotos([...useSellFormStore.getState().photos, json.url])
+      useSellFormStore.setState((s) => ({ photos: [...s.photos, json.url!] }))
 
       setTimeout(() => {
         setUploadStates((prev) => prev.filter((_, i) => i !== index))
@@ -170,192 +209,259 @@ export function StepPhotos() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-          Add photos of your property
-        </h2>
-        <p className="text-muted-foreground">
-          Listings with great photos get{' '}
-          <span className="text-foreground font-medium">3x more enquiries</span>. Upload photos or
-          paste image URLs — you can also skip for now.
-        </p>
-      </div>
-
-      {/* File upload zone or disabled notice */}
-      {supabaseEnabled ? (
-        <div className="space-y-3">
-          <div
-            role="button"
-            tabIndex={canAdd ? 0 : -1}
-            aria-label="Upload photos by clicking or dragging files here"
-            onClick={() => canAdd && fileInputRef.current?.click()}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                if (canAdd) fileInputRef.current?.click()
-              }
-            }}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            className={cn(
-              'flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed py-10 text-center transition-colors',
-              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-              isDragging
-                ? 'border-primary bg-primary/5'
-                : 'border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50',
-              !canAdd && 'cursor-not-allowed opacity-50',
-            )}
-          >
-            <div className="bg-muted flex h-11 w-11 items-center justify-center rounded-full">
-              <Upload className="text-muted-foreground h-5 w-5" />
+      {/* Two-column layout: main content + sidebar */}
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
+        {/* Left: heading, upload zone, file progress, URL input */}
+        <div className="min-w-0 flex-1 space-y-6">
+          {/* Heading block */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+                <ImageIcon className="text-primary h-4 w-4" aria-hidden="true" />
+              </div>
+              <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
+                Add photos of your property
+              </h2>
             </div>
-            <div>
-              <p className="text-foreground text-sm font-medium">
-                {isDragging ? 'Drop files here' : 'Click to upload or drag and drop'}
-              </p>
-              <p className="text-muted-foreground mt-0.5 text-xs">
-                JPEG, PNG, WebP — max {MAX_FILE_SIZE_MB}MB per file
-              </p>
-            </div>
+            <p className="text-muted-foreground text-base">
+              Good photos help buyers imagine living here.
+            </p>
+            <p className="text-muted-foreground text-sm">
+              Listings with clear, well-lit photos usually receive significantly more enquiries.
+            </p>
           </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={ACCEPTED_TYPES.join(',')}
-            multiple
-            className="sr-only"
-            aria-hidden="true"
-            tabIndex={-1}
-            onChange={handleFileChange}
-            disabled={!canAdd}
-          />
+          {/* File upload zone or disabled notice */}
+          {supabaseEnabled ? (
+            <div className="space-y-3">
+              <div
+                role="button"
+                tabIndex={canAdd && !isUploading ? 0 : -1}
+                aria-label="Upload photos by clicking or dragging files here"
+                onClick={() => canAdd && !isUploading && fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    if (canAdd && !isUploading) fileInputRef.current?.click()
+                  }
+                }}
+                onDrop={(e) => {
+                  if (!isUploading) handleDrop(e)
+                }}
+                onDragOver={(e) => {
+                  if (!isUploading) handleDragOver(e)
+                }}
+                onDragLeave={handleDragLeave}
+                className={cn(
+                  'flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed py-12 text-center transition-colors',
+                  'focus-visible:ring-ring bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                  isDragging
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50 hover:bg-muted/30',
+                  (!canAdd || isUploading) && 'cursor-not-allowed opacity-50',
+                )}
+              >
+                <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-full">
+                  <Upload className="text-primary h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-foreground text-sm font-semibold">
+                    {isDragging ? 'Drop files here' : 'Drag and drop photos here'}
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    or click to browse from your device
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    JPG, PNG, WebP&nbsp;&nbsp;•&nbsp;&nbsp;Max {MAX_FILE_SIZE_MB}MB per file
+                  </p>
+                </div>
+              </div>
 
-          {/* Per-file upload progress/errors */}
-          {uploadStates.length > 0 && (
-            <ul className="space-y-2">
-              {uploadStates.map((state, i) => (
-                <li
-                  key={`${state.file.name}-${i}`}
-                  className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm"
-                >
-                  <span className="text-foreground truncate">{state.file.name}</span>
-                  {state.error ? (
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="text-destructive text-xs">{state.error}</span>
-                      <button
-                        type="button"
-                        onClick={() => dismissUploadError(i)}
-                        aria-label="Dismiss error"
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ) : state.progress === 100 ? (
-                    <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-green-700">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Done
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Uploading…
-                    </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_TYPES.join(',')}
+                multiple
+                className="sr-only"
+                aria-hidden="true"
+                tabIndex={-1}
+                onChange={handleFileChange}
+                disabled={!canAdd}
+              />
+
+              {/* Per-file upload progress/errors */}
+              {uploadStates.length > 0 && (
+                <ul className="space-y-2">
+                  {uploadStates.map((state, i) => (
+                    <li
+                      key={`${state.file.name}-${i}`}
+                      className="border-border flex items-center gap-3 rounded-xl border bg-white px-3 py-2.5"
+                    >
+                      {/* Thumbnail */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={URL.createObjectURL(state.file)}
+                        alt={state.file.name}
+                        className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                      />
+
+                      {/* Name + size */}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-foreground truncate text-sm font-medium">
+                          {state.file.name}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {formatFileSize(state.file.size)}
+                        </p>
+                      </div>
+
+                      {/* Status */}
+                      <div className="flex shrink-0 items-center gap-2">
+                        {state.error ? (
+                          <span className="text-destructive text-xs">{state.error}</span>
+                        ) : state.progress === 100 ? (
+                          <span className="text-xs font-medium text-green-600">✓ Uploaded</span>
+                        ) : (
+                          <span className="text-muted-foreground flex items-center gap-1 text-xs">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Uploading…
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => dismissUploadError(i)}
+                          aria-label="Dismiss"
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <div className="border-border bg-muted/30 text-muted-foreground rounded-xl border px-4 py-3 text-sm">
+              File upload requires Supabase Storage. Paste a URL instead.
+            </div>
+          )}
+
+          {/* URL input row */}
+          <div className="space-y-2">
+            <label htmlFor="photo-url" className="text-foreground block text-sm font-medium">
+              {supabaseEnabled ? (
+                <>
+                  Or paste an image URL{' '}
+                  <span className="text-muted-foreground font-normal">
+                    (Unsplash, Cloudinary, etc.)
+                  </span>
+                </>
+              ) : (
+                <>
+                  Image URL{' '}
+                  <span className="text-muted-foreground font-normal">
+                    (Unsplash, Cloudinary, etc.)
+                  </span>
+                </>
+              )}
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Link className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+                <input
+                  id="photo-url"
+                  ref={inputRef}
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://images.unsplash.com/…"
+                  value={inputValue}
+                  onChange={(e) => {
+                    setInputValue(e.target.value)
+                    if (inputError) setInputError(null)
+                  }}
+                  onKeyDown={handleKeyDown}
+                  disabled={!canAdd}
+                  aria-invalid={inputError ? 'true' : undefined}
+                  aria-describedby={inputError ? 'photo-url-error' : undefined}
+                  className={cn(
+                    'text-foreground placeholder:text-muted-foreground w-full rounded-lg border bg-white py-3 pl-9 pr-4 text-sm',
+                    'focus:ring-primary/20 transition-colors focus:outline-none focus:ring-2',
+                    inputError
+                      ? 'border-destructive focus:border-destructive'
+                      : 'border-border focus:border-primary',
+                    !canAdd && 'cursor-not-allowed opacity-50',
                   )}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={!canAdd}
+                aria-label="Add image URL"
+                className={cn(
+                  'flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-3 text-sm font-semibold transition-all',
+                  'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                  canAdd
+                    ? 'bg-primary hover:bg-primary/90 text-white'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed',
+                )}
+              >
+                <ImagePlus className="h-4 w-4" />
+                Add
+              </button>
+            </div>
+            {inputError && (
+              <p id="photo-url-error" role="alert" className="text-destructive text-xs">
+                {inputError}
+              </p>
+            )}
+            <p className="text-muted-foreground text-xs">
+              {photos.length}/{MAX_PHOTOS} photos added — press Enter or click Add
+            </p>
+          </div>
+        </div>
+
+        {/* Right sidebar */}
+        <aside className="w-full shrink-0 space-y-3 sm:w-52">
+          {/* Photo tips card */}
+          <div className="border-border rounded-xl border bg-white p-4">
+            <p className="text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-wider">
+              Photo Tips
+            </p>
+            <ul className="space-y-3">
+              {TIPS.map((tip) => (
+                <li key={tip.title} className="flex items-start gap-2">
+                  <CheckCircle2
+                    className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <p className="text-foreground text-sm font-semibold">{tip.title}</p>
+                    <p className="text-muted-foreground text-xs">{tip.description}</p>
+                  </div>
                 </li>
               ))}
             </ul>
-          )}
-        </div>
-      ) : (
-        <div className="border-border bg-muted/30 text-muted-foreground rounded-xl border px-4 py-3 text-sm">
-          File upload requires Supabase Storage. Paste a URL instead.
-        </div>
-      )}
-
-      {/* URL input row */}
-      <div className="space-y-2">
-        <label htmlFor="photo-url" className="text-foreground block text-sm font-medium">
-          {supabaseEnabled ? (
-            <>
-              Or paste an image URL{' '}
-              <span className="text-muted-foreground font-normal">
-                (Unsplash, Cloudinary, etc.)
-              </span>
-            </>
-          ) : (
-            <>
-              Image URL{' '}
-              <span className="text-muted-foreground font-normal">
-                (Unsplash, Cloudinary, etc.)
-              </span>
-            </>
-          )}
-        </label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Link className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-            <input
-              id="photo-url"
-              ref={inputRef}
-              type="url"
-              inputMode="url"
-              placeholder="https://images.unsplash.com/…"
-              value={inputValue}
-              onChange={(e) => {
-                setInputValue(e.target.value)
-                if (inputError) setInputError(null)
-              }}
-              onKeyDown={handleKeyDown}
-              disabled={!canAdd}
-              aria-invalid={inputError ? 'true' : undefined}
-              aria-describedby={inputError ? 'photo-url-error' : undefined}
-              className={cn(
-                'text-foreground placeholder:text-muted-foreground w-full rounded-lg border bg-white py-3 pl-9 pr-4 text-sm',
-                'focus:ring-primary/20 transition-colors focus:outline-none focus:ring-2',
-                inputError
-                  ? 'border-destructive focus:border-destructive'
-                  : 'border-border focus:border-primary',
-                !canAdd && 'cursor-not-allowed opacity-50',
-              )}
-            />
           </div>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!canAdd}
-            aria-label="Add image URL"
-            className={cn(
-              'flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-3 text-sm font-semibold transition-all',
-              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-              canAdd
-                ? 'bg-primary hover:bg-primary/90 text-white'
-                : 'bg-muted text-muted-foreground cursor-not-allowed',
-            )}
-          >
-            <ImagePlus className="h-4 w-4" />
-            Add
-          </button>
-        </div>
-        {inputError && (
-          <p id="photo-url-error" role="alert" className="text-destructive text-xs">
-            {inputError}
-          </p>
-        )}
-        <p className="text-muted-foreground text-xs">
-          {photos.length}/{MAX_PHOTOS} photos added — press Enter or click Add
-        </p>
+
+          {/* Privacy card */}
+          <div className="border-border flex items-start gap-3 rounded-xl border bg-orange-50/50 p-4">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-orange-500" aria-hidden="true" />
+            <div>
+              <p className="text-foreground text-sm font-semibold">Your privacy is protected</p>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                We never share your contact details publicly.
+              </p>
+            </div>
+          </div>
+        </aside>
       </div>
 
       {/* Photo grid */}
       {photos.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-muted-foreground text-xs">
-            The first photo will be the cover image shown in search results.
-          </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {photos.map((url, index) => (
               <div
                 key={url}
@@ -383,7 +489,7 @@ export function StepPhotos() {
                 />
                 {index === 0 ? (
                   <div className="bg-foreground/80 absolute left-2 top-2 rounded-md px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
-                    Cover
+                    Cover photo
                   </div>
                 ) : (
                   <button
@@ -414,7 +520,29 @@ export function StepPhotos() {
                 </button>
               </div>
             ))}
+
+            {/* Add more tile */}
+            {canAdd && supabaseEnabled && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Add more photos"
+                className={cn(
+                  'border-border flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed',
+                  'text-muted-foreground hover:border-primary/50 hover:bg-muted/30 hover:text-foreground transition-colors',
+                  'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                )}
+              >
+                <ImageIcon className="h-5 w-5" aria-hidden="true" />
+                <span className="text-xs font-medium">Add more photos</span>
+              </button>
+            )}
           </div>
+
+          {/* Photo count */}
+          <p className="text-muted-foreground text-center text-xs">
+            {photos.length} of {MAX_PHOTOS} photos added
+          </p>
         </div>
       )}
 

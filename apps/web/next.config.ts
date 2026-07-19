@@ -15,8 +15,8 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      // Firebase SDK + reCAPTCHA scripts served from gstatic.com
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com https://www.gstatic.com https://www.google.com https://apis.google.com",
+      // Firebase SDK + reCAPTCHA + Vercel Analytics scripts
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com https://www.gstatic.com https://www.google.com https://apis.google.com https://va.vercel-scripts.com",
       // Firebase Auth API + reCAPTCHA verification endpoints
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://www.google.com https://recaptchaenterprise.googleapis.com https://*.googleapis.com http://localhost:9099 http://127.0.0.1:9099 http://192.168.1.5:9099",
       "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://images.unsplash.com",
@@ -53,6 +53,10 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.supabase.co', pathname: '/storage/v1/object/public/**' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 2592000,
+    deviceSizes: [390, 640, 750, 828, 1080, 1280, 1920],
+    imageSizes: [64, 128, 256, 384],
     unoptimized: process.env.NODE_ENV === 'development',
   },
   async headers() {

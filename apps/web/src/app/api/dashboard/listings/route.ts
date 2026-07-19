@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +12,9 @@ export async function GET(request: NextRequest) {
     }
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser()
+    if (authError) console.warn('[dashboard/listings] auth error:', authError.message)
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
@@ -38,9 +40,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to load listings' }, { status: 500 })
     }
 
+    const rows = data ?? []
+
+    // Fetch interested_count per listing (buyers who expressed interest, any status)
+    const interestedCounts: Record<string, number> = {}
+    if (rows.length > 0) {
+      const admin = createServiceClient()
+      if (admin) {
+        const listingIds = rows.map((r) => r.id)
+        const { data: interestData } = await admin
+          .from('buyer_interest')
+          .select('listing_id')
+          .in('listing_id', listingIds)
+          .in('status', ['PENDING', 'ACCEPTED'])
+
+        if (interestData) {
+          for (const row of interestData) {
+            interestedCounts[row.listing_id] = (interestedCounts[row.listing_id] ?? 0) + 1
+          }
+        }
+      }
+    }
+
+    const listings = rows.map((r) => ({
+      ...r,
+      interested_count: interestedCounts[r.id] ?? 0,
+    }))
+
     const total = count ?? 0
     return NextResponse.json(
-      { listings: data ?? [], total, page, totalPages: Math.ceil(total / limit) },
+      { listings, total, page, totalPages: Math.ceil(total / limit) },
       { headers: { 'Cache-Control': 'no-store' } },
     )
   } catch {

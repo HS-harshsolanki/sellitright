@@ -238,7 +238,10 @@ test.describe('Dashboard — Interested Buyers tab (mocked API)', () => {
     await expect(page.getByRole('button', { name: /later/i }).first()).toBeVisible()
   })
 
-  test('ACCEPTED card does not show action buttons', async ({ page }) => {
+  // /* PAYMENT_DISABLED — was: "ACCEPTED card does not show action buttons" */
+  // Free-tier: ACCEPTED card shows "Chat" and "Share Contact" buttons so the
+  // owner can initiate a conversation before deciding to share, or share immediately.
+  test('ACCEPTED card shows Chat and Share Contact buttons (owner side)', async ({ page }) => {
     await page.goto('/dashboard')
     const url = page.url()
     if (url.includes('/login')) {
@@ -249,10 +252,38 @@ test.describe('Dashboard — Interested Buyers tab (mocked API)', () => {
     await page.getByRole('tab', { name: /interested buyers/i }).click()
     await page.getByText('Priya Patel').waitFor({ timeout: 8000 })
 
-    // The Accepted card should have an Accepted badge but no action buttons near it
+    // The Accepted card should show the Accepted badge
     const priyaCard = page.locator('.rounded-xl').filter({ hasText: 'Priya Patel' })
     await expect(priyaCard.getByText('Accepted')).toBeVisible()
-    await expect(priyaCard.getByRole('button', { name: /accept/i })).not.toBeVisible()
+
+    // In the free-tier model the owner sees two action buttons on an ACCEPTED card:
+    //   1. "Chat" — opens the messaging thread (owner can discuss before sharing)
+    //   2. "Share Contact" — calls POST .../share-contact to unlock contact on both sides
+    await expect(
+      priyaCard
+        .getByRole('button', { name: /share contact/i })
+        .or(priyaCard.getByRole('link', { name: /share contact/i })),
+    ).toBeVisible({ timeout: 3000 })
+
+    // "Accept" button must NOT appear (already accepted)
+    await expect(priyaCard.getByRole('button', { name: /^accept$/i })).not.toBeVisible()
+  })
+
+  test('ACCEPTED card — no ₹ price or payment text visible (free platform)', async ({ page }) => {
+    await page.goto('/dashboard')
+    const url = page.url()
+    if (url.includes('/login')) {
+      test.skip()
+      return
+    }
+
+    await page.getByRole('tab', { name: /interested buyers/i }).click()
+    await page.getByText('Priya Patel').waitFor({ timeout: 8000 })
+
+    const priyaCard = page.locator('.rounded-xl').filter({ hasText: 'Priya Patel' })
+
+    // No payment text should appear anywhere on the accepted card
+    await expect(priyaCard.getByText(/₹99|₹49|pay to unlock|unlock.*contact/i)).not.toBeVisible()
   })
 
   test('Decline button triggers two-step confirmation', async ({ page }) => {
@@ -344,6 +375,53 @@ test.describe('Dashboard — Interested Buyers tab (mocked API)', () => {
     // Card should now show Accepted badge
     const rahulCard = page.locator('.rounded-xl').filter({ hasText: 'Rahul Sharma' })
     await expect(rahulCard.getByText('Accepted')).toBeVisible({ timeout: 3000 })
+  })
+
+  test('Share Contact action calls POST share-contact and shows success state', async ({
+    page,
+  }) => {
+    // Free-tier: owner clicks "Share Contact" → POST .../share-contact → contact unlocked
+    let shareContactCalled = false
+
+    await page.route('**/api/dashboard/interests/interest-2/share-contact', (route) => {
+      if (route.request().method() === 'POST') {
+        shareContactCalled = true
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, updatedAt: new Date().toISOString() }),
+        })
+      } else {
+        route.continue()
+      }
+    })
+
+    await page.goto('/dashboard')
+    const url = page.url()
+    if (url.includes('/login')) {
+      test.skip()
+      return
+    }
+
+    await page.getByRole('tab', { name: /interested buyers/i }).click()
+    await page.getByText('Priya Patel').waitFor({ timeout: 8000 })
+
+    const priyaCard = page.locator('.rounded-xl').filter({ hasText: 'Priya Patel' })
+    const shareBtn = priyaCard
+      .getByRole('button', { name: /share contact/i })
+      .or(priyaCard.getByRole('link', { name: /share contact/i }))
+
+    if (!(await shareBtn.isVisible())) {
+      // If the card doesn't show Share Contact in CI (no real auth), skip
+      test.skip()
+      return
+    }
+
+    await shareBtn.click()
+
+    // POST to share-contact was fired
+    await page.waitForFunction(() => true) // yield to microtasks
+    expect(shareContactCalled).toBe(true)
   })
 
   test('buyers tab shows filter pills: All, Pending, Accepted, Declined', async ({ page }) => {

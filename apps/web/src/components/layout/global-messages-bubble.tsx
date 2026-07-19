@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { ChatThreadItem, ThreadsResponse } from '@/app/api/chat/threads/route'
 import {
@@ -33,6 +33,7 @@ import { WarningBadge } from '@/components/ui/warning-badge'
 import type { ChatMessage, DisplayMessage } from '@/lib/chat-types'
 import { buildLoadViolationWarning, isPhoneWarning } from '@/lib/chat-types'
 import { containsPhoneNumber, containsPhoneNumberInWindow } from '@/lib/phone-filter'
+import { MessagingContext } from '@/lib/messaging-context'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
 
@@ -86,7 +87,7 @@ function groupByDay(
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function GlobalMessagesBubble() {
+export function GlobalMessagesBubble({ children }: { children?: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth()
   const pathname = usePathname()
 
@@ -487,78 +488,116 @@ export function GlobalMessagesBubble() {
     void loadThreads()
   }
 
-  // Path is excluded — never show the bubble here.
-  if (!pathAllowed) return null
+  async function openChatForInterest(interestId: string) {
+    setOpen(true)
+    const existing = threads.find((t) => t.interestId === interestId)
+    if (existing) {
+      openThread(existing)
+      return
+    }
+    // Threads not yet loaded — fetch then open
+    setThreadsLoading(true)
+    setThreadsError(null)
+    try {
+      const res = await fetch('/api/chat/threads')
+      if (!res.ok) {
+        setThreadsError('Could not load conversations.')
+        return
+      }
+      const data = (await res.json()) as ThreadsResponse
+      setThreads(data.threads)
+      setTotalUnread(data.threads.reduce((sum, t) => sum + t.unreadCount, 0))
+      setMyOffenseCount(data.myOffenseCount ?? 0)
+      const match = data.threads.find((t) => t.interestId === interestId)
+      if (match) openThread(match)
+    } catch {
+      setThreadsError('Could not connect.')
+    } finally {
+      setThreadsLoading(false)
+    }
+  }
 
-  // Auth is still resolving — stay invisible rather than flashing the sign-in pill.
-  if (authLoading) return null
+  // Always render the provider so consumers (e.g. buyers page) get the real openChatForInterest.
+  // The bubble UI itself is conditional on path / auth state.
+  const bubbleVisible = pathAllowed && !authLoading
+
+  if (!bubbleVisible) {
+    return (
+      <MessagingContext.Provider value={{ openChatForInterest }}>
+        {children}
+      </MessagingContext.Provider>
+    )
+  }
 
   // Logged-out users see the pill with a sign-in prompt.
   if (!user) {
     return (
-      <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label={open ? 'Close messaging' : 'Messaging'}
-          className={cn(
-            'flex h-11 w-full shrink-0 items-center gap-2.5 px-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]',
-            open
-              ? 'border-b border-[var(--color-border)] bg-[var(--color-muted)]'
-              : 'bg-[var(--color-background)] hover:bg-[var(--color-muted)]',
-          )}
-        >
-          <MessageSquare
-            className="h-4 w-4 shrink-0 text-[var(--color-foreground)]"
-            aria-hidden="true"
-          />
-          <span className="flex-1 text-left text-sm font-semibold text-[var(--color-foreground)]">
-            Messaging
-          </span>
-          {open ? (
-            <>
-              <ChevronDown
-                className="hidden h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] sm:block"
-                aria-hidden="true"
-              />
-              <X
-                className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] sm:hidden"
-                aria-hidden="true"
-              />
-            </>
-          ) : (
-            <ChevronUp
-              className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+      <MessagingContext.Provider value={{ openChatForInterest }}>
+        {children}
+        <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-label={open ? 'Close messaging' : 'Messaging'}
+            className={cn(
+              'flex h-11 w-full shrink-0 items-center gap-2.5 px-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]',
+              open
+                ? 'border-b border-[var(--color-border)] bg-[var(--color-muted)]'
+                : 'bg-[var(--color-background)] hover:bg-[var(--color-muted)]',
+            )}
+          >
+            <MessageSquare
+              className="h-4 w-4 shrink-0 text-[var(--color-foreground)]"
               aria-hidden="true"
             />
-          )}
-        </button>
-        {open && (
-          <div
-            className="flex flex-col items-center justify-center gap-4 p-5 text-center"
-            style={{ height: 200 }}
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-muted)]">
-              <MessageSquare className="h-5 w-5 text-[var(--color-muted-foreground)]" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[var(--color-foreground)]">
-                Sign in to message
-              </p>
-              <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-                Message sellers directly once you&apos;re signed in.
-              </p>
-            </div>
-            <Link
-              href="/login"
-              className="flex h-9 w-full items-center justify-center rounded-xl bg-[var(--color-foreground)] text-sm font-semibold text-[var(--color-background)] transition hover:opacity-90"
+            <span className="flex-1 text-left text-sm font-semibold text-[var(--color-foreground)]">
+              Messaging
+            </span>
+            {open ? (
+              <>
+                <ChevronDown
+                  className="hidden h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] sm:block"
+                  aria-hidden="true"
+                />
+                <X
+                  className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)] sm:hidden"
+                  aria-hidden="true"
+                />
+              </>
+            ) : (
+              <ChevronUp
+                className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
+            )}
+          </button>
+          {open && (
+            <div
+              className="flex flex-col items-center justify-center gap-4 p-5 text-center"
+              style={{ height: 200 }}
             >
-              Sign in
-            </Link>
-          </div>
-        )}
-      </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-muted)]">
+                <MessageSquare className="h-5 w-5 text-[var(--color-muted-foreground)]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[var(--color-foreground)]">
+                  Sign in to message
+                </p>
+                <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                  Message sellers directly once you&apos;re signed in.
+                </p>
+              </div>
+              <Link
+                href="/login"
+                className="flex h-9 w-full items-center justify-center rounded-xl bg-[var(--color-foreground)] text-sm font-semibold text-[var(--color-background)] transition hover:opacity-90"
+              >
+                Sign in
+              </Link>
+            </div>
+          )}
+        </div>
+      </MessagingContext.Provider>
     )
   }
 
@@ -570,7 +609,8 @@ export function GlobalMessagesBubble() {
   // The container has rounded top corners always; the pill just sits at the bottom.
 
   return (
-    <>
+    <MessagingContext.Provider value={{ openChatForInterest }}>
+      {children}
       <div className="fixed bottom-0 right-6 z-50 flex w-64 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-b-0 border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
         {/* ── Pill / header — ALWAYS FIRST so it sits at the top when open ── */}
         <button
@@ -754,10 +794,28 @@ export function GlobalMessagesBubble() {
                                   {formatRelative(t.lastMessageAt)}
                                 </span>
                               </div>
-                              <p className="mt-0.5 truncate text-xs text-[var(--color-muted-foreground)]">
-                                {t.listingTitle ?? 'Property'}
-                                {t.listingCity ? ` · ${t.listingCity}` : ''}
-                              </p>
+                              {t.listingTitle ? (
+                                <Link
+                                  href={`/listing/${t.listingId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="mt-0.5 flex items-center gap-0.5 truncate text-xs text-[var(--color-muted-foreground)] underline-offset-2 transition hover:text-[var(--color-foreground)] hover:underline"
+                                >
+                                  <span className="truncate">
+                                    {t.listingTitle}
+                                    {t.listingCity ? ` · ${t.listingCity}` : ''}
+                                  </span>
+                                  <ExternalLink
+                                    className="h-2.5 w-2.5 shrink-0 opacity-60"
+                                    aria-hidden="true"
+                                  />
+                                </Link>
+                              ) : (
+                                <p className="mt-0.5 truncate text-xs text-[var(--color-muted-foreground)]">
+                                  Property
+                                </p>
+                              )}
                             </div>
                             {t.unreadCount > 0 && t.status !== 'disabled' && (
                               <span className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--color-foreground)] text-[9px] font-bold text-[var(--color-background)]">
@@ -798,9 +856,24 @@ export function GlobalMessagesBubble() {
                         />
                       )}
                     </div>
-                    <p className="truncate text-[10px] leading-none text-[var(--color-muted-foreground)]">
-                      {activeThread.listingTitle ?? 'Property'}
-                    </p>
+                    {activeThread.listingTitle ? (
+                      <Link
+                        href={`/listing/${activeThread.listingId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-0.5 truncate text-[10px] leading-none text-[var(--color-muted-foreground)] underline-offset-2 transition hover:text-[var(--color-foreground)] hover:underline"
+                      >
+                        <span className="truncate">{activeThread.listingTitle}</span>
+                        <ExternalLink
+                          className="h-2.5 w-2.5 shrink-0 opacity-60"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    ) : (
+                      <p className="truncate text-[10px] leading-none text-[var(--color-muted-foreground)]">
+                        Property
+                      </p>
+                    )}
                   </div>
                   {activeThread.role === 'buyer' && myOffenseCount > 0 && (
                     <WarningBadge
@@ -1190,6 +1263,6 @@ export function GlobalMessagesBubble() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </MessagingContext.Provider>
   )
 }

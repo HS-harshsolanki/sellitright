@@ -51,7 +51,16 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
     setLoading(true)
     try {
       const res = await fetch('/api/notifications?limit=20')
-      if (!res.ok) return
+      if (!res.ok) {
+        if (res.status === 401) {
+          // Session expired — stop polling to avoid repeated 401s
+          if (pollTimerRef.current) {
+            clearInterval(pollTimerRef.current)
+            pollTimerRef.current = null
+          }
+        }
+        return
+      }
       const data = (await res.json()) as ApiResponse
       if (fetchId !== fetchCountRef.current) return
       setNotifications(data.notifications ?? [])

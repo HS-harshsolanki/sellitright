@@ -3,46 +3,29 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Refund Policy | ChapterNew',
-  description: 'Understand when and how ChapterNew issues refunds for the ₹99 connection fee.',
+  description: 'ChapterNew is a free platform — there are no fees and nothing to refund.',
 }
 
 const SECTIONS = [
   {
     id: '1',
-    title: 'What we charge',
-    body: "A one-time ₹99 connection fee is charged when a buyer pays to unlock a seller's contact details. This fee is charged only after the seller has explicitly accepted the buyer's request — you are never charged for a request that is still pending or that the seller has declined.",
+    title: 'ChapterNew is a free platform',
+    body: 'ChapterNew does not charge buyers or owners any fee to list, search, express interest, or connect. There is no connection fee, no subscription, and no commission. Using ChapterNew costs nothing.',
   },
   {
     id: '2',
-    title: 'When you get a full refund',
-    body: null,
-    list: [
-      'The listing was deactivated or removed within 24 hours of your payment.',
-      "The seller's contact details we provided are incorrect or unreachable.",
-      'A technical error prevented your contact details from being delivered.',
-    ],
-    listNote:
-      'Eligible refunds are processed automatically within 5 business days back to your original payment method.',
+    title: 'Nothing to refund',
+    body: 'Because no payment is ever collected from users, there is nothing to refund. If paid features are introduced in the future, this policy will be updated with full refund terms before any charge is made.',
   },
   {
     id: '3',
-    title: 'How to request a refund',
-    body: 'Email support@chapternew.com with your payment ID (found in your email receipt) and a brief description of the issue. We respond within 2 business days. If your case qualifies under the criteria above, we will initiate the refund without requiring further documentation.',
+    title: 'Contact us',
+    body: 'If you believe you were charged in error or have a question about this policy, email us at support@chapternew.com. We respond within 2 business days.',
   },
   {
     id: '4',
-    title: 'Non-refundable cases',
-    body: 'Refunds are not available if you changed your mind after successfully receiving working contact details. We provide the connection — the outcome of that conversation is between you and the seller. If a seller does not respond, please contact us and we will review the case.',
-  },
-  {
-    id: '5',
-    title: 'Pricing and taxes',
-    body: 'The ₹99 connection fee is the total amount charged to you. GST (if applicable) is included in this amount. We will provide a tax invoice on request. Our GSTIN will be published here once obtained.',
-  },
-  {
-    id: '6',
     title: 'Grievance Officer',
-    body: 'For complaints related to payments, refunds, or service quality under the Consumer Protection Act 2019, contact our Grievance Officer: Name: Harsh Solanki, Designation: Founder, Email: grievance@chapternew.com, Address: ChapterNew Internet Services, India (full postal address available on request at grievance@chapternew.com). We will acknowledge your complaint within 48 hours and resolve it within 30 days.',
+    body: 'For complaints related to service quality under the Consumer Protection Act 2019, contact our Grievance Officer: Designation: Compliance Team, Email: support@chapternew.com, Address: ChapterNew Internet Services, India (full postal address available on request at support@chapternew.com). We will acknowledge your complaint within 48 hours and resolve it within 30 days.',
   },
 ]
 
@@ -86,7 +69,7 @@ export default function RefundPolicyPage() {
 
       {/* Sections */}
       <div className="space-y-10">
-        {SECTIONS.map(({ id, title, body, list, listNote }) => (
+        {SECTIONS.map(({ id, title, body }) => (
           <section key={id} id={`section-${id}`} className="scroll-mt-20">
             <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
               {id}. {title.charAt(0).toUpperCase() + title.slice(1)}
@@ -94,21 +77,6 @@ export default function RefundPolicyPage() {
             {body && (
               <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
                 {body}
-              </p>
-            )}
-            {list && (
-              <ul className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
-                {list.map((item) => (
-                  <li key={item} className="flex gap-2">
-                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-muted-foreground)]" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {listNote && (
-              <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
-                {listNote}
               </p>
             )}
           </section>

@@ -80,7 +80,9 @@ export async function middleware(request: NextRequest) {
   // Refresh session — do NOT remove; required for Server Components to read auth state
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
+  if (authError) console.warn('[middleware] auth error:', authError.message)
 
   // Copy refreshed session cookies onto any redirect we create.
   // If we return a bare NextResponse.redirect(), the Set-Cookie headers that

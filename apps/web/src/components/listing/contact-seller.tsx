@@ -6,7 +6,7 @@ import { useState } from 'react'
 
 import { RequestContactModal } from '@/components/listing/request-contact-modal'
 import {
-  UnlockContactSection,
+  // UnlockContactSection, /* PAYMENT_DISABLED — kept for re-enable, not rendered */
   ContactRevealedCard,
 } from '@/components/listing/unlock-contact-section'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,7 @@ interface ContactSellerProps {
   /** Seller's email — only set when contactUnlocked = true */
   sellerEmail?: string | null
   price?: string
+  pricePerSqft?: string | null
   statsLine?: string
   /** Listing status — CTA is hidden when not ACTIVE */
   listingStatus?: string | null
@@ -50,6 +51,7 @@ export function ContactSeller({
   sellerPhone = null,
   sellerEmail = null,
   price,
+  pricePerSqft = null,
   statsLine,
   listingStatus = null,
 }: ContactSellerProps) {
@@ -81,10 +83,17 @@ export function ContactSeller({
       >
         {/* ── Price block ── */}
         {price && (
-          <div className="mb-6 border-b border-[var(--color-border)] pb-5">
-            <p className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
-              {price}
-            </p>
+          <div className="mb-5 border-b border-[var(--color-border)] pb-5">
+            <div className="flex items-baseline gap-3">
+              <p className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
+                {price}
+              </p>
+              {pricePerSqft && (
+                <span className="rounded-full bg-[var(--color-muted)] px-2 py-0.5 text-xs font-medium text-[var(--color-muted-foreground)]">
+                  {pricePerSqft}
+                </span>
+              )}
+            </div>
             {statsLine && (
               <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{statsLine}</p>
             )}
@@ -148,17 +157,18 @@ export function ContactSeller({
           /* Contact already unlocked — show details immediately */
           <ContactRevealedCard sellerPhone={localPhone} sellerEmail={localEmail} />
         ) : interestStatus === 'ACCEPTED' && interestId ? (
-          /* Seller accepted — prompt buyer to pay and unlock contact, also offer chat */
+          /* PAYMENT_DISABLED — was: UnlockContactSection with ₹99 payment prompt */
+          /* Seller accepted — contact details on their way, offer chat in the meantime */
           <div className="space-y-3">
-            <UnlockContactSection
-              interestId={interestId}
-              listingTitle={listingTitle}
-              onUnlocked={(phone, email) => {
-                setLocalPhone(phone)
-                setLocalEmail(email)
-                setLocalUnlocked(true)
-              }}
-            />
+            <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-600" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-semibold text-green-800">Request accepted!</p>
+                <p className="text-xs text-green-700">
+                  The owner will share their contact details with you shortly — no charge.
+                </p>
+              </div>
+            </div>
             <Link
               href={`/messages/${interestId}`}
               className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)] text-sm font-semibold text-[var(--color-foreground)] transition hover:bg-[var(--color-border)]"
@@ -188,7 +198,7 @@ export function ContactSeller({
               <Link href={`/login?next=/listing/${listingId}`}>Sign in to Request Contact</Link>
             </Button>
             <p className="mt-2 text-center text-xs text-[var(--color-muted-foreground)]">
-              ₹99 connection fee — only charged after the owner accepts your request
+              Free · No charges · Direct owner contact {/* PAYMENT_DISABLED — was: ₹99 fee */}
             </p>
           </div>
         ) : requested ? (
@@ -199,8 +209,9 @@ export function ContactSeller({
               <div>
                 <p className="text-sm font-semibold text-green-800">Request sent</p>
                 <p className="text-xs text-green-700">
-                  Waiting for the owner to accept. Once accepted, return here to pay ₹99 and unlock
-                  their number — no charge until then.
+                  {/* PAYMENT_DISABLED — was: "return here to pay ₹99" */}
+                  Once accepted, the owner will share their contact with you directly — no charge at
+                  any step.
                 </p>
               </div>
             </div>
@@ -224,7 +235,7 @@ export function ContactSeller({
               Request Contact
             </Button>
             <p className="mt-2 text-center text-xs text-[var(--color-muted-foreground)]">
-              ₹99 connection fee — only charged after the owner accepts your request
+              Free · No charges · Direct owner contact {/* PAYMENT_DISABLED — was: ₹99 fee */}
             </p>
           </div>
         )}

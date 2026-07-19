@@ -75,7 +75,12 @@ export async function verifyOtpWithWidget(
     }),
   })
 
-  const data = (await res.json()) as { type?: string; message?: string }
+  let data: { type?: string; message?: string }
+  try {
+    data = (await res.json()) as { type?: string; message?: string }
+  } catch {
+    return { valid: false, message: 'Verification service returned an unexpected response.' }
+  }
   if (!res.ok || data.type === 'error') {
     return { valid: false, message: data.message }
   }

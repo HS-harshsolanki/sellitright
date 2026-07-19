@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { createClient } from '@/lib/supabase/server'
 
+export const maxDuration = 10
+
 export interface NotificationItem {
   id: string
   title: string
@@ -66,10 +68,14 @@ export async function GET(request: NextRequest) {
     .eq('read', false)
     .not('type', 'in', `(${BELL_EXCLUDED_TYPES.join(',')})`)
 
-  const [{ data, error, count }, { count: unreadCount }] = await Promise.all([
+  const [{ data, error, count }, { count: unreadCount, error: unreadErr }] = await Promise.all([
     mainQuery,
     unreadQuery,
   ])
+
+  if (unreadErr) {
+    console.error('[notifications] unread count query failed:', unreadErr.message)
+  }
 
   if (error) {
     console.error('[notifications] fetch error:', error.message)

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { unstable_cache } from 'next/cache'
 import { Suspense } from 'react'
 
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
@@ -14,13 +15,13 @@ export const metadata: Metadata = {
   description: 'Browse owner-listed properties across India.',
 }
 
-export default async function BrowsePage() {
-  let initialListings: MockListing[] = []
-  let initialTotal = 0
-
-  try {
-    const admin = createServiceClient()
-    if (admin) {
+// Cache the initial page-1 listings for 60s so concurrent SSR requests
+// deduplicate against a single DB query instead of hammering Supabase.
+const getInitialListings = unstable_cache(
+  async (): Promise<{ listings: MockListing[]; total: number }> => {
+    try {
+      const admin = createServiceClient()
+      if (!admin) return { listings: [], total: 0 }
       const { data, count } = await admin
         .from('listings')
         .select(
@@ -30,16 +31,18 @@ export default async function BrowsePage() {
         .eq('status', 'ACTIVE')
         .order('created_at', { ascending: false })
         .range(0, 11)
-
-      if (data) {
-        initialListings = data.map(mapSupabaseListingToMock)
-        initialTotal = count ?? 0
-      }
+      if (data) return { listings: data.map(mapSupabaseListingToMock), total: count ?? 0 }
+    } catch {
+      // fall through
     }
-  } catch {
-    // Supabase not configured or query failed — BrowseClient will fetch via /api/listings
-  }
+    return { listings: [], total: 0 }
+  },
+  ['browse-initial-listings'],
+  { revalidate: 60, tags: ['listings'] },
+)
 
+export default async function BrowsePage() {
+  const { listings: initialListings, total: initialTotal } = await getInitialListings()
   const initialTotalPages = Math.max(1, Math.ceil(initialTotal / 12))
 
   return (

@@ -28,9 +28,7 @@ interface FilterBarProps {
 const FILTER_OPTIONS = {
   bhkType: ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5+ BHK'],
   furnishing: ['Furnished', 'Semi Furnished', 'Unfurnished'],
-  // PENTHOUSE is a valid propertyType in the data model — include it so
-  // listings like the Worli penthouse surface under this filter.
-  propertyType: ['Apartment', 'Villa', 'Penthouse', 'Independent House', 'Plot'],
+  propertyType: ['Apartment', 'Penthouse'],
 } as const
 
 const BUDGET_PRESETS: { label: string; min: number | null; max: number | null }[] = [

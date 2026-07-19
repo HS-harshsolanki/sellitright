@@ -5,13 +5,17 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  IndianRupee,
+  Eye,
+  // IndianRupee, /* PAYMENT_DISABLED */
+  LayoutGrid,
   Loader2,
-  Phone,
-  Mail,
+  MapPin,
   MessageSquare,
-  XCircle,
+  Mail,
+  Phone,
   Search,
+  Users,
+  XCircle,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -19,6 +23,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import type { BuyerRequestItem } from '@/app/api/buyer/requests/route'
+import { useToast } from '@/components/ui/toast'
 import { formatPrice } from '@/lib/format'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
@@ -38,11 +43,12 @@ const BHK_LABEL: Record<string, string> = {
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
-type DisplayStatus = 'PENDING' | 'ACCEPTED_UNPAID' | 'CONTACT_UNLOCKED' | 'DECLINED'
+type DisplayStatus = 'PENDING' | 'ACCEPTED_PENDING_SHARE' | 'CONTACT_UNLOCKED' | 'DECLINED'
+// /* PAYMENT_DISABLED — was: 'ACCEPTED_UNPAID' */
 
 function getDisplayStatus(item: BuyerRequestItem): DisplayStatus {
   if (item.status === 'ACCEPTED' && item.contactUnlocked) return 'CONTACT_UNLOCKED'
-  if (item.status === 'ACCEPTED' && !item.contactUnlocked) return 'ACCEPTED_UNPAID'
+  if (item.status === 'ACCEPTED' && !item.contactUnlocked) return 'ACCEPTED_PENDING_SHARE'
   return item.status as 'PENDING' | 'DECLINED'
 }
 
@@ -56,11 +62,12 @@ const STATUS_CONFIG: Record<
     pill: 'bg-amber-50 text-amber-700 border-amber-200',
     icon: <Clock className="h-3.5 w-3.5" aria-hidden="true" />,
   },
-  ACCEPTED_UNPAID: {
-    label: 'Pay to unlock contact',
+  ACCEPTED_PENDING_SHARE: {
+    /* PAYMENT_DISABLED — was: 'Pay to unlock contact' with IndianRupee icon */
+    label: 'Contact coming soon',
     dot: 'bg-emerald-400',
     pill: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    icon: <IndianRupee className="h-3.5 w-3.5" aria-hidden="true" />,
+    icon: <Clock className="h-3.5 w-3.5" aria-hidden="true" />,
   },
   CONTACT_UNLOCKED: {
     label: 'Contact unlocked',
@@ -111,22 +118,26 @@ function RequestCard({ item, onWithdraw, withdrawingId }: RequestCardProps) {
   const cfg = STATUS_CONFIG[displayStatus]
   const hoursLeft = displayStatus === 'PENDING' ? pendingHoursLeft(item.createdAt) : null
   const isWithdrawing = withdrawingId === item.id
+  const bhkLabel = item.listingBhkType
+    ? (BHK_LABEL[item.listingBhkType] ?? item.listingBhkType)
+    : null
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-shadow hover:shadow-sm">
+      {/* Top section: photo + info */}
       <Link
         href={`/listing/${item.listingId}`}
-        className="flex gap-4 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]"
+        className="flex gap-5 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]"
       >
-        {/* Listing thumbnail */}
-        <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-[var(--color-muted)] sm:h-24 sm:w-28">
+        {/* Photo with BHK badge */}
+        <div className="relative h-28 w-36 shrink-0 overflow-hidden rounded-xl bg-[var(--color-muted)] sm:h-32 sm:w-40">
           {item.listingImageUrl ? (
             <Image
               src={item.listingImageUrl}
               alt={item.listingTitle}
               fill
               className="object-cover"
-              sizes="112px"
+              sizes="160px"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-[var(--color-border)]">
@@ -146,22 +157,22 @@ function RequestCard({ item, onWithdraw, withdrawingId }: RequestCardProps) {
               </svg>
             </div>
           )}
+          {/* BHK badge bottom-left */}
+          {bhkLabel && (
+            <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/60 px-2 py-0.5 text-xs font-medium text-white">
+              {bhkLabel}
+            </span>
+          )}
         </div>
 
-        {/* Listing info */}
+        {/* Info section */}
         <div className="min-w-0 flex-1">
+          {/* Row 1: title + status pill */}
           <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[var(--color-foreground)] sm:text-base">
-                {item.listingBhkType ? (BHK_LABEL[item.listingBhkType] ?? item.listingBhkType) : ''}
-                {item.listingBhkType ? ' · ' : ''}
-                {item.listingLocality}, {item.listingCity}
-              </p>
-              <p className="mt-0.5 text-base font-bold text-[var(--color-foreground)]">
-                {formatPrice(item.listingPrice)}
-              </p>
-            </div>
-            {/* Status pill */}
+            <p className="truncate text-lg font-bold text-[var(--color-foreground)]">
+              {bhkLabel ? `${bhkLabel} · ` : ''}
+              {item.listingLocality}, {item.listingCity}
+            </p>
             <span
               className={cn(
                 'flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium',
@@ -173,23 +184,36 @@ function RequestCard({ item, onWithdraw, withdrawingId }: RequestCardProps) {
             </span>
           </div>
 
-          <p className="mt-2 text-xs text-[var(--color-muted-foreground)]">
+          {/* Row 2: price */}
+          <p className="mt-1 text-base font-bold text-[var(--color-foreground)]">
+            {formatPrice(item.listingPrice)}
+          </p>
+
+          {/* Row 3: city */}
+          <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)]">
+            <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+            <span>{item.listingCity}</span>
+          </div>
+
+          {/* Row 4: requested time */}
+          <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
             Requested {relativeDate(item.createdAt)}
           </p>
 
-          {/* Pending SLA nudge */}
+          {/* Row 5: SLA / status text */}
           {displayStatus === 'PENDING' && hoursLeft !== null && (
-            <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+            <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
               {hoursLeft > 0
                 ? `Owner has ${hoursLeft}h left to respond`
-                : "Owner hasn't responded — consider withdrawing"}
+                : 'Owner has not responded yet'}
             </p>
           )}
         </div>
       </Link>
 
-      {/* Action footer — varies by status */}
-      <div className="border-t border-[var(--color-border)] px-4 py-3">
+      {/* Footer — separated by border-t, varies by status */}
+      <div className="border-t border-[var(--color-border)] px-5 py-4">
+        {/* CONTACT_UNLOCKED */}
         {displayStatus === 'CONTACT_UNLOCKED' && (
           <div className="flex flex-wrap gap-2">
             {item.sellerPhone && (
@@ -231,29 +255,33 @@ function RequestCard({ item, onWithdraw, withdrawingId }: RequestCardProps) {
           </div>
         )}
 
-        {displayStatus === 'ACCEPTED_UNPAID' && (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-[var(--color-muted-foreground)]">
-              Owner accepted · pay ₹99 to unlock their number
-            </p>
-            <Link
-              href={`/listing/${item.listingId}#unlock`}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--color-foreground)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            >
-              <IndianRupee className="h-3.5 w-3.5" aria-hidden="true" />
-              Pay ₹99
-            </Link>
+        {/* ACCEPTED_PENDING_SHARE */}
+        {/* PAYMENT_DISABLED — was: "Pay ₹99" button */}
+        {displayStatus === 'ACCEPTED_PENDING_SHARE' && (
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+              <Clock className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--color-foreground)]">
+                Owner accepted — contact details coming soon
+              </p>
+              <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
+                They&apos;ll share their contact with you shortly.
+              </p>
+            </div>
           </div>
         )}
 
+        {/* PENDING */}
         {displayStatus === 'PENDING' && (
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             {confirmWithdraw ? (
               <>
-                <p className="text-xs text-[var(--color-muted-foreground)]">
+                <p className="text-sm text-[var(--color-muted-foreground)]">
                   Withdraw this request?
                 </p>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
                   <button
                     type="button"
                     disabled={isWithdrawing}
@@ -280,13 +308,23 @@ function RequestCard({ item, onWithdraw, withdrawingId }: RequestCardProps) {
               </>
             ) : (
               <>
-                <p className="text-xs text-[var(--color-muted-foreground)]">
-                  Waiting for the owner to respond
-                </p>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                    <Clock className="h-4 w-4 text-amber-600" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--color-foreground)]">
+                      Waiting for the owner to respond
+                    </p>
+                    <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
+                      We&apos;ll notify you as soon as they reply.
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setConfirmWithdraw(true)}
-                  className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+                  className="shrink-0 rounded-full border border-[var(--color-border)] px-4 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)]"
                 >
                   Withdraw
                 </button>
@@ -295,14 +333,22 @@ function RequestCard({ item, onWithdraw, withdrawingId }: RequestCardProps) {
           </div>
         )}
 
+        {/* DECLINED */}
         {displayStatus === 'DECLINED' && (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-[var(--color-muted-foreground)]">
-              Owner declined your request
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100">
+                <XCircle className="h-4 w-4 text-red-500" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--color-foreground)]">
+                  Owner declined your request
+                </p>
+              </div>
+            </div>
             <Link
               href="/properties"
-              className="flex items-center gap-1 text-xs font-medium text-[var(--color-foreground)] hover:underline"
+              className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--color-foreground)] hover:underline"
             >
               Browse similar
               <ArrowRight className="h-3 w-3" aria-hidden="true" />
@@ -330,7 +376,7 @@ function EmptyState() {
       <Link
         href="/properties"
         className={cn(
-          'mt-7 flex items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white',
+          'mt-7 flex items-center gap-2 rounded-full bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white',
           'transition-opacity hover:opacity-90',
         )}
       >
@@ -341,55 +387,27 @@ function EmptyState() {
   )
 }
 
-// ─── Summary bar ──────────────────────────────────────────────────────────────
-
-function SummaryBar({ requests }: { requests: BuyerRequestItem[] }) {
-  const counts = {
-    pending: requests.filter((r) => r.status === 'PENDING').length,
-    accepted: requests.filter((r) => r.status === 'ACCEPTED' && !r.contactUnlocked).length,
-    unlocked: requests.filter((r) => r.contactUnlocked).length,
-    declined: requests.filter((r) => r.status === 'DECLINED').length,
-  }
-  const items = [
-    { label: 'Awaiting', count: counts.pending, color: 'text-amber-600' },
-    { label: 'Pay to unlock', count: counts.accepted, color: 'text-emerald-600' },
-    { label: 'Unlocked', count: counts.unlocked, color: 'text-emerald-700' },
-    { label: 'Declined', count: counts.declined, color: 'text-red-500' },
-  ].filter((i) => i.count > 0)
-
-  if (items.length === 0) return null
-
-  return (
-    <div className="flex flex-wrap gap-4 rounded-xl border border-[var(--color-border)] bg-white px-5 py-3.5">
-      {items.map((item) => (
-        <div key={item.label} className="flex items-baseline gap-1.5">
-          <span className={cn('text-xl font-bold tabular-nums', item.color)}>{item.count}</span>
-          <span className="text-xs text-[var(--color-muted-foreground)]">{item.label}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type StatusFilter = 'all' | 'pending' | 'accepted' | 'unlocked' | 'declined'
+type StatusFilter = 'all' | 'pending' | 'accepted' | 'declined'
 
 const FILTER_TABS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'pending', label: 'Awaiting' },
-  { value: 'accepted', label: 'Pay to unlock' },
-  { value: 'unlocked', label: 'Unlocked' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'accepted', label: 'Accepted' },
   { value: 'declined', label: 'Declined' },
 ]
 
 export default function MyRequestsPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const { user, loading: authLoading } = useAuth()
   const [requests, setRequests] = useState<BuyerRequestItem[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [mutationError, setMutationError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [sort, setSort] = useState<'newest' | 'oldest'>('newest')
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -419,48 +437,77 @@ export default function MyRequestsPage() {
     const item = requests.find((r) => r.id === id)
     if (!item) return
     setWithdrawingId(id)
+    setMutationError(null)
     try {
       const res = await fetch(`/api/listings/${item.listingId}/interest`, { method: 'DELETE' })
       if (res.ok) {
         setRequests((prev) => prev.filter((r) => r.id !== id))
+        toast('Request withdrawn.', 'success')
       } else {
-        setFetchError('Could not withdraw — please try again.')
+        setMutationError('Could not withdraw — please try again.')
+        toast('Could not withdraw — please try again.', 'error')
       }
     } catch {
-      setFetchError('Network error — please try again.')
+      setMutationError('Network error — please try again.')
+      toast('Network error — please try again.', 'error')
     } finally {
       setWithdrawingId(null)
     }
   }
 
-  const filtered = requests.filter((r) => {
-    const ds = getDisplayStatus(r)
-    if (statusFilter === 'all') return true
-    if (statusFilter === 'pending') return ds === 'PENDING'
-    if (statusFilter === 'accepted') return ds === 'ACCEPTED_UNPAID'
-    if (statusFilter === 'unlocked') return ds === 'CONTACT_UNLOCKED'
-    if (statusFilter === 'declined') return ds === 'DECLINED'
-    return true
-  })
+  // Stat card counts
+  const pendingCount = requests.filter((r) => r.status === 'PENDING').length
+  const activeCount = requests.filter((r) => r.status === 'ACCEPTED').length
 
-  // Count badges — only show for non-zero tabs
+  // Tab counts
   const tabCounts: Record<StatusFilter, number> = {
     all: requests.length,
-    pending: requests.filter((r) => r.status === 'PENDING').length,
-    accepted: requests.filter((r) => r.status === 'ACCEPTED' && !r.contactUnlocked).length,
-    unlocked: requests.filter((r) => r.contactUnlocked).length,
-    declined: requests.filter((r) => r.status === 'DECLINED').length,
+    pending: requests.filter((r) => getDisplayStatus(r) === 'PENDING').length,
+    accepted: requests.filter(
+      (r) =>
+        getDisplayStatus(r) === 'ACCEPTED_PENDING_SHARE' ||
+        getDisplayStatus(r) === 'CONTACT_UNLOCKED',
+    ).length,
+    declined: requests.filter((r) => getDisplayStatus(r) === 'DECLINED').length,
   }
 
-  const actionRequired = tabCounts.accepted
-  const visibleTabs = FILTER_TABS.filter(
-    (t) => t.value === 'all' || tabCounts[t.value] > 0 || statusFilter === t.value,
-  )
+  const filtered = requests
+    .filter((r) => {
+      const ds = getDisplayStatus(r)
+      if (statusFilter === 'all') return true
+      if (statusFilter === 'pending') return ds === 'PENDING'
+      if (statusFilter === 'accepted')
+        return ds === 'ACCEPTED_PENDING_SHARE' || ds === 'CONTACT_UNLOCKED'
+      if (statusFilter === 'declined') return ds === 'DECLINED'
+      return true
+    })
+    .sort((a, b) =>
+      sort === 'newest'
+        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    )
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
+      <div className="space-y-3" aria-busy="true">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="animate-pulse rounded-2xl border border-[var(--color-border)] bg-white p-5"
+          >
+            <div className="flex gap-5">
+              <div className="h-28 w-36 shrink-0 rounded-xl bg-[var(--color-muted)]" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-48 rounded-full bg-[var(--color-muted)]" />
+                <div className="h-3 w-32 rounded-full bg-[var(--color-muted)]" />
+                <div className="flex gap-2">
+                  <div className="h-6 w-16 rounded-full bg-[var(--color-muted)]" />
+                  <div className="h-6 w-20 rounded-full bg-[var(--color-muted)]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -470,82 +517,189 @@ export default function MyRequestsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-foreground)] sm:text-2xl">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">
             My Requests
           </h1>
           <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
             Properties you&apos;ve expressed interest in
           </p>
         </div>
-        {actionRequired > 0 && (
-          <div className="flex shrink-0 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
-            <span className="text-sm font-bold text-emerald-700">{actionRequired}</span>
-            <span className="text-xs text-emerald-700">
-              {actionRequired === 1 ? 'request' : 'requests'} accepted — pay to unlock
-            </span>
-          </div>
-        )}
+        <Link
+          href="/properties"
+          className="flex items-center gap-1.5 rounded-full bg-[var(--color-foreground)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          <Search className="h-4 w-4" aria-hidden="true" />
+          Browse properties
+        </Link>
       </div>
 
       {fetchError && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
         >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           {fetchError}
         </div>
       )}
 
-      {/* Summary bar — visible when there are requests */}
-      {!loading && requests.length > 0 && <SummaryBar requests={requests} />}
-
-      {/* Filter tabs */}
-      {!loading && requests.length > 0 && (
+      {mutationError && (
         <div
-          role="tablist"
-          aria-label="Filter requests"
-          className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-muted)] p-1"
+          role="alert"
+          className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
         >
-          {visibleTabs.map((tab) => (
-            <button
-              key={tab.value}
-              role="tab"
-              type="button"
-              aria-selected={statusFilter === tab.value}
-              onClick={() => setStatusFilter(tab.value)}
-              className={cn(
-                'flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
-                statusFilter === tab.value
-                  ? 'bg-white text-[var(--color-foreground)] shadow-sm'
-                  : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-              )}
-            >
-              {tab.label}
-              {tab.value !== 'all' && tabCounts[tab.value] > 0 ? (
-                <span
-                  className={cn(
-                    'flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none',
-                    tab.value === 'accepted'
-                      ? 'bg-emerald-500 text-white'
-                      : statusFilter === tab.value
-                        ? 'bg-[var(--color-foreground)] text-white'
-                        : 'bg-[var(--color-border)] text-[var(--color-muted-foreground)]',
-                  )}
-                >
-                  {tabCounts[tab.value]}
-                </span>
-              ) : null}
-            </button>
-          ))}
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+          {mutationError}
         </div>
       )}
 
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* Total requests */}
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100">
+            <LayoutGrid className="h-[18px] w-[18px] text-violet-600" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
+              Total Requests
+            </p>
+            <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
+              {loading ? '—' : requests.length}
+            </p>
+            <p className="text-[11px] text-[var(--color-muted-foreground)]">All time</p>
+          </div>
+        </div>
+
+        {/* Active conversations */}
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100">
+            <MessageSquare className="h-[18px] w-[18px] text-green-600" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
+              Active Conversations
+            </p>
+            <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
+              {loading ? '—' : activeCount}
+            </p>
+            <p className="text-[11px] text-[var(--color-muted-foreground)]">
+              {activeCount > 0 ? 'Live now' : 'Currently active'}
+            </p>
+          </div>
+        </div>
+
+        {/* Total views */}
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100">
+            <Eye className="h-[18px] w-[18px] text-sky-600" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
+              Total Views
+            </p>
+            <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
+              —
+            </p>
+            <p className="text-[11px] text-[var(--color-muted-foreground)]">Across all listings</p>
+          </div>
+        </div>
+
+        {/* Pending response */}
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-muted)]">
+            <Users
+              className="h-[18px] w-[18px] text-[var(--color-muted-foreground)]"
+              aria-hidden="true"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
+              Pending Response
+            </p>
+            <p className="mt-0.5 text-xl font-bold tracking-tight text-[var(--color-foreground)]">
+              {loading ? '—' : pendingCount}
+            </p>
+            <p className="text-[11px] text-[var(--color-muted-foreground)]">Awaiting your reply</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter pills + sort */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Filter by status"
+        >
+          {FILTER_TABS.map((tab) => {
+            const isActive = statusFilter === tab.value
+            const count = tabCounts[tab.value]
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => setStatusFilter(tab.value)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition-all',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
+                  isActive
+                    ? 'border-[var(--color-foreground)] bg-[var(--color-foreground)] text-white'
+                    : 'border-[var(--color-border)] bg-white text-[var(--color-muted-foreground)] hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]',
+                )}
+              >
+                {tab.label}
+                {!loading && (
+                  <span
+                    className={cn(
+                      'flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold',
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-[var(--color-muted-foreground)]">Sort by:</span>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as 'newest' | 'oldest')}
+            className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+        </div>
+      </div>
+
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
+        <div className="space-y-3" aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-2xl border border-[var(--color-border)] bg-white p-5"
+            >
+              <div className="flex gap-5">
+                <div className="h-28 w-36 shrink-0 rounded-xl bg-[var(--color-muted)]" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-48 rounded-full bg-[var(--color-muted)]" />
+                  <div className="h-3 w-32 rounded-full bg-[var(--color-muted)]" />
+                  <div className="flex gap-2">
+                    <div className="h-6 w-16 rounded-full bg-[var(--color-muted)]" />
+                    <div className="h-6 w-20 rounded-full bg-[var(--color-muted)]" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : requests.length === 0 ? (
         <EmptyState />
@@ -557,7 +711,7 @@ export default function MyRequestsPage() {
           <button
             type="button"
             onClick={() => setStatusFilter('all')}
-            className="mt-3 text-sm text-[var(--color-muted-foreground)] underline underline-offset-2 hover:text-[var(--color-foreground)]"
+            className="mt-3 rounded-full border border-[var(--color-border)] px-4 py-1.5 text-sm font-medium text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
           >
             View all requests
           </button>

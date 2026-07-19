@@ -16,31 +16,13 @@ const PROPERTY_OPTIONS: PropertyOption[] = [
   {
     type: 'APARTMENT',
     label: 'Apartment',
-    description: 'Flat in a multi-storey building',
+    description: 'Ideal for flats in residential buildings.',
     icon: '🏢',
-  },
-  {
-    type: 'VILLA',
-    label: 'Villa',
-    description: 'Independent luxury home with garden',
-    icon: '🏡',
-  },
-  {
-    type: 'INDEPENDENT_HOUSE',
-    label: 'Independent House',
-    description: 'Standalone residential property',
-    icon: '🏠',
-  },
-  {
-    type: 'PLOT',
-    label: 'Plot / Land',
-    description: 'Vacant land or plotted development',
-    icon: '🟫',
   },
   {
     type: 'PENTHOUSE',
     label: 'Penthouse',
-    description: 'Premium top-floor luxury apartment',
+    description: 'Private top-floor apartment with premium features.',
     icon: '✨',
   },
 ]
@@ -70,10 +52,10 @@ export function StepPropertyType({ showErrors = false }: StepPropertyTypeProps) 
     <div className="space-y-6">
       <div className="space-y-1">
         <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-          What type of property are you selling?
+          Tell us about your home.
         </h2>
         <p className="text-muted-foreground">
-          Choose the option that best describes your property.
+          We&apos;ll tailor the listing experience based on your property.
         </p>
       </div>
 

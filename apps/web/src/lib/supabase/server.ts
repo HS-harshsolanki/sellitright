@@ -64,6 +64,13 @@ export function createServiceClient() {
         autoRefreshToken: false,
         persistSession: false,
       },
+      global: {
+        fetch: (input, init) => {
+          const ac = new AbortController()
+          const t = setTimeout(() => ac.abort(), 8_000)
+          return fetch(input, { ...init, signal: ac.signal }).finally(() => clearTimeout(t))
+        },
+      },
     })
   }
   return _serviceClient

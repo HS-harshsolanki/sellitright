@@ -7,6 +7,7 @@ export interface SellerInterestItem {
   listingId: string
   listingTitle: string
   listingCity: string
+  listingImageUrl: string | null
   fullName: string
   purpose: 'SELF' | 'INVESTMENT'
   timeline: 'IMMEDIATELY' | 'WITHIN_30_DAYS' | 'ONE_TO_THREE_MONTHS' | 'EXPLORING'
@@ -35,14 +36,16 @@ export async function GET(request: NextRequest) {
   }
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
+  if (authError) console.warn('[dashboard/interests] auth error:', authError.message)
 
   if (!user) {
     return NextResponse.json({ error: 'Sign in to view buyer requests.' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
-  const VALID_STATUSES = ['ALL', 'PENDING', 'ACCEPTED', 'DECLINED'] as const
+  const VALID_STATUSES = ['ALL', 'PENDING', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'] as const
   const rawStatus = searchParams.get('status') ?? 'ALL'
   const statusParam = (VALID_STATUSES as readonly string[]).includes(rawStatus) ? rawStatus : 'ALL'
   const sort = searchParams.get('sort') ?? 'newest'
@@ -55,7 +58,7 @@ export async function GET(request: NextRequest) {
     .select(
       `id, listing_id, full_name, purpose, timeline, funding, message, status, created_at, updated_at,
        contact_unlocked, buyer_phone, buyer_email,
-       listings!inner(title, city)`,
+       listings!inner(title, city, image_urls)`,
       { count: 'exact' },
     )
     .eq('seller_id', user.id)
@@ -74,14 +77,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to load buyer requests.' }, { status: 500 })
   }
 
+  type ListingShape = { title: string; city: string; image_urls?: string[] | null } | null
   const interests: SellerInterestItem[] = (data ?? []).map((row) => {
-    const listing = Array.isArray(row.listings) ? row.listings[0] : row.listings
+    const listing = (Array.isArray(row.listings) ? row.listings[0] : row.listings) as ListingShape
     const unlocked = (row as unknown as { contact_unlocked?: boolean }).contact_unlocked === true
     return {
       id: row.id as string,
       listingId: row.listing_id as string,
-      listingTitle: (listing as { title: string; city: string } | null)?.title ?? '',
-      listingCity: (listing as { title: string; city: string } | null)?.city ?? '',
+      listingTitle: listing?.title ?? '',
+      listingCity: listing?.city ?? '',
+      listingImageUrl:
+        listing?.image_urls && listing.image_urls.length > 0
+          ? (listing.image_urls[0] ?? null)
+          : null,
       fullName: row.full_name as string,
       purpose: row.purpose as SellerInterestItem['purpose'],
       timeline: row.timeline as SellerInterestItem['timeline'],

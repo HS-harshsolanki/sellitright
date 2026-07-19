@@ -41,10 +41,14 @@
     font-family: var(--font-sans);
   }
 
-  /* Smooth scrolling */
   html {
-    scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 }
 

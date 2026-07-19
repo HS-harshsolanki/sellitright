@@ -1,3 +1,5 @@
+import nodeCrypto from 'node:crypto'
+
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { NextRequest } from 'next/server'
 
@@ -27,15 +29,26 @@ export function isRateLimited(ip: string): boolean {
 export function isAuthorized(request: NextRequest): boolean {
   if (!ADMIN_KEY) return false
 
+  // Session cookie auth — no rate limiting needed (secured by httpOnly + expiry)
+  const sessionCookie = request.cookies.get(COOKIE_NAME)?.value
+  if (sessionCookie && verifySessionToken(sessionCookie)) return true
+
+  // x-admin-key header — check before rate limiting so valid keys are never blocked
+  const provided = request.headers.get('x-admin-key') ?? ''
+  if (provided.length > 0 && provided.length === ADMIN_KEY.length) {
+    try {
+      if (nodeCrypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY))) return true
+    } catch {
+      return false
+    }
+  }
+
+  // All auth methods failed — rate limit this IP to slow brute-force attempts
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
     request.headers.get('x-real-ip') ??
     'unknown'
   if (isRateLimited(ip)) return false
-
-  // Check httpOnly session cookie
-  const sessionCookie = request.cookies.get(COOKIE_NAME)?.value
-  if (sessionCookie && verifySessionToken(sessionCookie)) return true
 
   return false
 }

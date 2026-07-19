@@ -26,6 +26,7 @@ export function ChapterNewLogo({
       alt="ChapterNew"
       width={ICON[size]}
       height={ICON[size]}
+      sizes="48px"
       className="shrink-0"
       priority
     />
@@ -35,6 +36,7 @@ export function ChapterNewLogo({
       alt="ChapterNew"
       width={HORIZONTAL[size].w}
       height={HORIZONTAL[size].h}
+      sizes="(max-width: 640px) 120px, (max-width: 1024px) 152px, 200px"
       className="shrink-0"
       priority
     />

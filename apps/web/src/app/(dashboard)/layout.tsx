@@ -17,15 +17,16 @@ import { Suspense, useEffect, useState } from 'react'
 
 import { SignOutButton } from '@/components/auth/sign-out-button'
 import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
+import { ToastProvider } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'My Listings', icon: <LayoutGrid className="h-4 w-4" /> },
   {
-    href: '/dashboard?tab=buyers',
+    href: '/dashboard/buyers',
     label: 'Buyer Requests',
     icon: <Users className="h-4 w-4" />,
-    matchTab: 'buyers',
+    matchPath: '/dashboard/buyers',
   },
   {
     href: '/dashboard/requests',
@@ -60,17 +61,15 @@ function SidebarNavInner({ pendingBuyerCount }: SidebarNavProps) {
       <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Dashboard navigation">
         {NAV_ITEMS.map((item) => {
           const isActive =
-            'matchTab' in item
-              ? pathname === '/dashboard' && activeTab === item.matchTab
-              : 'matchPath' in item
-                ? item.matchPath !== undefined && pathname.startsWith(item.matchPath)
-                : item.href === '/dashboard'
-                  ? (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) &&
-                    !pathname.startsWith('/dashboard/requests') &&
-                    activeTab !== 'buyers'
-                  : pathname.startsWith(item.href)
+            'matchPath' in item
+              ? item.matchPath !== undefined && pathname.startsWith(item.matchPath)
+              : item.href === '/dashboard'
+                ? (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) &&
+                  !pathname.startsWith('/dashboard/requests') &&
+                  !pathname.startsWith('/dashboard/buyers')
+                : pathname.startsWith(item.href)
           const badge =
-            'matchTab' in item && item.matchTab === 'buyers' && pendingBuyerCount
+            'matchPath' in item && item.matchPath === '/dashboard/buyers' && pendingBuyerCount
               ? pendingBuyerCount
               : null
           return (
@@ -205,15 +204,13 @@ function MobileBottomNavInner({ totalUnread }: MobileBottomNavProps) {
     >
       {MOBILE_ITEMS.map((item) => {
         const isActive =
-          'matchTab' in item
-            ? pathname === '/dashboard' && activeTab === item.matchTab
-            : 'matchPath' in item
-              ? item.matchPath !== undefined && pathname.startsWith(item.matchPath)
-              : 'matchDash' in item
-                ? (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) &&
-                  !pathname.startsWith('/dashboard/requests') &&
-                  activeTab !== 'buyers'
-                : pathname.startsWith(item.href)
+          'matchPath' in item
+            ? item.matchPath !== undefined && pathname.startsWith(item.matchPath)
+            : 'matchDash' in item
+              ? (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) &&
+                !pathname.startsWith('/dashboard/requests') &&
+                !pathname.startsWith('/dashboard/buyers')
+              : pathname.startsWith(item.href)
         return (
           <Link
             key={item.label}
@@ -295,15 +292,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [])
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-muted)]">
-      <SidebarNav pendingBuyerCount={pendingBuyerCount} />
+    <ToastProvider>
+      <div className="flex min-h-screen bg-[var(--color-muted)]">
+        <SidebarNav pendingBuyerCount={pendingBuyerCount} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar />
-        <main className="flex-1 px-4 py-6 pb-24 sm:px-6 lg:pb-8">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar />
+          <main className="flex-1 px-4 py-6 pb-24 sm:px-6 lg:pb-8">{children}</main>
+        </div>
+
+        <MobileBottomNav totalUnread={totalUnread} />
       </div>
-
-      <MobileBottomNav totalUnread={totalUnread} />
-    </div>
+    </ToastProvider>
   )
 }

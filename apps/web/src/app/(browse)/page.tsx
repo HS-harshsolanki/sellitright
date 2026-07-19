@@ -39,7 +39,7 @@ const HANDSHAKE_STEPS = [
     actor: 'Owner',
     label: 'Lists their property',
     description:
-      'Real photos. Verified identity. Contact details stay completely private until the owner chooses to share them — with exactly the right person.',
+      'Real photos. Verified identity. Contact details stay completely private until the owner decides to share — with exactly the right person.',
   },
   {
     step: '02',
@@ -51,23 +51,23 @@ const HANDSHAKE_STEPS = [
   {
     step: '03',
     actor: 'Owner',
-    label: 'Approves or declines',
+    label: 'Reviews the buyer',
     description:
-      'The owner is in full control. They decide who gets their number. No cold calls, no strangers showing up uninvited.',
+      'The owner can chat first to get to know the buyer, or accept and share contact right away — or decline. Entirely their call.',
   },
   {
     step: '04',
-    actor: 'Buyer',
-    label: 'Pays a small platform fee',
+    actor: 'Owner',
+    label: 'Chooses to connect',
     description:
-      'Just ₹49 — a one-time fee, charged only after both sides have agreed to connect. Not before. Not as a subscription. Just once.',
+      'One click to share contact, or keep chatting, or decline — the owner decides if and when to share. No payment. No pressure.',
   },
   {
     step: '05',
     actor: 'Both',
-    label: 'Talk directly',
+    label: 'Talk and close the deal',
     description:
-      'A real conversation on WhatsApp — owner to buyer, no middleman listening in. What you say, what you negotiate, is between the two of you.',
+      'A direct conversation on WhatsApp or phone — owner to buyer, no middleman. What you say, what you negotiate, is between the two of you.',
   },
 ]
 
@@ -102,12 +102,13 @@ const FAQ_ITEMS = [
   {
     question: 'Is ChapterNew a broker?',
     answer:
-      'No — and that is the whole point. We are a platform, not a middleman. No ChapterNew person is involved in your negotiation, your price discussion, or your site visit. You deal directly with the owner. We charge a small one-time platform fee only after both sides agree to connect.',
+      'No — and that is the whole point. We are a platform, not a middleman. No ChapterNew person is involved in your negotiation, your price discussion, or your site visit. You deal directly with the owner. There are no fees at any step.',
   },
   {
-    question: 'What does the ₹49 platform fee actually cover?',
+    /* PAYMENT_DISABLED — was: "What does the ₹49 platform fee cover?" */
+    question: 'Is it really free? No hidden charges?',
     answer:
-      "It covers the cost of verifying the owner's identity, reviewing the listing, and enabling the secure exchange of contact details between both parties. You pay nothing until you have seen the listing, found it genuine, and chosen to connect. Not before.",
+      'Yes — completely free for both buyers and owners. There is no platform fee, no commission, and no subscription. ChapterNew is free to use. The only thing we ask is that everyone verifies their identity before listing or connecting.',
   },
   {
     question: 'What if the owner does not respond after I send a request?',
@@ -117,7 +118,7 @@ const FAQ_ITEMS = [
   {
     question: 'How do I know the listing is still available and not already sold?',
     answer:
-      'Owners are required to mark their listing as sold or remove it once a deal is done. Listings that stay live without activity are automatically flagged. If you suspect a ghost listing, report it — we investigate within 48 hours. The ₹49 fee is never charged for a listing that turns out to be unavailable.',
+      'Owners are required to mark their listing as sold or remove it once a deal is done. Listings that stay live without activity are automatically flagged. If you suspect a ghost listing, report it — we investigate within 48 hours.',
   },
   {
     question: 'Can I negotiate the price directly with the owner?',
@@ -170,7 +171,7 @@ export default async function LandingPage({
           <Reveal delay={0.1} y={20}>
             <p className="mt-6 max-w-lg text-xl leading-relaxed text-[var(--color-muted-foreground)] sm:text-2xl">
               ChapterNew is where verified property owners meet serious buyers — directly,
-              privately, and on their own terms. No brokers. No number leaks. No drama.
+              privately, and on their own terms. No brokers. No charges. No spam.
             </p>
           </Reveal>
 
@@ -218,7 +219,8 @@ export default async function LandingPage({
             </div>
 
             <p className="mt-4 text-sm text-[var(--color-muted-foreground)]">
-              No broker fees &nbsp;·&nbsp; No spam calls &nbsp;·&nbsp; Free to list
+              No broker fees &nbsp;·&nbsp; No charges to connect &nbsp;·&nbsp; Free to list and
+              search
             </p>
           </Reveal>
 
@@ -290,8 +292,7 @@ export default async function LandingPage({
               both <span style={{ color: '#F86039' }}>sides.</span>
             </h2>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/60">
-              Every step is built so owners stay in control and buyers only pay when they have found
-              something real.
+              Owners stay in full control — buyers connect directly with no fees and no middlemen.
             </p>
           </FadeIn>
 
@@ -468,8 +469,8 @@ export default async function LandingPage({
       >
         <div className="mx-auto w-full max-w-4xl">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <Reveal x={-24} y={0}>
-              <div className="flex flex-col gap-6 rounded-2xl border border-white/10 p-10">
+            <Reveal x={-24} y={0} className="h-full">
+              <div className="flex h-full flex-col gap-6 rounded-2xl border border-white/10 p-10">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
                     For buyers
@@ -489,8 +490,8 @@ export default async function LandingPage({
                 </Link>
               </div>
             </Reveal>
-            <Reveal x={24} y={0} delay={0.06}>
-              <div className="flex flex-col gap-6 rounded-2xl bg-white/10 p-10">
+            <Reveal x={24} y={0} delay={0.06} className="h-full">
+              <div className="flex h-full flex-col gap-6 rounded-2xl bg-white/10 p-10">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
                     For sellers

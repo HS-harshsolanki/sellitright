@@ -54,9 +54,6 @@ const STATUS_LABEL: Record<ListingStatus, string> = {
 const PROPERTY_TYPE_OPTIONS = [
   { label: 'All Types', value: '' },
   { label: 'Apartment', value: 'APARTMENT' },
-  { label: 'Villa', value: 'VILLA' },
-  { label: 'Independent House', value: 'INDEPENDENT_HOUSE' },
-  { label: 'Plot', value: 'PLOT' },
   { label: 'Penthouse', value: 'PENTHOUSE' },
 ]
 

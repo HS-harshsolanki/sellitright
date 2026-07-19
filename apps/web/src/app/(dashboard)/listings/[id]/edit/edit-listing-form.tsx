@@ -16,7 +16,7 @@ export function EditListingForm({ listing }: EditListingFormProps) {
 
   useEffect(() => {
     hydrateFromListing(listing)
-    router.replace('/sell')
+    router.replace(`/sell?draftId=${listing.id}`)
   }, [hydrateFromListing, listing, router])
 
   return null

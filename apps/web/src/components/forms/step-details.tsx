@@ -12,18 +12,18 @@ import {
 } from '@/stores/sell-form.store'
 
 const AMENITY_LIST = [
-  'Gym',
-  'Swimming Pool',
-  'Garden',
-  'Clubhouse',
-  'Power Backup',
   'Lift',
   'Security',
-  'CCTV',
+  'Power Backup',
   'Parking',
-  'Playground',
-  'Fire Safety',
+  'Gym',
+  'Clubhouse',
+  'Swimming Pool',
+  'Garden',
+  'CCTV',
   'Intercom',
+  'Fire Safety',
+  'Playground',
 ]
 
 const BHK_OPTIONS: { value: BHKType; label: string }[] = [
@@ -47,15 +47,15 @@ const FACING_OPTIONS: { value: Facing; label: string }[] = [
 
 const FURNISHING_OPTIONS: { value: Furnishing; label: string; description: string }[] = [
   { value: 'FURNISHED', label: 'Furnished', description: 'All furniture & appliances included' },
-  { value: 'SEMI_FURNISHED', label: 'Semi-Furnished', description: 'Some fittings included' },
+  { value: 'SEMI_FURNISHED', label: 'Semi-furnished', description: 'Some fittings included' },
   { value: 'UNFURNISHED', label: 'Unfurnished', description: 'Empty — no furnishings' },
 ]
 
 const PARKING_OPTIONS: { value: Parking; label: string }[] = [
-  { value: 'COVERED', label: 'Covered' },
-  { value: 'OPEN', label: 'Open' },
+  { value: 'COVERED', label: 'Covered parking' },
+  { value: 'OPEN', label: 'Open parking' },
   { value: 'BOTH', label: 'Both' },
-  { value: 'NONE', label: 'None' },
+  { value: 'NONE', label: 'No parking' },
 ]
 
 const inputBase = cn(
@@ -64,6 +64,14 @@ const inputBase = cn(
 )
 
 const labelClass = 'block text-sm font-medium text-foreground'
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-muted-foreground border-border border-b pb-2 text-xs font-semibold uppercase tracking-wider">
+      {children}
+    </p>
+  )
+}
 
 interface CounterProps {
   label: string
@@ -132,256 +140,274 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
     <div className="space-y-8">
       <div className="space-y-1">
         <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-          Tell us about your property
+          Tell us about your home.
         </h2>
         <p className="text-muted-foreground">
           Add details to help buyers understand your property better.
         </p>
       </div>
 
-      {/* BHK */}
-      <fieldset className="space-y-3">
-        <legend className={labelClass}>
-          BHK Configuration <span className="text-destructive">*</span>
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {BHK_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              aria-pressed={details.bhkType === opt.value}
-              onClick={() => setDetails({ bhkType: opt.value })}
-              className={cn(
-                'rounded-full border-2 px-4 py-2 text-sm font-medium transition-all',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                details.bhkType === opt.value
-                  ? 'border-primary bg-primary text-white'
-                  : bhkMissing
-                    ? 'border-destructive/60 text-foreground hover:border-primary/50'
-                    : 'border-border text-foreground hover:border-primary/50',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        {bhkMissing && (
-          <p role="alert" className="text-destructive text-xs">
-            Please select a BHK configuration.
-          </p>
-        )}
-      </fieldset>
+      {/* ── Home details ── */}
+      <div className="space-y-6">
+        <SectionHeading>Home details</SectionHeading>
 
-      {/* Area */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label htmlFor="builtup" className={labelClass}>
-            Built-up Area (sq ft) <span className="text-destructive">*</span>
-          </label>
-          <input
-            id="builtup"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            placeholder="e.g. 1200"
-            value={details.builtUpArea}
-            onChange={(e) => setDetails({ builtUpArea: e.target.value })}
-            aria-invalid={areaMissing ? 'true' : undefined}
-            aria-describedby={areaMissing ? 'builtup-error' : undefined}
-            className={cn(
-              inputBase,
-              areaMissing
-                ? 'border-destructive focus:border-destructive'
-                : 'border-border focus:border-primary',
-            )}
-          />
-          {areaMissing && (
-            <p id="builtup-error" role="alert" className="text-destructive text-xs">
-              Please enter the built-up area.
-            </p>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="carpet" className={labelClass}>
-            Carpet Area (sq ft)
-          </label>
-          <input
-            id="carpet"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            placeholder="Optional"
-            value={details.carpetArea}
-            onChange={(e) => setDetails({ carpetArea: e.target.value })}
-            className={cn(inputBase, 'border-border focus:border-primary')}
-          />
-        </div>
-      </div>
-
-      {/* Floors */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label htmlFor="floor" className={labelClass}>
-            Floor Number
-          </label>
-          <input
-            id="floor"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            placeholder="e.g. 5"
-            value={details.floor}
-            onChange={(e) => setDetails({ floor: e.target.value })}
-            className={cn(inputBase, 'border-border focus:border-primary')}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="totalfloors" className={labelClass}>
-            Total Floors
-          </label>
-          <input
-            id="totalfloors"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            placeholder="e.g. 14"
-            value={details.totalFloors}
-            onChange={(e) => setDetails({ totalFloors: e.target.value })}
-            className={cn(inputBase, 'border-border focus:border-primary')}
-          />
-        </div>
-      </div>
-
-      {/* Facing */}
-      <div className="space-y-1.5">
-        <label htmlFor="facing" className={labelClass}>
-          Facing Direction
-        </label>
-        <select
-          id="facing"
-          value={details.facing ?? ''}
-          onChange={(e) => setDetails({ facing: (e.target.value as Facing) || null })}
-          className={cn(
-            inputBase,
-            'border-border focus:border-primary cursor-pointer appearance-none',
-          )}
-        >
-          <option value="">Select facing</option>
-          {FACING_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Furnishing */}
-      <fieldset className="space-y-3">
-        <legend className={labelClass}>
-          Furnishing Status <span className="text-destructive">*</span>
-        </legend>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {FURNISHING_OPTIONS.map((opt) => {
-            const isSelected = details.furnishing === opt.value
-            return (
+        {/* BHK */}
+        <fieldset className="space-y-3">
+          <legend className={labelClass}>
+            BHK configuration <span className="text-destructive">*</span>
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {BHK_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
-                aria-pressed={isSelected}
-                onClick={() => setDetails({ furnishing: opt.value })}
+                aria-pressed={details.bhkType === opt.value}
+                onClick={() => setDetails({ bhkType: opt.value })}
                 className={cn(
-                  'rounded-xl border-2 p-4 text-left transition-all',
+                  'rounded-full border-2 px-4 py-2 text-sm font-medium transition-all',
                   'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                  isSelected
-                    ? 'border-primary bg-primary/5'
-                    : furnishingMissing
-                      ? 'border-destructive/60 hover:border-primary/40'
-                      : 'border-border hover:border-primary/40',
+                  details.bhkType === opt.value
+                    ? 'border-primary bg-primary text-white'
+                    : bhkMissing
+                      ? 'border-destructive/60 text-foreground hover:border-primary/50'
+                      : 'border-border text-foreground hover:border-primary/50',
                 )}
               >
-                <p
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {bhkMissing && (
+            <p role="alert" className="text-destructive text-xs">
+              Please select a BHK configuration.
+            </p>
+          )}
+        </fieldset>
+
+        {/* Area */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label htmlFor="builtup" className={labelClass}>
+              Built-up area (sq ft) <span className="text-destructive">*</span>
+            </label>
+            <input
+              id="builtup"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              placeholder="e.g. 1200"
+              value={details.builtUpArea}
+              onChange={(e) => setDetails({ builtUpArea: e.target.value })}
+              aria-invalid={areaMissing ? 'true' : undefined}
+              aria-describedby={areaMissing ? 'builtup-error' : undefined}
+              className={cn(
+                inputBase,
+                areaMissing
+                  ? 'border-destructive focus:border-destructive'
+                  : 'border-border focus:border-primary',
+              )}
+            />
+            {areaMissing && (
+              <p id="builtup-error" role="alert" className="text-destructive text-xs">
+                Please enter the built-up area.
+              </p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="carpet" className={labelClass}>
+              Carpet area (sq ft)
+            </label>
+            <input
+              id="carpet"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              placeholder="Optional"
+              value={details.carpetArea}
+              onChange={(e) => setDetails({ carpetArea: e.target.value })}
+              className={cn(inputBase, 'border-border focus:border-primary')}
+            />
+          </div>
+        </div>
+
+        {/* Floor */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label htmlFor="floor" className={labelClass}>
+              Floor number
+            </label>
+            <input
+              id="floor"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              placeholder="e.g. 5"
+              value={details.floor}
+              onChange={(e) => setDetails({ floor: e.target.value })}
+              className={cn(inputBase, 'border-border focus:border-primary')}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="totalfloors" className={labelClass}>
+              Total floors
+            </label>
+            <input
+              id="totalfloors"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              placeholder="e.g. 14"
+              value={details.totalFloors}
+              onChange={(e) => setDetails({ totalFloors: e.target.value })}
+              className={cn(inputBase, 'border-border focus:border-primary')}
+            />
+          </div>
+        </div>
+
+        {/* Facing */}
+        <div className="space-y-1.5">
+          <label htmlFor="facing" className={labelClass}>
+            Facing direction
+          </label>
+          <select
+            id="facing"
+            value={details.facing ?? ''}
+            onChange={(e) => setDetails({ facing: (e.target.value as Facing) || null })}
+            className={cn(
+              inputBase,
+              'border-border focus:border-primary cursor-pointer appearance-none',
+            )}
+          >
+            <option value="">Select facing</option>
+            {FACING_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* ── Living experience ── */}
+      <div className="space-y-6">
+        <SectionHeading>Living experience</SectionHeading>
+
+        {/* Counters */}
+        <div className="border-border space-y-4 rounded-xl border p-4">
+          <Counter
+            label="Bathrooms"
+            value={details.bathrooms}
+            min={1}
+            max={10}
+            onChange={(val) => setDetails({ bathrooms: val })}
+          />
+          <div className="border-border border-t" />
+          <Counter
+            label="Balconies"
+            value={details.balconies}
+            min={0}
+            max={10}
+            onChange={(val) => setDetails({ balconies: val })}
+          />
+        </div>
+
+        {/* Parking */}
+        <fieldset className="space-y-3">
+          <legend className={labelClass}>Parking</legend>
+          <div className="flex flex-wrap gap-2">
+            {PARKING_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={details.parking === opt.value}
+                onClick={() => setDetails({ parking: opt.value })}
+                className={cn(
+                  'rounded-full border-2 px-4 py-2 text-sm font-medium transition-all',
+                  'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                  details.parking === opt.value
+                    ? 'border-primary bg-primary text-white'
+                    : 'border-border text-foreground hover:border-primary/50',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+
+      {/* ── Condition ── */}
+      <div className="space-y-6">
+        <SectionHeading>Condition</SectionHeading>
+
+        {/* Furnishing */}
+        <fieldset className="space-y-3">
+          <legend className={labelClass}>
+            Furnishing status <span className="text-destructive">*</span>
+          </legend>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {FURNISHING_OPTIONS.map((opt) => {
+              const isSelected = details.furnishing === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setDetails({ furnishing: opt.value })}
                   className={cn(
-                    'text-sm font-semibold',
-                    isSelected ? 'text-primary' : 'text-foreground',
+                    'rounded-xl border-2 p-4 text-left transition-all',
+                    'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                    isSelected
+                      ? 'border-primary bg-primary/5'
+                      : furnishingMissing
+                        ? 'border-destructive/60 hover:border-primary/40'
+                        : 'border-border hover:border-primary/40',
                   )}
                 >
-                  {opt.label}
-                </p>
-                <p className="text-muted-foreground mt-0.5 text-xs">{opt.description}</p>
-              </button>
-            )
-          })}
-        </div>
-        {furnishingMissing && (
-          <p role="alert" className="text-destructive text-xs">
-            Please select furnishing status.
-          </p>
-        )}
-      </fieldset>
+                  <p
+                    className={cn(
+                      'text-sm font-semibold',
+                      isSelected ? 'text-primary' : 'text-foreground',
+                    )}
+                  >
+                    {opt.label}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">{opt.description}</p>
+                </button>
+              )
+            })}
+          </div>
+          {furnishingMissing && (
+            <p role="alert" className="text-destructive text-xs">
+              Please select furnishing status.
+            </p>
+          )}
+        </fieldset>
 
-      {/* Counters */}
-      <div className="border-border space-y-4 rounded-xl border p-4">
-        <Counter
-          label="Bathrooms"
-          value={details.bathrooms}
-          min={1}
-          max={10}
-          onChange={(val) => setDetails({ bathrooms: val })}
-        />
-        <div className="border-border border-t" />
-        <Counter
-          label="Balconies"
-          value={details.balconies}
-          min={0}
-          max={10}
-          onChange={(val) => setDetails({ balconies: val })}
-        />
+        {/* Age */}
+        <div className="space-y-1.5">
+          <label htmlFor="age" className={labelClass}>
+            Age of property (years)
+          </label>
+          <input
+            id="age"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            placeholder="e.g. 3"
+            value={details.ageOfProperty}
+            onChange={(e) => setDetails({ ageOfProperty: e.target.value })}
+            className={cn(inputBase, 'border-border focus:border-primary max-w-xs')}
+          />
+        </div>
       </div>
 
-      {/* Parking */}
-      <fieldset className="space-y-3">
-        <legend className={labelClass}>Parking</legend>
-        <div className="flex flex-wrap gap-2">
-          {PARKING_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              aria-pressed={details.parking === opt.value}
-              onClick={() => setDetails({ parking: opt.value })}
-              className={cn(
-                'rounded-full border-2 px-4 py-2 text-sm font-medium transition-all',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                details.parking === opt.value
-                  ? 'border-primary bg-primary text-white'
-                  : 'border-border text-foreground hover:border-primary/50',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      {/* Age */}
-      <div className="space-y-1.5">
-        <label htmlFor="age" className={labelClass}>
-          Age of Property (years)
-        </label>
-        <input
-          id="age"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          placeholder="e.g. 3"
-          value={details.ageOfProperty}
-          onChange={(e) => setDetails({ ageOfProperty: e.target.value })}
-          className={cn(inputBase, 'border-border focus:border-primary max-w-xs')}
-        />
-      </div>
-
-      {/* Amenities */}
-      <fieldset className="space-y-3">
-        <legend className={labelClass}>Amenities</legend>
+      {/* ── Amenities ── */}
+      <div className="space-y-4">
+        <SectionHeading>Amenities</SectionHeading>
+        <p className="text-muted-foreground text-sm">
+          Select everything available in your society.
+        </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {AMENITY_LIST.map((amenity) => {
             const isChecked = details.amenities.includes(amenity)
@@ -411,7 +437,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
             )
           })}
         </div>
-      </fieldset>
+      </div>
     </div>
   )
 }

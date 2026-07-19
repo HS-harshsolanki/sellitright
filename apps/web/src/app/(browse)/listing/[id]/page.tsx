@@ -1,4 +1,17 @@
-import { MapPin, BadgeCheck, User, ArrowLeft, Pencil } from 'lucide-react'
+import {
+  MapPin,
+  BadgeCheck,
+  User,
+  ArrowLeft,
+  Pencil,
+  BedDouble,
+  Bath,
+  Wind,
+  Maximize2,
+  Layers,
+  Eye,
+  Calendar,
+} from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -56,10 +69,6 @@ export async function generateMetadata({ params }: ListingPageProps): Promise<Me
   }
 }
 
-// ─── Amenity icon mapping ─────────────────────────────────────────────────────
-// Map common amenity names to a simple character/symbol for the 2-col grid.
-// Using CheckSquare as the universal fallback.
-
 // ─── Page component ───────────────────────────────────────────────────────────
 
 export default async function ListingPage({ params }: ListingPageProps) {
@@ -74,16 +83,32 @@ export default async function ListingPage({ params }: ListingPageProps) {
     undefined
 
   try {
-    const {
-      data: { user: _viewer },
-    } = await supabase.auth.getUser()
+    const [
+      {
+        data: { user: _viewer },
+      },
+      data,
+    ] = await Promise.all([supabase.auth.getUser(), getListingData(id)])
     viewer = _viewer ?? undefined
-
-    const data = await getListingData(id)
     if (data) {
       listingStatus = data.status
       isOwner = viewer?.id === data.seller_id
-      const isVisible = data.status === 'ACTIVE' || isOwner
+
+      // Also allow buyers who already have an interest record to view the listing
+      // even if it's no longer ACTIVE (e.g. sold/paused after they expressed interest)
+      let hasBuyerInterest = false
+      if (viewer && !isOwner && data.status !== 'ACTIVE') {
+        const { data: interest } = await supabase
+          .from('buyer_interest')
+          .select('id')
+          .eq('listing_id', id)
+          .eq('buyer_id', viewer.id)
+          .limit(1)
+          .maybeSingle()
+        hasBuyerInterest = !!interest
+      }
+
+      const isVisible = data.status === 'ACTIVE' || isOwner || hasBuyerInterest
       if (isVisible) {
         listingRaw = mapSupabaseListingToMock(data)
       }
@@ -188,35 +213,57 @@ export default async function ListingPage({ params }: ListingPageProps) {
   const areaStr = formatArea(listing.builtUpArea)
   const floorStr = formatFloor(listing.floor, listing.totalFloors)
 
+  // Price per sqft
+  const pricePerSqft =
+    listing.builtUpArea > 0
+      ? `₹${Math.round(listing.price / listing.builtUpArea).toLocaleString('en-IN')}/sqft`
+      : null
+
+  // Listing age — "Listed 3 months ago" etc.
+  function listingAge(createdAt: string | null | undefined): string | null {
+    if (!createdAt) return null
+    const diff = Date.now() - new Date(createdAt).getTime()
+    const days = Math.floor(diff / 86_400_000)
+    if (days < 1) return 'Listed today'
+    if (days < 7) return `Listed ${days} day${days > 1 ? 's' : ''} ago`
+    const weeks = Math.floor(days / 7)
+    if (weeks < 5) return `Listed ${weeks} week${weeks > 1 ? 's' : ''} ago`
+    const months = Math.floor(days / 30)
+    if (months < 12) return `Listed ${months} month${months > 1 ? 's' : ''} ago`
+    const years = Math.floor(months / 12)
+    return `Listed ${years} year${years > 1 ? 's' : ''} ago`
+  }
+  const listedAgo = listingAge(listing.createdAt)
+
   // Quick stats line for contact card subtitle
   const statsLine = [bhk, areaStr, listing.floor !== null ? `Floor ${floorStr}` : null]
     .filter(Boolean)
     .join(' · ')
 
-  // Property type + location headline (Airbnb: "Entire villa in Aundholi, India")
+  // Property type + location headline
   const propertyTypeLabel: Record<string, string> = {
     APARTMENT: 'Apartment',
-    VILLA: 'Villa',
-    PLOT: 'Plot',
-    INDEPENDENT_HOUSE: 'Independent house',
     PENTHOUSE: 'Penthouse',
   }
   const typeLabel = propertyTypeLabel[listing.propertyType] ?? 'Property'
 
-  // Quick stats (bedrooms · baths · balconies)
-  const quickStats = [
-    `${listing.bhkType === 'ONE_BHK' ? '1' : listing.bhkType === 'TWO_BHK' ? '2' : listing.bhkType === 'THREE_BHK' ? '3' : listing.bhkType === 'FOUR_BHK' ? '4' : '5+'} bedrooms`,
-    `${listing.bathrooms} ${listing.bathrooms === 1 ? 'bathroom' : 'bathrooms'}`,
-    listing.balconies
-      ? `${listing.balconies} ${listing.balconies === 1 ? 'balcony' : 'balconies'}`
-      : null,
-    `${areaStr} built-up`,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  // Bedroom count from BHK enum
+  const bedroomCount =
+    listing.bhkType === 'ONE_BHK'
+      ? 1
+      : listing.bhkType === 'TWO_BHK'
+        ? 2
+        : listing.bhkType === 'THREE_BHK'
+          ? 3
+          : listing.bhkType === 'FOUR_BHK'
+            ? 4
+            : 5
 
   return (
     <>
+      {listing.images[0]?.url && (
+        <link rel="preload" as="image" href={listing.images[0].url} fetchPriority="high" />
+      )}
       <div className="pb-32 sm:pb-10">
         {listingStatus && listingStatus !== 'ACTIVE' && (
           <div className="border-b border-amber-200 bg-amber-50">
@@ -255,9 +302,21 @@ export default async function ListingPage({ params }: ListingPageProps) {
           </div>
 
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-xl font-semibold leading-snug text-[var(--color-foreground)] sm:text-2xl">
-              {listing.title}
-            </h1>
+            <div>
+              <h1 className="text-xl font-bold leading-snug text-[var(--color-foreground)] sm:text-2xl">
+                {listing.title}
+              </h1>
+              {listing.isVerified && (
+                <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+                  <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  Verified listing
+                </span>
+              )}
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--color-muted-foreground)]">
+                <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {listing.locality}, {listing.city}, {listing.state} {listing.pincode}
+              </p>
+            </div>
 
             {/* Share + Save — client component (Web Share API + clipboard fallback) */}
             <div className="flex shrink-0 items-center gap-1">
@@ -283,53 +342,117 @@ export default async function ListingPage({ params }: ListingPageProps) {
         <div className="mx-auto mt-8 max-w-7xl px-4 sm:px-6 lg:grid lg:grid-cols-[1fr_370px] lg:gap-12 lg:px-8">
           {/* ── LEFT COLUMN ─────────────────────────────────────────── */}
           <div>
-            {/* Property type + location */}
+            {/* Property type + location + meta badges */}
             <div className="pb-6">
               <p className="text-xl font-semibold text-[var(--color-foreground)]">
                 {typeLabel} in {listing.locality}, {listing.city}
               </p>
 
-              {/* Quick stats row */}
-              <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{quickStats}</p>
-
-              {/* Verified + view count badges */}
-              {(listing.isVerified || listing.viewCount > 0) && (
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                  {listing.isVerified && (
-                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
-                      <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                      Verified listing
-                    </span>
-                  )}
-                  {listing.viewCount > 0 && (
-                    <span className="text-xs text-[var(--color-muted-foreground)]">
-                      {listing.viewCount} views
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Meta row: verified · listed date · views */}
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                {listing.isVerified && (
+                  <span
+                    title="This listing has been verified by the ChapterNew team"
+                    className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
+                  >
+                    <BadgeCheck className="h-3 w-3" aria-hidden="true" />
+                    Verified listing
+                  </span>
+                )}
+                {listedAgo && (
+                  <span className="flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
+                    <Calendar className="h-3 w-3" aria-hidden="true" />
+                    {listedAgo}
+                  </span>
+                )}
+                {listing.viewCount > 0 && (
+                  <span className="flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
+                    <Eye className="h-3 w-3" aria-hidden="true" />
+                    {listing.viewCount}{' '}
+                    {listing.viewCount === 1 ? 'person viewed' : 'people viewed'}
+                  </span>
+                )}
+              </div>
             </div>
 
             <hr className="border-t border-[var(--color-border)]" />
 
-            {/* Host / seller info row */}
-            <div className="flex items-center justify-between py-6">
+            {/* Icon stats bar — bedroom / bath / balcony / area / floor */}
+            <div className="py-5">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <div className="flex items-center gap-2">
+                  <BedDouble
+                    className="h-4 w-4 text-[var(--color-muted-foreground)]"
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm font-medium text-[var(--color-foreground)]">
+                    {bedroomCount} {bedroomCount === 1 ? 'Bedroom' : 'Bedrooms'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Bath
+                    className="h-4 w-4 text-[var(--color-muted-foreground)]"
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm font-medium text-[var(--color-foreground)]">
+                    {listing.bathrooms} {listing.bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}
+                  </span>
+                </div>
+                {listing.balconies ? (
+                  <div className="flex items-center gap-2">
+                    <Wind
+                      className="h-4 w-4 text-[var(--color-muted-foreground)]"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm font-medium text-[var(--color-foreground)]">
+                      {listing.balconies} {listing.balconies === 1 ? 'Balcony' : 'Balconies'}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex items-center gap-2">
+                  <Maximize2
+                    className="h-4 w-4 text-[var(--color-muted-foreground)]"
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm font-medium text-[var(--color-foreground)]">
+                    {areaStr}
+                  </span>
+                </div>
+                {listing.floor !== null && listing.totalFloors !== null && (
+                  <div className="flex items-center gap-2">
+                    <Layers
+                      className="h-4 w-4 text-[var(--color-muted-foreground)]"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm font-medium text-[var(--color-foreground)]">
+                      Floor {floorStr}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <hr className="border-t border-[var(--color-border)]" />
+
+            {/* Seller info row */}
+            <div className="flex items-center justify-between py-5">
               <div>
-                <p className="text-base font-semibold text-[var(--color-foreground)]">
+                <p className="text-sm font-semibold text-[var(--color-foreground)]">
                   Listed by {listing.seller.name}
                 </p>
-                <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
+                <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
                   {listing.seller.isVerified ? 'Verified owner' : 'Property owner'} · Direct contact
+                  · No brokerage
                 </p>
               </div>
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-muted)]">
-                <User className="h-6 w-6 text-[var(--color-muted-foreground)]" aria-hidden="true" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-muted)]">
+                <User className="h-5 w-5 text-[var(--color-muted-foreground)]" aria-hidden="true" />
               </div>
             </div>
 
             <hr className="border-t border-[var(--color-border)]" />
 
-            {/* Property highlights — Airbnb-style icon + title + subtitle */}
+            {/* Property highlights */}
             <div className="py-8">
               <PropertyHighlights listing={listing} />
             </div>
@@ -349,7 +472,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
             <hr className="border-t border-[var(--color-border)]" />
 
-            {/* Amenities — 2-column grid with "Show all" button */}
+            {/* Amenities */}
             {listing.amenities.length > 0 && (
               <>
                 <section aria-labelledby="amenities-heading" className="py-8">
@@ -357,9 +480,8 @@ export default async function ListingPage({ params }: ListingPageProps) {
                     id="amenities-heading"
                     className="mb-6 text-lg font-semibold text-[var(--color-foreground)]"
                   >
-                    What this property offers
+                    Amenities
                   </h2>
-
                   <ShowAllAmenities amenities={listing.amenities} />
                 </section>
 
@@ -398,6 +520,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 sellerPhone={sellerPhone}
                 sellerEmail={sellerEmail}
                 price={priceStr}
+                pricePerSqft={pricePerSqft}
                 statsLine={statsLine}
                 listingStatus={listingStatus}
               />
@@ -421,6 +544,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 sellerPhone={sellerPhone}
                 sellerEmail={sellerEmail}
                 price={priceStr}
+                pricePerSqft={pricePerSqft}
                 statsLine={statsLine}
                 listingStatus={listingStatus}
               />

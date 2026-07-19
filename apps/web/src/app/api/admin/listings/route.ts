@@ -6,7 +6,7 @@ import { getAllListings } from '@/lib/listing-store'
 import type { MockListing } from '@/lib/mock-data'
 import { createServiceClient } from '@/lib/supabase/server'
 
-const PROPERTY_TYPES = ['APARTMENT', 'VILLA', 'PLOT', 'INDEPENDENT_HOUSE', 'PENTHOUSE'] as const
+const PROPERTY_TYPES = ['APARTMENT', 'PENTHOUSE'] as const
 const LISTING_STATUSES = [
   'ACTIVE',
   'DRAFT',

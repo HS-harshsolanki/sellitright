@@ -30,7 +30,8 @@ const SECTIONS = [
   {
     id: '5',
     title: 'Payment and refunds',
-    body: "The platform charges a one-time connection fee of ₹99 (inclusive of applicable taxes) to unlock seller contact details after a buyer's request is accepted. This fee is non-refundable once contact details are successfully delivered. If a technical failure prevents delivery of contact details, users may request a refund by emailing support@chapternew.com within 7 days of payment, with the Order ID. Refunds, if approved, will be processed within 7-10 business days to the original payment method.",
+    /* PAYMENT_DISABLED — was: ₹99 connection fee terms */
+    body: 'ChapterNew is currently a free platform. No fees are charged to buyers or owners at any step. If paid features are introduced in the future, this section will be updated with full payment, billing, and refund terms before any charge is made.',
   },
   {
     id: '6',

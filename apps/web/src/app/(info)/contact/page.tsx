@@ -80,10 +80,10 @@ export default function ContactPage() {
           <br />
           Email:{' '}
           <a
-            href="mailto:grievance@chapternew.com?subject=Data%20Grievance"
+            href="mailto:support@chapternew.com?subject=Data%20Grievance"
             className="font-medium text-[var(--color-foreground)] underline underline-offset-2 transition-opacity hover:opacity-70"
           >
-            grievance@chapternew.com
+            support@chapternew.com
           </a>
           <br />
           Response time: Within 30 days of receipt

@@ -14,21 +14,27 @@ import {
   PlayCircle,
   Undo2,
   ExternalLink,
-  IndianRupee,
+  // IndianRupee, /* PAYMENT_DISABLED */
   ChevronRight,
   Pencil,
   BedDouble,
   Bath,
   Maximize2,
   MessageSquare,
+  Share2,
   Trash2,
+  ShieldCheck,
+  MoreHorizontal,
+  Home,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
+import { useToast } from '@/components/ui/toast'
 import { formatPrice } from '@/lib/format'
+import { useMessaging } from '@/lib/messaging-context'
 import type { MockListing, ListingStatus } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -39,9 +45,9 @@ const TAB_VALUES: TabFilter[] = ['all', 'active', 'draft', 'pending', 'rejected'
 
 const TAB_LABELS: Record<TabFilter, string> = {
   all: 'All',
-  active: 'Active',
-  draft: 'Draft',
-  pending: 'Pending',
+  active: 'Live',
+  draft: 'Drafts',
+  pending: 'Pending Review',
   rejected: 'Rejected',
   sold: 'Sold',
   buyers: 'Buyers',
@@ -85,6 +91,12 @@ const FUNDING_LABEL: Record<string, string> = {
   CASH_READY: 'Cash ready',
   LOAN_APPROVED: 'Loan approved',
   LOAN_IN_PROGRESS: 'Loan in progress',
+}
+
+const FUNDING_CLASS: Record<string, string> = {
+  CASH_READY: 'bg-green-100 text-green-700',
+  LOAN_APPROVED: 'bg-blue-100 text-blue-700',
+  LOAN_IN_PROGRESS: 'bg-amber-100 text-amber-700',
 }
 
 const INTEREST_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -131,6 +143,7 @@ interface DashboardListing {
   rejection_reason: string | null
   created_at: string
   updated_at: string
+  interested_count: number
 }
 
 function toDisplayListing(l: DashboardListing): MockListing {
@@ -173,7 +186,7 @@ interface StatCardProps {
   label: string
   value: string | number
   sub?: string
-  icon: React.ReactNode
+  icon: ReactNode
   iconBg: string
   trend?: string
   trendUp?: boolean
@@ -209,6 +222,7 @@ function StatCard({ label, value, sub, icon, iconBg, trend, trendUp }: StatCardP
 
 interface ListingCardProps {
   listing: MockListing
+  interestedCount: number
   onDelete: (id: string) => void
   onStatusChange: (
     id: string,
@@ -220,6 +234,7 @@ interface ListingCardProps {
 
 function ListingCard({
   listing,
+  interestedCount,
   onDelete,
   onStatusChange,
   isDeleting,
@@ -229,8 +244,15 @@ function ListingCard({
   const cover = listing.images[0]?.url
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmSold, setConfirmSold] = useState(false)
+  const [overflowOpen, setOverflowOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const isBusy = isDeleting || statusChangingId === listing.id
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const overflowRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!confirmDelete && !confirmSold) return
@@ -243,9 +265,46 @@ function ListingCard({
     }
   }, [confirmDelete, confirmSold])
 
+  // Close overflow menu on outside click
+  useEffect(() => {
+    if (!overflowOpen) return
+    function handleClick(e: MouseEvent) {
+      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
+        setOverflowOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [overflowOpen])
+
+  const updatedAgo = useMemo(() => {
+    const diff = Date.now() - new Date(listing.createdAt).getTime()
+    const days = Math.floor(diff / 86_400_000)
+    if (days === 0) return 'Updated today'
+    if (days === 1) return 'Updated 1 day ago'
+    if (days < 7) return `Updated ${days} days ago`
+    if (days < 30)
+      return `Updated ${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`
+    return `Updated ${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? 's' : ''} ago`
+  }, [listing.createdAt])
+
+  const absoluteUpdatedDate = new Date(listing.createdAt).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+
+  const canEdit = ['ACTIVE', 'DRAFT', 'INACTIVE', 'REJECTED', 'PENDING_REVIEW'].includes(
+    listing.status,
+  )
+  const editHref =
+    listing.status === 'DRAFT'
+      ? `/sell?draftId=${listing.id}`
+      : `/dashboard/listings/${listing.id}/edit`
+
   return (
-    <article className="group overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm transition-all duration-200 hover:shadow-md">
-      {/* ── Image — 16:9 ratio ── */}
+    <article className="group overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm transition-all duration-200 hover:shadow-md">
+      {/* ── Photo area ── */}
       <div className="relative aspect-video overflow-hidden bg-[var(--color-muted)]">
         {cover ? (
           <Image
@@ -256,33 +315,25 @@ function ListingCard({
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-1.5 text-[var(--color-muted-foreground)]">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8 opacity-25"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1}
-                d="M3 9.75L12 3l9 6.75V21H3V9.75z"
-              />
-            </svg>
-            <span className="text-[11px] opacity-30">No image</span>
+          <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-[var(--color-muted-foreground)]">
+            <Home className="h-10 w-10 opacity-20" aria-hidden="true" />
+            <div>
+              <p className="text-xs font-medium opacity-50">No image added</p>
+              <p className="mt-0.5 text-[11px] opacity-40">
+                Add at least one photo to publish this listing.
+              </p>
+            </div>
           </div>
         )}
         {/* Status pill */}
         <span
           className={cn(
-            'absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm backdrop-blur-sm',
+            'absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm',
             statusConfig.className,
           )}
         >
           <span className={cn('h-1.5 w-1.5 rounded-full', statusConfig.dot)} aria-hidden="true" />
-          {statusConfig.label}
+          {statusConfig.label === 'Active' ? 'Live' : statusConfig.label}
         </span>
         {/* View count */}
         <span className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
@@ -292,7 +343,7 @@ function ListingCard({
       </div>
 
       {/* ── Body ── */}
-      <div className="p-3">
+      <div className="p-4">
         {/* Title + price */}
         <div className="flex items-start justify-between gap-2">
           <h3 className="line-clamp-1 text-sm font-semibold text-[var(--color-foreground)]">
@@ -304,34 +355,26 @@ function ListingCard({
         </div>
 
         {/* Location */}
-        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
-          <MapPin className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
+        <div className="mt-1 flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
+          <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
           <span className="truncate">
             {listing.locality}, {listing.city}
           </span>
         </div>
 
-        {/* Rejection reason — prominent, above actions */}
-        {listing.status === 'REJECTED' && listing.rejectionReason && (
-          <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] text-red-700">
-            <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
-            <span className="leading-relaxed">{listing.rejectionReason}</span>
-          </div>
-        )}
-
-        {/* Metadata strip */}
+        {/* Metadata row */}
         {(listing.bhkType ?? listing.builtUpArea) && (
-          <div className="mt-2.5 flex items-center gap-3 border-t border-[var(--color-border)] pt-2.5 text-[11px] text-[var(--color-muted-foreground)]">
+          <div className="mt-2.5 flex items-center gap-3 text-xs text-[var(--color-muted-foreground)]">
             {listing.bhkType && (
               <span className="flex items-center gap-1">
                 <BedDouble className="h-3 w-3 shrink-0" aria-hidden="true" />
-                {listing.bhkType.replace('_BHK', ' BHK').replace('_RK', ' RK')}
+                {listing.bhkType.replace('_BHK', ' Beds').replace('ONE_Beds', '1 Bed')}
               </span>
             )}
             {listing.bathrooms !== null && listing.bathrooms > 0 && (
               <span className="flex items-center gap-1">
                 <Bath className="h-3 w-3 shrink-0" aria-hidden="true" />
-                {listing.bathrooms}
+                {listing.bathrooms} Baths
               </span>
             )}
             {listing.builtUpArea ? (
@@ -343,320 +386,236 @@ function ListingCard({
           </div>
         )}
 
-        {/* ── Action area ── */}
-        <div className="mt-3 space-y-2">
-          {/* ── ACTIVE ── */}
-          {listing.status === 'ACTIVE' && (
-            <>
-              {/* Primary: Edit */}
-              <Link
-                href={`/dashboard/listings/${listing.id}/edit`}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-foreground)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+        {/* Verification strip */}
+        {listing.isVerified && (
+          <div className="mt-3 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-green-700">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              Owner Verified
+            </span>
+            <span className="h-3 w-px bg-green-200" aria-hidden="true" />
+            <span className="flex items-center gap-1.5 text-xs font-medium text-green-700">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              Documents Verified
+            </span>
+          </div>
+        )}
+
+        {/* Rejection banner — with inline CTA */}
+        {listing.status === 'REJECTED' && (
+          <div className="mt-3 flex items-start justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
+            <div className="flex min-w-0 items-start gap-1.5">
+              <AlertCircle
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500"
+                aria-hidden="true"
+              />
+              <p className="text-[11px] leading-relaxed text-red-700">
+                {listing.rejectionReason ??
+                  "This listing couldn't be approved because some details couldn't be verified. Please review and update the highlighted information before resubmitting."}
+              </p>
+            </div>
+            <Link
+              href={`/dashboard/listings/${listing.id}/edit`}
+              className="shrink-0 whitespace-nowrap rounded-lg bg-red-600 px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              Review &amp; Resubmit
+            </Link>
+          </div>
+        )}
+
+        {/* Updated timestamp */}
+        <p className="mt-3 text-[11px] text-[var(--color-muted-foreground)]">
+          {mounted ? updatedAgo : absoluteUpdatedDate}
+        </p>
+
+        {/* ── Action row ── */}
+        {confirmDelete ? (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+            <span className="text-xs text-red-700">Delete this listing?</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => {
+                  setConfirmDelete(false)
+                  onDelete(listing.id)
+                }}
+                className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
               >
-                <Pencil className="h-3 w-3" aria-hidden="true" />
-                Edit listing
-              </Link>
-
-              {/* Secondary row */}
-              <div className="flex items-center gap-1">
-                {/* View listing — icon button */}
-                <Link
-                  href={`/listing/${listing.id}`}
-                  title="View public listing"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="sr-only">View public listing</span>
-                </Link>
-
-                {/* Pause */}
-                <button
-                  type="button"
-                  disabled={isBusy}
-                  onClick={() => void onStatusChange(listing.id, 'PAUSE')}
-                  className="flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-border)] text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
-                >
-                  {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Pause'}
-                </button>
-
-                {/* Mark sold — confirm inline */}
-                {confirmSold ? (
-                  <div className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-2">
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => {
-                        setConfirmSold(false)
-                        void onStatusChange(listing.id, 'SOLD')
-                      }}
-                      className="text-xs font-semibold text-blue-700 disabled:opacity-50"
-                    >
-                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm sold'}
-                    </button>
-                    <span className="text-blue-300" aria-hidden="true">
-                      ·
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmSold(false)}
-                      className="text-xs text-[var(--color-muted-foreground)]"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => setConfirmSold(true)}
-                    className="flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-border)] text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
-                  >
-                    Mark sold
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* ── DRAFT ── */}
-          {listing.status === 'DRAFT' && (
-            <>
-              {/* Primary: Resume Draft */}
-              <Link
-                href={`/sell?draftId=${listing.id}`}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-foreground)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Delete'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="text-xs text-[var(--color-muted-foreground)] hover:underline"
               >
-                Resume Draft
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : confirmSold ? (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+            <span className="text-xs text-blue-700">Mark this as sold?</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => {
+                  setConfirmSold(false)
+                  void onStatusChange(listing.id, 'SOLD')
+                }}
+                className="text-xs font-semibold text-blue-700 hover:underline disabled:opacity-50"
+              >
+                {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmSold(false)}
+                className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center gap-2">
+            {/* Preview button — all statuses */}
+            <Link
+              href={`/listing/${listing.id}`}
+              className="flex h-9 flex-1 items-center justify-center rounded-lg border border-[var(--color-border)] text-xs font-semibold text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+            >
+              Preview
+            </Link>
+
+            {/* Edit Details — not for SOLD */}
+            {canEdit && listing.status !== 'REJECTED' && (
+              <Link
+                href={editHref}
+                className="flex h-9 flex-1 items-center justify-center rounded-lg bg-[var(--color-foreground)] text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              >
+                Edit Details
               </Link>
+            )}
 
-              {/* Secondary: Delete — destructive with confirm */}
-              {confirmDelete ? (
-                <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                  <span className="text-xs text-red-700">Delete this draft?</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => {
-                        setConfirmDelete(false)
-                        onDelete(listing.id)
-                      }}
-                      className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
-                    >
-                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Delete'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(false)}
-                      className="text-xs text-[var(--color-muted-foreground)] hover:underline"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  disabled={isBusy}
-                  onClick={() => setConfirmDelete(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-red-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                >
-                  <Trash2 className="h-3 w-3" aria-hidden="true" />
-                  Delete draft
-                </button>
-              )}
-            </>
-          )}
-
-          {/* ── INACTIVE (Paused) ── */}
-          {listing.status === 'INACTIVE' && (
-            <>
-              {/* Primary: Resume */}
+            {/* INACTIVE: Resume is primary */}
+            {listing.status === 'INACTIVE' && (
               <button
                 type="button"
                 disabled={isBusy}
                 onClick={() => void onStatusChange(listing.id, 'REACTIVATE')}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-green-500 bg-green-50 py-2 text-xs font-semibold text-green-700 transition-colors hover:bg-green-100 disabled:opacity-50"
+                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {isBusy ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <PlayCircle className="h-3 w-3" aria-hidden="true" />
+                  <>
+                    <PlayCircle className="h-3 w-3" />
+                    Resume
+                  </>
                 )}
-                Resume listing
               </button>
+            )}
 
-              {/* Secondary row */}
-              <div className="flex items-center gap-1">
-                {/* View icon */}
-                <Link
-                  href={`/listing/${listing.id}`}
-                  title="View listing"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="sr-only">View listing</span>
-                </Link>
-
-                {/* Edit */}
-                <Link
-                  href={`/dashboard/listings/${listing.id}/edit`}
-                  className="flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-border)] text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
-                >
-                  Edit
-                </Link>
-
-                {/* Mark sold — confirm inline */}
-                {confirmSold ? (
-                  <div className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-2">
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => {
-                        setConfirmSold(false)
-                        void onStatusChange(listing.id, 'SOLD')
-                      }}
-                      className="text-xs font-semibold text-blue-700 disabled:opacity-50"
-                    >
-                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirm sold'}
-                    </button>
-                    <span className="text-blue-300" aria-hidden="true">
-                      ·
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmSold(false)}
-                      className="text-xs text-[var(--color-muted-foreground)]"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => setConfirmSold(true)}
-                    className="flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-border)] text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
-                  >
-                    Mark sold
-                  </button>
-                )}
-
-                {/* Delete — confirm inline */}
-                {confirmDelete ? (
-                  <div className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2">
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => {
-                        setConfirmDelete(false)
-                        onDelete(listing.id)
-                      }}
-                      className="text-xs font-semibold text-red-600 disabled:opacity-50"
-                    >
-                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Delete?'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(false)}
-                      className="text-xs text-[var(--color-muted-foreground)]"
-                    >
-                      No
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => setConfirmDelete(true)}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-red-400 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                    title="Delete listing"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span className="sr-only">Delete listing</span>
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* ── REJECTED ── */}
-          {listing.status === 'REJECTED' && (
-            <>
-              {/* Primary: Edit & Resubmit */}
-              <Link
-                href={`/sell?draftId=${listing.id}`}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-foreground)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            {/* PENDING_REVIEW: Withdraw is primary */}
+            {listing.status === 'PENDING_REVIEW' && (
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => void onStatusChange(listing.id, 'WITHDRAW_REVIEW')}
+                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] disabled:opacity-50"
               >
-                Edit &amp; Resubmit
-              </Link>
+                {isBusy ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <Undo2 className="h-3 w-3" />
+                    Withdraw
+                  </>
+                )}
+              </button>
+            )}
 
-              {/* Secondary: Delete — destructive with confirm */}
-              {confirmDelete ? (
-                <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                  <span className="text-xs text-red-700">Permanently delete this listing?</span>
-                  <div className="flex items-center gap-2">
+            {/* ⋯ overflow menu */}
+            <div className="relative" ref={overflowRef}>
+              <button
+                type="button"
+                onClick={() => setOverflowOpen((v) => !v)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
+                aria-label="More actions"
+              >
+                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+              </button>
+              {overflowOpen && (
+                <div className="absolute right-0 top-full z-20 mt-1 min-w-[160px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-white py-1 shadow-lg">
+                  {listing.status === 'ACTIVE' && (
                     <button
                       type="button"
                       disabled={isBusy}
                       onClick={() => {
-                        setConfirmDelete(false)
-                        onDelete(listing.id)
+                        setOverflowOpen(false)
+                        void onStatusChange(listing.id, 'PAUSE')
                       }}
-                      className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)] disabled:opacity-50"
                     >
-                      {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Delete'}
+                      Pause listing
                     </button>
+                  )}
+                  {listing.status === 'ACTIVE' && (
                     <button
                       type="button"
-                      onClick={() => setConfirmDelete(false)}
-                      className="text-xs text-[var(--color-muted-foreground)] hover:underline"
+                      disabled={isBusy}
+                      onClick={() => {
+                        setOverflowOpen(false)
+                        setConfirmSold(true)
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)] disabled:opacity-50"
                     >
-                      Cancel
+                      Mark as sold
                     </button>
-                  </div>
+                  )}
+                  {listing.status === 'INACTIVE' && (
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => {
+                        setOverflowOpen(false)
+                        setConfirmSold(true)
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)] disabled:opacity-50"
+                    >
+                      Mark as sold
+                    </button>
+                  )}
+                  {listing.status !== 'SOLD' && (
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => {
+                        setOverflowOpen(false)
+                        setConfirmDelete(true)
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      Delete listing
+                    </button>
+                  )}
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  disabled={isBusy}
-                  onClick={() => setConfirmDelete(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-1.5 text-xs font-medium text-red-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                >
-                  <Trash2 className="h-3 w-3" aria-hidden="true" />
-                  Delete listing
-                </button>
               )}
-            </>
-          )}
+            </div>
+          </div>
+        )}
 
-          {/* ── PENDING_REVIEW ── */}
-          {listing.status === 'PENDING_REVIEW' && (
-            <button
-              type="button"
-              disabled={isBusy}
-              onClick={() => void onStatusChange(listing.id, 'WITHDRAW_REVIEW')}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-2 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] disabled:opacity-50"
-            >
-              {isBusy ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Undo2 className="h-3 w-3" aria-hidden="true" />
-              )}
-              Withdraw from review
-            </button>
-          )}
-
-          {/* ── SOLD ── */}
-          {listing.status === 'SOLD' && (
-            <Link
-              href={`/listing/${listing.id}`}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-2 text-xs font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
-            >
-              <ExternalLink className="h-3 w-3" aria-hidden="true" />
-              View listing
-            </Link>
-          )}
+        {/* ── Footer stats ── */}
+        <div className="mt-3 flex items-center gap-4 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-muted-foreground)]">
+          <span className="flex items-center gap-1">
+            <Eye className="h-3 w-3 shrink-0" aria-hidden="true" />
+            {listing.viewCount} Views
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="h-3 w-3 shrink-0" aria-hidden="true" />
+            {interestedCount} Interested
+          </span>
         </div>
       </div>
     </article>
@@ -667,31 +626,71 @@ interface BuyerInterestCardProps {
   item: SellerInterestItem
   onAction: (id: string, action: 'ACCEPTED' | 'DECLINED') => Promise<void>
   actionLoading: boolean
+  onShareContact: (id: string) => Promise<void>
+  sharingContactId: string | null
+  onChat: (interestId: string) => void
 }
 
-function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardProps) {
+function BuyerInterestCard({
+  item,
+  onAction,
+  actionLoading,
+  onShareContact,
+  sharingContactId,
+  onChat,
+}: BuyerInterestCardProps) {
   const [confirmDecline, setConfirmDecline] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const statusCfg = INTEREST_STATUS_CONFIG[item.status] ?? {
     label: item.status,
     className: 'bg-gray-100 text-gray-600',
   }
-  const dateStr = new Date(item.createdAt).toLocaleDateString('en-IN', {
+  const relativeDate = useMemo(() => {
+    const diff = Date.now() - new Date(item.createdAt).getTime()
+    const days = Math.floor(diff / 86_400_000)
+    if (days === 0) return 'Today'
+    if (days === 1) return 'Yesterday'
+    if (days < 7) return `${days} days ago`
+    if (days < 30) return `${Math.floor(days / 7)}w ago`
+    return new Date(item.createdAt).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  }, [item.createdAt])
+  const fullDate = new Date(item.createdAt).toLocaleDateString('en-IN', {
     day: 'numeric',
-    month: 'short',
+    month: 'long',
     year: 'numeric',
   })
-  const awaitingPayment = item.status === 'ACCEPTED' && !item.contactUnlocked
+
+  const isContactShared = item.contactUnlocked
+  const statusLabel =
+    isContactShared && item.status === 'ACCEPTED' ? 'Accepted · Contact shared' : statusCfg.label
+  const statusClass =
+    isContactShared && item.status === 'ACCEPTED'
+      ? 'bg-green-100 text-green-700 ring-1 ring-green-300'
+      : statusCfg.className
 
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-white p-4">
+    <article
+      className={cn(
+        'rounded-xl border bg-white p-4 transition-colors',
+        isContactShared ? 'border-green-200 bg-green-50/30' : 'border-[var(--color-border)]',
+      )}
+    >
+      {/* Header row: name + status pill + date */}
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-semibold text-[var(--color-foreground)]">{item.fullName}</p>
-            <span
-              className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', statusCfg.className)}
-            >
-              {statusCfg.label}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-[var(--color-foreground)]">
+              {item.fullName}
+            </h3>
+            <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', statusClass)}>
+              {statusLabel}
             </span>
           </div>
           <Link
@@ -703,8 +702,16 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
             <ExternalLink className="h-3 w-3 shrink-0 opacity-50" aria-hidden="true" />
           </Link>
         </div>
+        <time
+          dateTime={item.createdAt}
+          title={fullDate}
+          className="shrink-0 text-xs text-[var(--color-muted-foreground)]"
+        >
+          {mounted ? relativeDate : fullDate}
+        </time>
       </div>
 
+      {/* Buyer qualification chips */}
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="rounded-full bg-[var(--color-muted)] px-2.5 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
           {PURPOSE_LABEL[item.purpose] ?? item.purpose}
@@ -712,74 +719,118 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
         <span className="rounded-full bg-[var(--color-muted)] px-2.5 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
           {TIMELINE_LABEL[item.timeline] ?? item.timeline}
         </span>
-        <span className="rounded-full bg-[var(--color-muted)] px-2.5 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
+        <span
+          className={cn(
+            'rounded-full px-2.5 py-1 text-xs font-medium',
+            FUNDING_CLASS[item.funding] ??
+              'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+          )}
+        >
           {FUNDING_LABEL[item.funding] ?? item.funding}
         </span>
       </div>
 
       {item.message && (
-        <div className="mt-3 rounded-lg bg-[var(--color-muted)] px-3 py-2 text-sm text-[var(--color-muted-foreground)]">
+        <div className="mt-3 rounded-lg bg-[var(--color-muted)] px-3 py-2 text-xs leading-relaxed text-[var(--color-muted-foreground)]">
           &ldquo;{item.message}&rdquo;
         </div>
       )}
 
-      {/* Accepted but buyer hasn't paid yet */}
-      {awaitingPayment && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
-          <IndianRupee className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-hidden="true" />
-          <p className="text-xs font-medium text-blue-700">
-            Awaiting buyer payment — contact details visible once they pay ₹99
+      {/* ACCEPTED — contact not yet shared: Chat (secondary) + Share Contact (primary) */}
+      {item.status === 'ACCEPTED' && !item.contactUnlocked && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-[var(--color-muted-foreground)]">
+            Chat with the buyer first, or share your contact whenever you&apos;re ready.
           </p>
-        </div>
-      )}
-
-      {/* Contact unlocked */}
-      {item.contactUnlocked && (item.buyerPhone ?? item.buyerEmail) && (
-        <div className="mt-3 space-y-1 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
-          <p className="text-xs font-semibold text-green-800">Buyer contact unlocked</p>
-          {item.buyerPhone && (
-            <a
-              href={`tel:${item.buyerPhone.replace(/\s/g, '')}`}
-              className="flex items-center gap-1.5 text-xs text-green-700 hover:underline"
+          <div className="flex gap-2">
+            {/* Single logical button — desktop opens bubble, mobile navigates */}
+            <button
+              type="button"
+              onClick={() => onChat(item.id)}
+              aria-label={`Chat with ${item.fullName}`}
+              className="hidden min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-2 text-xs font-semibold text-[var(--color-foreground)] transition hover:bg-[var(--color-muted)] lg:flex"
             >
-              <Phone className="h-3 w-3 shrink-0" aria-hidden="true" />
-              {item.buyerPhone}
-            </a>
-          )}
-          {item.buyerEmail && (
-            <a
-              href={`mailto:${item.buyerEmail}`}
-              className="flex items-center gap-1.5 text-xs text-green-700 hover:underline"
+              <MessageSquare className="h-3 w-3" aria-hidden="true" /> Chat
+            </button>
+            <Link
+              href={`/messages/${item.id}`}
+              aria-label={`Chat with ${item.fullName}`}
+              className="flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-2 text-xs font-semibold text-[var(--color-foreground)] transition hover:bg-[var(--color-muted)] lg:hidden"
             >
-              <Mail className="h-3 w-3 shrink-0" aria-hidden="true" />
-              {item.buyerEmail}
-            </a>
+              <MessageSquare className="h-3 w-3" aria-hidden="true" /> Chat
+            </Link>
+            <button
+              type="button"
+              disabled={sharingContactId === item.id}
+              onClick={() => void onShareContact(item.id)}
+              aria-label={`Share contact with ${item.fullName}`}
+              className="flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--color-foreground)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {sharingContactId === item.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+              ) : (
+                <>
+                  <Share2 className="h-3 w-3" aria-hidden="true" /> Share Contact
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ACCEPTED — contact shared: green card with details + inline message link */}
+      {item.contactUnlocked && (
+        <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-green-800">Contact shared — buyer notified</p>
+            {/* Message buyer — embedded so owner doesn't miss it */}
+            <button
+              type="button"
+              onClick={() => onChat(item.id)}
+              aria-label={`Message ${item.fullName}`}
+              className="hidden shrink-0 items-center gap-1 rounded-md border border-green-300 bg-white px-2 py-1 text-xs font-medium text-green-700 transition hover:bg-green-100 lg:inline-flex"
+            >
+              <MessageSquare className="h-3 w-3" aria-hidden="true" /> Message
+            </button>
+            <Link
+              href={`/messages/${item.id}`}
+              aria-label={`Message ${item.fullName}`}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-green-300 bg-white px-2 py-1 text-xs font-medium text-green-700 transition hover:bg-green-100 lg:hidden"
+            >
+              <MessageSquare className="h-3 w-3" aria-hidden="true" /> Message
+            </Link>
+          </div>
+          {(item.buyerPhone ?? item.buyerEmail) && (
+            <div className="mt-1.5 space-y-1">
+              {item.buyerPhone && (
+                <a
+                  href={`tel:${item.buyerPhone.replace(/\s/g, '')}`}
+                  className="flex items-center gap-1.5 text-xs text-green-700 hover:underline"
+                >
+                  <Phone className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  {item.buyerPhone}
+                </a>
+              )}
+              {item.buyerEmail && (
+                <a
+                  href={`mailto:${item.buyerEmail}`}
+                  className="flex items-center gap-1.5 text-xs text-green-700 hover:underline"
+                >
+                  <Mail className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  {item.buyerEmail}
+                </a>
+              )}
+            </div>
           )}
         </div>
       )}
 
-      {/* Message button — available once interest is accepted */}
-      {item.status === 'ACCEPTED' && (
-        <div className="mt-3">
-          <Link
-            href={`/messages/${item.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
-          >
-            <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
-            Message buyer
-          </Link>
-        </div>
-      )}
-
-      <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">Requested on {dateStr}</p>
-
+      {/* PENDING — Accept (primary filled) + Decline (secondary outline) */}
       {item.status === 'PENDING' && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-4">
           {confirmDecline ? (
-            <>
-              <p className="mr-1 text-xs text-[var(--color-muted-foreground)]">
-                Decline this request?
-              </p>
+            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+              <p className="flex-1 text-xs text-red-700">Decline this buyer&apos;s request?</p>
               <button
                 type="button"
                 disabled={actionLoading}
@@ -787,10 +838,7 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
                   void onAction(item.id, 'DECLINED')
                   setConfirmDecline(false)
                 }}
-                className={cn(
-                  'rounded-lg border border-red-400 px-3 py-1.5 text-xs font-semibold text-red-600',
-                  'transition-colors hover:bg-red-50 disabled:opacity-50',
-                )}
+                className="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Yes, decline'}
               </button>
@@ -798,44 +846,42 @@ function BuyerInterestCard({ item, onAction, actionLoading }: BuyerInterestCardP
                 type="button"
                 disabled={actionLoading}
                 onClick={() => setConfirmDecline(false)}
-                className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] disabled:opacity-50"
+                className="shrink-0 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-white disabled:opacity-50"
               >
                 Cancel
               </button>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="flex gap-2">
               <button
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void onAction(item.id, 'ACCEPTED')}
-                className={cn(
-                  'rounded-lg border border-green-500 px-3 py-1.5 text-xs font-semibold text-green-700',
-                  'transition-colors hover:bg-green-50 disabled:opacity-50',
-                )}
+                className="flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Accept'}
+                {actionLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                ) : (
+                  'Accept'
+                )}
               </button>
               <button
                 type="button"
                 disabled={actionLoading}
                 onClick={() => setConfirmDecline(true)}
-                className={cn(
-                  'rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600',
-                  'transition-colors hover:bg-red-50 disabled:opacity-50',
-                )}
+                className="flex min-h-[36px] flex-1 items-center justify-center rounded-lg border border-red-300 px-4 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
               >
                 Decline
               </button>
-            </>
+            </div>
           )}
         </div>
       )}
-    </div>
+    </article>
   )
 }
 
-type InterestStatusFilter = 'ALL' | 'PENDING' | 'ACCEPTED' | 'DECLINED'
+type InterestStatusFilter = 'ALL' | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'WITHDRAWN'
 
 interface BuyersTabContentProps {
   interests: SellerInterestItem[]
@@ -848,8 +894,42 @@ interface BuyersTabContentProps {
   onStatusFilter: (s: InterestStatusFilter) => void
   onSort: (s: 'newest' | 'oldest') => void
   onAction: (id: string, action: 'ACCEPTED' | 'DECLINED') => Promise<void>
+  onShareContact: (id: string) => Promise<void>
+  sharingContactId: string | null
+  onChat: (interestId: string) => void
   onDismissError: () => void
   onDismissSuccess: () => void
+}
+
+const STATUS_FILTERS: { value: InterestStatusFilter; label: string }[] = [
+  { value: 'ALL', label: 'All' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'ACCEPTED', label: 'Accepted' },
+  { value: 'DECLINED', label: 'Declined' },
+  { value: 'WITHDRAWN', label: 'Withdrawn' },
+]
+
+const EMPTY_MESSAGES: Record<InterestStatusFilter, { title: string; sub: string }> = {
+  ALL: {
+    title: 'No buyer requests yet',
+    sub: 'When buyers express interest in your listings, their requests will appear here.',
+  },
+  PENDING: {
+    title: 'No new requests',
+    sub: "When buyers show interest in your listings, they'll appear here for you to review.",
+  },
+  ACCEPTED: {
+    title: 'No accepted requests yet',
+    sub: "Accept a buyer's interest to start chatting or share your contact directly.",
+  },
+  DECLINED: {
+    title: "You haven't declined any requests",
+    sub: 'Declined requests will show here.',
+  },
+  WITHDRAWN: {
+    title: 'No withdrawn requests',
+    sub: 'Buyers who withdrew their interest will appear here.',
+  },
 }
 
 function BuyersTabContent({
@@ -863,29 +943,30 @@ function BuyersTabContent({
   onStatusFilter,
   onSort,
   onAction,
+  onShareContact,
+  sharingContactId,
+  onChat,
   onDismissError,
   onDismissSuccess,
 }: BuyersTabContentProps) {
-  const STATUS_FILTERS: { value: InterestStatusFilter; label: string }[] = [
-    { value: 'ALL', label: 'All' },
-    { value: 'PENDING', label: 'Pending' },
-    { value: 'ACCEPTED', label: 'Accepted' },
-    { value: 'DECLINED', label: 'Declined' },
-  ]
-
   return (
     <div className="space-y-4">
-      {/* Section header with filter chips — distinct from the top tab bar */}
+      {/* Filter chips + sort */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Filter by status"
+        >
           <span className="text-xs font-medium text-[var(--color-muted-foreground)]">Filter:</span>
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.value}
               type="button"
+              aria-pressed={statusFilter === f.value}
               onClick={() => onStatusFilter(f.value)}
               className={cn(
-                'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all',
+                'rounded-full border px-3 py-1.5 text-xs font-medium transition-all',
                 statusFilter === f.value
                   ? 'border-[var(--color-foreground)] bg-[var(--color-foreground)] text-white'
                   : 'border-[var(--color-border)] bg-white text-[var(--color-muted-foreground)] hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]',
@@ -895,16 +976,16 @@ function BuyersTabContent({
             </button>
           ))}
         </div>
-        {!loading && interests.length > 0 && (
-          <select
-            value={sort}
-            onChange={(e) => onSort(e.target.value as 'newest' | 'oldest')}
-            className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
-          >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-          </select>
-        )}
+        <select
+          value={sort}
+          onChange={(e) => onSort(e.target.value as 'newest' | 'oldest')}
+          disabled={loading || interests.length === 0}
+          className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-xs text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] disabled:opacity-50"
+          aria-label="Sort order"
+        >
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
       </div>
 
       {interestSuccess && (
@@ -916,7 +997,7 @@ function BuyersTabContent({
           <button
             type="button"
             onClick={onDismissSuccess}
-            className="shrink-0 text-xs text-green-700 hover:underline"
+            className="-m-1 shrink-0 p-1 text-xs text-green-700 hover:underline"
           >
             Dismiss
           </button>
@@ -924,20 +1005,43 @@ function BuyersTabContent({
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" />
+        /* Skeleton cards */
+        <div className="space-y-3" aria-busy="true" aria-label="Loading buyer requests">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-xl border border-[var(--color-border)] bg-white p-4"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 rounded-full bg-[var(--color-muted)]" />
+                  <div className="h-3 w-48 rounded-full bg-[var(--color-muted)]" />
+                </div>
+                <div className="h-3 w-12 rounded-full bg-[var(--color-muted)]" />
+              </div>
+              <div className="mt-3 flex gap-2">
+                <div className="h-6 w-20 rounded-full bg-[var(--color-muted)]" />
+                <div className="h-6 w-20 rounded-full bg-[var(--color-muted)]" />
+                <div className="h-6 w-24 rounded-full bg-[var(--color-muted)]" />
+              </div>
+              <div className="mt-3 flex gap-2">
+                <div className="h-9 flex-1 rounded-lg bg-[var(--color-muted)]" />
+                <div className="h-9 flex-1 rounded-lg bg-[var(--color-muted)]" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : error ? (
         <div
           className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
           role="alert"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" aria-hidden="true" />
           <span className="flex-1">{error}</span>
           <button
             type="button"
             onClick={onDismissError}
-            className="shrink-0 text-xs text-red-600 hover:underline"
+            className="-m-1 shrink-0 p-1 text-xs text-red-600 hover:underline"
           >
             Dismiss
           </button>
@@ -945,17 +1049,13 @@ function BuyersTabContent({
       ) : interests.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-border)] py-16 text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-muted)]">
-            <Users className="h-8 w-8 text-[var(--color-muted-foreground)]" />
+            <Users className="h-8 w-8 text-[var(--color-muted-foreground)]" aria-hidden="true" />
           </div>
           <h3 className="text-base font-semibold text-[var(--color-foreground)]">
-            {statusFilter === 'ALL'
-              ? 'No buyer requests yet'
-              : `No ${statusFilter.toLowerCase()} requests`}
+            {EMPTY_MESSAGES[statusFilter].title}
           </h3>
           <p className="mt-1 max-w-xs text-sm text-[var(--color-muted-foreground)]">
-            {statusFilter === 'ALL'
-              ? 'When buyers express interest in your listings, their requests will appear here.'
-              : `No requests with ${statusFilter.toLowerCase()} status.`}
+            {EMPTY_MESSAGES[statusFilter].sub}
           </p>
         </div>
       ) : (
@@ -966,6 +1066,9 @@ function BuyersTabContent({
               item={item}
               onAction={onAction}
               actionLoading={actionLoadingId === item.id}
+              onShareContact={onShareContact}
+              sharingContactId={sharingContactId}
+              onChat={onChat}
             />
           ))}
         </div>
@@ -1061,6 +1164,7 @@ function EmptyState({
 }
 
 function DashboardPageInner() {
+  const { toast } = useToast()
   const searchParams = useSearchParams()
   const msgParam = searchParams.get('msg')
   const cantEditMsg =
@@ -1093,6 +1197,7 @@ function DashboardPageInner() {
   }, [tabParam])
   const [pendingBuyerCount, setPendingBuyerCount] = useState<number | null>(null)
   const [listings, setListings] = useState<MockListing[]>([])
+  const [interestedCountMap, setInterestedCountMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
@@ -1103,6 +1208,8 @@ function DashboardPageInner() {
   const [interestStatusFilter, setInterestStatusFilter] = useState<InterestStatusFilter>('ALL')
   const [interestSort, setInterestSort] = useState<'newest' | 'oldest'>('newest')
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+  const [sharingContactId, setSharingContactId] = useState<string | null>(null)
+  const { openChatForInterest } = useMessaging()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [statusChangingId, setStatusChangingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -1149,6 +1256,9 @@ function DashboardPageInner() {
           if (res.ok) {
             const json = (await res.json()) as { listings: DashboardListing[] }
             setListings(json.listings.map(toDisplayListing))
+            const countMap: Record<string, number> = {}
+            for (const l of json.listings) countMap[l.id] = l.interested_count
+            setInterestedCountMap(countMap)
           } else if (res.status === 401) {
             setFetchError('You need to be signed in to view your listings.')
             setListings([])
@@ -1224,17 +1334,55 @@ function DashboardPageInner() {
           ),
         )
         setPendingBuyerCount((c) => (c !== null && c > 0 ? c - 1 : 0))
-        setInterestSuccess(
-          action === 'ACCEPTED' ? 'Request accepted — buyer notified.' : 'Request declined.',
-        )
+        const successMsg =
+          action === 'ACCEPTED' ? 'Request accepted — buyer notified.' : 'Request declined.'
+        setInterestSuccess(successMsg)
+        toast(successMsg, 'success')
       } else {
         const err = (await res.json()) as { error?: string }
-        setInterestError(err.error ?? 'Failed to update request.')
+        const errMsg = err.error ?? 'Failed to update request.'
+        setInterestError(errMsg)
+        toast(errMsg, 'error')
       }
     } catch {
       setInterestError('Network error — try again.')
+      toast('Network error — try again.', 'error')
     } finally {
       setActionLoadingId(null)
+    }
+  }
+
+  async function handleShareContact(id: string) {
+    setSharingContactId(id)
+    try {
+      const res = await fetch(`/api/dashboard/interests/${id}/share-contact`, { method: 'POST' })
+      if (res.ok) {
+        const d = (await res.json()) as { buyerPhone?: string | null; buyerEmail?: string | null }
+        setInterests((prev) =>
+          prev.map((i) =>
+            i.id === id
+              ? {
+                  ...i,
+                  contactUnlocked: true,
+                  buyerPhone: d.buyerPhone ?? i.buyerPhone,
+                  buyerEmail: d.buyerEmail ?? i.buyerEmail,
+                }
+              : i,
+          ),
+        )
+        setInterestSuccess('Contact shared — the buyer can now reach you directly.')
+        toast('Contact shared — the buyer can now reach you directly.', 'success')
+      } else {
+        const d = (await res.json()) as { error?: string }
+        const errMsg = d.error ?? 'Failed to share contact.'
+        setInterestError(errMsg)
+        toast(errMsg, 'error')
+      }
+    } catch {
+      setInterestError('Network error — try again.')
+      toast('Network error — try again.', 'error')
+    } finally {
+      setSharingContactId(null)
     }
   }
 
@@ -1245,12 +1393,18 @@ function DashboardPageInner() {
       .then(async (r) => {
         if (r.ok) {
           setListings((prev) => prev.filter((l) => l.id !== listingId))
+          toast('Listing deleted.', 'success')
         } else {
           const d = (await r.json()) as { error?: string }
-          setActionError(d.error ?? 'Failed to delete listing')
+          const msg = d.error ?? 'Failed to delete listing'
+          setActionError(msg)
+          toast(msg, 'error')
         }
       })
-      .catch(() => setActionError('Failed to delete listing'))
+      .catch(() => {
+        setActionError('Failed to delete listing')
+        toast('Failed to delete listing', 'error')
+      })
       .finally(() => setDeletingId(null))
   }
 
@@ -1273,19 +1427,26 @@ function DashboardPageInner() {
         )
         if (action === 'WITHDRAW_REVIEW') {
           setActionSuccess('Review withdrawn — your listing is back in Drafts.')
+          toast('Review withdrawn — your listing is back in Drafts.', 'success')
         } else if (action === 'PAUSE') {
           setActionSuccess('Listing paused — hidden from buyers.')
+          toast('Listing paused — hidden from buyers.', 'success')
         } else if (action === 'REACTIVATE') {
           setActionSuccess('Listing reactivated and live.')
+          toast('Listing reactivated and live.', 'success')
         } else if (action === 'SOLD') {
           setActionSuccess('Listing marked as sold.')
+          toast('Listing marked as sold.', 'success')
         }
       } else {
         const d = (await res.json()) as { error?: string }
-        setActionError(d.error ?? 'Failed to update listing.')
+        const msg = d.error ?? 'Failed to update listing.'
+        setActionError(msg)
+        toast(msg, 'error')
       }
     } catch {
       setActionError('Network error — try again.')
+      toast('Network error — try again.', 'error')
     } finally {
       setStatusChangingId(null)
     }
@@ -1319,14 +1480,18 @@ function DashboardPageInner() {
   const stats = {
     total: visibleListings.length,
     active: visibleListings.filter((l) => l.status === 'ACTIVE').length,
-    views: visibleListings.reduce((sum, l) => sum + l.viewCount, 0),
+    needsAttention: visibleListings.filter(
+      (l) => l.status === 'REJECTED' || (l.images.length === 0 && l.status === 'DRAFT'),
+    ).length,
   }
 
-  const pageTitle = personaState === 'buyer' ? 'My Activity' : 'My Listings'
+  const pageTitle = personaState === 'buyer' ? 'My Activity' : 'Your Listings'
   const pageSubtitle =
     personaState === 'buyer'
       ? 'Track your property interests and requests'
-      : 'Manage and track your property listings'
+      : stats.needsAttention > 0
+        ? `Manage your listings, track buyer interest, and keep everything up to date.`
+        : 'Manage your listings, track buyer interest, and keep everything up to date.'
 
   return (
     <div className="space-y-5">
@@ -1346,11 +1511,11 @@ function DashboardPageInner() {
           <Link
             href="/sell"
             className={cn(
-              'hidden shrink-0 items-center gap-2 rounded-xl bg-[var(--color-foreground)] px-4 py-2 text-sm font-semibold text-white sm:flex',
+              'hidden shrink-0 items-center gap-2 rounded-full bg-[var(--color-foreground)] px-5 py-2.5 text-sm font-semibold text-white sm:flex',
               'transition-opacity hover:opacity-90',
             )}
           >
-            <Plus className="h-4 w-4" /> New listing
+            <Plus className="h-4 w-4" /> New Listing
           </Link>
         )}
       </div>
@@ -1428,7 +1593,7 @@ function DashboardPageInner() {
             iconBg="bg-violet-100"
           />
           <StatCard
-            label="Active"
+            label="Live Listings"
             value={stats.active}
             sub="Currently live"
             icon={<TrendingUp className="h-4 w-4 text-green-600" />}
@@ -1437,20 +1602,19 @@ function DashboardPageInner() {
             trendUp
           />
           <StatCard
-            label="Total Views"
-            value={stats.views.toLocaleString('en-IN')}
-            sub="Across all listings"
-            icon={<Eye className="h-4 w-4 text-sky-600" />}
-            iconBg="bg-sky-100"
+            label="Needs Attention"
+            value={stats.needsAttention}
+            sub="Action required"
+            icon={<AlertCircle className="h-4 w-4 text-orange-500" />}
+            iconBg="bg-orange-100"
           />
-          {/* Buyer requests — compact interactive card matching StatCard height */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('buyers')}
+          {/* Awaiting Response — links to standalone /dashboard/buyers page */}
+          <Link
+            href="/dashboard/buyers"
             className={cn(
               'flex items-center gap-3 rounded-xl border p-4 text-left shadow-sm transition-shadow hover:shadow-md',
               pendingBuyerCount
-                ? 'border-indigo-200 bg-indigo-50'
+                ? 'border-sky-200 bg-sky-50'
                 : 'border-[var(--color-border)] bg-white',
             )}
           >
@@ -1458,15 +1622,15 @@ function DashboardPageInner() {
               className={cn(
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
                 pendingBuyerCount
-                  ? 'bg-indigo-100 text-indigo-600'
+                  ? 'bg-sky-100 text-sky-600'
                   : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
               )}
             >
-              <Users className="h-4 w-4" />
+              <Eye className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium text-[var(--color-muted-foreground)]">
-                Buyer Requests
+                Awaiting Response
               </p>
               {pendingBuyerCount === null ? (
                 <div className="mt-0.5 h-5 w-8 animate-pulse rounded bg-[var(--color-border)]" />
@@ -1475,30 +1639,20 @@ function DashboardPageInner() {
                   {pendingBuyerCount}
                 </p>
               )}
-              <p className="text-[11px] text-[var(--color-muted-foreground)]">Pending</p>
+              <p className="text-[11px] text-[var(--color-muted-foreground)]">From buyers</p>
             </div>
             {pendingBuyerCount ? (
-              <ChevronRight className="h-4 w-4 shrink-0 text-indigo-400" aria-hidden="true" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-sky-400" aria-hidden="true" />
             ) : null}
-          </button>
+          </Link>
         </div>
       ) : null}
 
-      {/* Single unified tab bar — listing filters + Buyers in one row */}
+      {/* Pill tab bar — listing status filters only (Buyers is in sidebar nav) */}
       {personaState === 'seller' && (
-        <div
-          role="tablist"
-          aria-label="Dashboard sections"
-          className="flex gap-0.5 overflow-x-auto border-b border-[var(--color-border)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {TAB_VALUES.filter((tabValue) => {
-            if (tabValue === 'all' || tabValue === 'buyers') return true
-            return tabCounts[tabValue as Exclude<TabFilter, 'buyers'>] > 0 || activeTab === tabValue
-          }).map((tabValue) => {
-            const isBuyers = tabValue === 'buyers'
-            const count = isBuyers
-              ? (pendingBuyerCount ?? 0)
-              : tabCounts[tabValue as Exclude<TabFilter, 'buyers'>]
+        <div role="tablist" aria-label="Filter listings by status" className="flex flex-wrap gap-2">
+          {TAB_VALUES.filter((t) => t !== 'buyers').map((tabValue) => {
+            const count = tabCounts[tabValue as Exclude<TabFilter, 'buyers'>]
             const isActive = activeTab === tabValue
             return (
               <button
@@ -1508,37 +1662,25 @@ function DashboardPageInner() {
                 type="button"
                 onClick={() => setActiveTab(tabValue)}
                 className={cn(
-                  'relative flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors',
+                  'flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition-all',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1',
                   isActive
-                    ? 'text-[var(--color-foreground)]'
-                    : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]',
-                  isBuyers && 'ml-auto',
+                    ? 'border-[var(--color-foreground)] bg-[var(--color-foreground)] text-white'
+                    : 'border-[var(--color-border)] bg-white text-[var(--color-muted-foreground)] hover:border-[var(--color-foreground)] hover:text-[var(--color-foreground)]',
                 )}
               >
-                {isBuyers && <Users className="h-3.5 w-3.5" aria-hidden="true" />}
                 {TAB_LABELS[tabValue]}
-                {count > 0 && (
+                {(isActive ? true : count > 0) && (
                   <span
                     className={cn(
-                      'flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold',
+                      'flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold',
                       isActive
-                        ? isBuyers
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-[var(--color-foreground)] text-white'
-                        : isBuyers
-                          ? 'bg-indigo-100 text-indigo-700'
-                          : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+                        ? 'bg-white/20 text-white'
+                        : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
                     )}
                   >
                     {count > 99 ? '99+' : count}
                   </span>
-                )}
-                {isActive && (
-                  <span
-                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[var(--color-foreground)]"
-                    aria-hidden="true"
-                  />
                 )}
               </button>
             )
@@ -1558,6 +1700,9 @@ function DashboardPageInner() {
           onStatusFilter={setInterestStatusFilter}
           onSort={setInterestSort}
           onAction={handleInterestAction}
+          onShareContact={handleShareContact}
+          sharingContactId={sharingContactId}
+          onChat={openChatForInterest}
           onDismissError={() => setInterestError(null)}
           onDismissSuccess={() => setInterestSuccess(null)}
         />
@@ -1577,6 +1722,7 @@ function DashboardPageInner() {
             <ListingCard
               key={listing.id}
               listing={listing}
+              interestedCount={interestedCountMap[listing.id] ?? 0}
               onDelete={handleDeleteListing}
               onStatusChange={handleStatusChange}
               isDeleting={deletingId === listing.id}
