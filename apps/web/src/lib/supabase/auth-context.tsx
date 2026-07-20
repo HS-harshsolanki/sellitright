@@ -33,10 +33,23 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
     const supabase = createClient()
 
+    // Use refreshSession instead of getSession so the very first user value
+    // reflects the latest server-side metadata (e.g. phone_verified: true).
+    // getSession() returns the stale cached JWT which may not have phone_verified
+    // set, causing the phone-verification banner to flash on every profile load
+    // for users who have already verified their phone number.
     supabase.auth
-      .getSession()
+      .refreshSession()
       .then(({ data: { session }, error }) => {
-        if (error) setAuthError(error)
+        if (error) {
+          // refreshSession can fail if there's no session at all (logged out).
+          // In that case fall back to getSession to still populate auth state.
+          return supabase.auth.getSession().then(({ data: { session }, error: e }) => {
+            if (e) setAuthError(e)
+            setSession(session)
+            setUser(session?.user ?? null)
+          })
+        }
         setSession(session)
         setUser(session?.user ?? null)
       })

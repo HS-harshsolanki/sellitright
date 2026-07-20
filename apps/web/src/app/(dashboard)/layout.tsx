@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Compass,
   LayoutGrid,
+  LogOut,
   MessageSquare,
   Plus,
   User,
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { SignOutButton } from '@/components/auth/sign-out-button'
 import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
@@ -143,10 +144,12 @@ function SidebarNav(props: SidebarNavProps) {
   )
 }
 
-// TopBar shows logo + user avatar (with notif badge) — mirrors the browse header avatar
+// TopBar shows logo + avatar menu (profile + notifications + sign out)
 function TopBarInner() {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const { unreadCount } = useNotifications(user?.id)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const name =
     user?.user_metadata?.full_name ??
@@ -154,30 +157,94 @@ function TopBarInner() {
     null
   const initial = name?.[0]?.toUpperCase() ?? null
 
+  useEffect(() => {
+    if (!menuOpen) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
+
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-4 backdrop-blur-sm lg:hidden">
       <ChapterNewLogo size="sm" />
-      <Link
-        href="/profile"
-        aria-label="My profile"
-        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-      >
-        <span
-          className={cn(
-            'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold',
-            initial
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
-          )}
+      <div ref={menuRef} className="relative">
+        <button
+          type="button"
+          aria-label="Account menu"
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
         >
-          {initial ?? <User className="h-4 w-4" />}
-        </span>
-        {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold',
+              initial
+                ? 'bg-[var(--color-primary)] text-white'
+                : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+            )}
+          >
+            {initial ?? <User className="h-4 w-4" />}
           </span>
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
+        {menuOpen && (
+          <div
+            role="menu"
+            aria-label="Account options"
+            className="absolute right-0 top-[calc(100%+6px)] z-[100] w-52 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-xl"
+          >
+            <Link
+              href="/profile"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-3 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+            >
+              <User
+                className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
+              My Profile
+            </Link>
+            <Link
+              href="/notifications"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-3 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+            >
+              <Bell
+                className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
+              <span className="flex-1">Notifications</span>
+              {unreadCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+            <div className="border-t border-[var(--color-border)]" />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false)
+                void signOut()
+              }}
+              className="flex w-full items-center gap-2.5 px-4 py-3 text-sm text-red-600 transition-colors hover:bg-red-50"
+            >
+              <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Sign Out
+            </button>
+          </div>
         )}
-      </Link>
+      </div>
     </header>
   )
 }

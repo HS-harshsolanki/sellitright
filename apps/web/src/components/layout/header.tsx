@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, LogOut, LayoutDashboard, User } from 'lucide-react'
+import { Bell, Plus, LogOut, LayoutDashboard, User } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
@@ -214,6 +214,117 @@ function UserDropdown({ name, email, hasListings, onSignOut }: UserDropdownProps
   )
 }
 
+// ─── Mobile avatar menu (profile + notifications + sign out) ─────────────────
+
+interface MobileAvatarMenuProps {
+  initial: string | null
+  unreadCount: number
+  onSignOut: () => void
+}
+
+function MobileAvatarMenu({ initial, unreadCount, onSignOut }: MobileAvatarMenuProps) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-label="Account menu"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((v) => !v)}
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+      >
+        <span
+          className={cn(
+            'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold',
+            initial
+              ? 'bg-[var(--color-primary)] text-white'
+              : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+          )}
+        >
+          {initial ?? <User className="h-4 w-4" />}
+        </span>
+        {unreadCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          aria-label="Account options"
+          className="absolute right-0 top-[calc(100%+6px)] z-[100] w-52 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-xl"
+        >
+          <Link
+            href="/profile"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-3 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+          >
+            <User
+              className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+              aria-hidden="true"
+            />
+            My Profile
+          </Link>
+          <Link
+            href="/notifications"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-3 text-sm text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-muted)]"
+          >
+            <Bell
+              className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]"
+              aria-hidden="true"
+            />
+            <span className="flex-1">Notifications</span>
+            {unreadCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Link>
+          <div className="border-t border-[var(--color-border)]" />
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false)
+              onSignOut()
+            }}
+            className="flex w-full items-center gap-2.5 px-4 py-3 text-sm text-red-600 transition-colors hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 export function Header() {
@@ -305,7 +416,7 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile only — avatar/profile link replaces hamburger sheet */}
+        {/* Mobile only — avatar menu (profile + notifications + sign out) */}
         <div className="shrink-0 md:hidden">
           {loading ? (
             <div
@@ -313,27 +424,11 @@ export function Header() {
               aria-hidden="true"
             />
           ) : user ? (
-            <Link
-              href="/profile"
-              aria-label="My profile"
-              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-            >
-              <span
-                className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold',
-                  name?.[0]
-                    ? 'bg-[var(--color-primary)] text-white'
-                    : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
-                )}
-              >
-                {name?.[0]?.toUpperCase() ?? <User className="h-4 w-4" />}
-              </span>
-              {notificationsHook.unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-                  {notificationsHook.unreadCount > 9 ? '9+' : notificationsHook.unreadCount}
-                </span>
-              )}
-            </Link>
+            <MobileAvatarMenu
+              initial={name?.[0]?.toUpperCase() ?? null}
+              unreadCount={notificationsHook.unreadCount}
+              onSignOut={signOut}
+            />
           ) : (
             <Link
               href="/login"
