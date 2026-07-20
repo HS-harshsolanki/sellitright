@@ -1,14 +1,13 @@
 'use client'
 
-import { Compass, LayoutGrid, MessageSquare, Plus, User } from 'lucide-react'
+import { Compass, LayoutGrid, MessageSquare, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
 
-// Logged-in nav: unified for both browse and dashboard surfaces.
-// Matches the dashboard mobile bottom nav so the user sees the same 5 tabs everywhere.
+// Logged-in nav: 4 tabs — Me moved to avatar in the top header.
 const LOGGED_IN_TABS = [
   {
     href: '/properties',
@@ -34,15 +33,9 @@ const LOGGED_IN_TABS = [
     icon: MessageSquare,
     matchHref: '/messages',
   },
-  {
-    href: '/profile',
-    label: 'Me',
-    icon: User,
-    matchHref: '/profile',
-  },
 ] as const
 
-// Logged-out nav: minimal — no dashboard, no inbox
+// Logged-out nav: minimal
 const LOGGED_OUT_TABS = [
   {
     href: '/properties',
@@ -55,12 +48,6 @@ const LOGGED_OUT_TABS = [
     label: 'Sell',
     icon: Plus,
     matchHref: '/sell',
-  },
-  {
-    href: '/login',
-    label: 'Sign In',
-    icon: User,
-    matchHref: '/login',
   },
 ] as const
 
@@ -79,20 +66,14 @@ export function MobileNav() {
         {tabs.map(({ href, label, icon: Icon, matchHref }) => {
           const isActive =
             matchHref === '/properties'
-              ? // active on /properties and any property detail page
-                pathname.startsWith('/properties') || pathname.startsWith('/property')
+              ? pathname.startsWith('/properties') || pathname.startsWith('/property')
               : matchHref === '/dashboard'
-                ? // active on all /dashboard/** routes
-                  pathname.startsWith('/dashboard')
+                ? pathname.startsWith('/dashboard')
                 : matchHref === '/sell'
                   ? pathname.startsWith('/sell')
                   : matchHref === '/messages'
                     ? pathname.startsWith('/messages')
-                    : matchHref === '/profile'
-                      ? pathname.startsWith('/profile')
-                      : matchHref === '/login'
-                        ? pathname.startsWith('/login')
-                        : pathname === href
+                    : pathname === href
 
           return (
             <li key={label} className="flex-1">

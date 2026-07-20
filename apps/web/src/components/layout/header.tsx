@@ -1,14 +1,12 @@
 'use client'
 
-import { Menu, Plus, LogOut, LayoutDashboard, User, UserPlus, Bell, Search } from 'lucide-react'
+import { Plus, LogOut, LayoutDashboard, User } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
 import { HeaderSearch } from '@/components/layout/header-search'
 import { NotificationBell } from '@/components/notifications/notification-bell'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
@@ -216,172 +214,10 @@ function UserDropdown({ name, email, hasListings, onSignOut }: UserDropdownProps
   )
 }
 
-// ─── Mobile Sheet ─────────────────────────────────────────────────────────────
-
-interface MobileSheetProps {
-  name: string | null
-  isLoggedIn: boolean
-  hasListings: boolean
-  pathname: string
-  onSignOut: () => void
-  notificationCount?: number
-}
-
-function MobileSheet({
-  name,
-  isLoggedIn,
-  hasListings,
-  pathname,
-  onSignOut,
-  notificationCount = 0,
-}: MobileSheetProps) {
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <button
-          type="button"
-          aria-label="Open menu"
-          className={cn(
-            'flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-white',
-            'py-1 pl-2.5 pr-1',
-            'text-[var(--color-muted-foreground)] transition-shadow duration-200 hover:shadow-sm',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
-          )}
-        >
-          <Menu className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-muted)]"
-            aria-hidden="true"
-          >
-            {name?.[0]?.toUpperCase() ? (
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-primary)] text-xs font-semibold text-white">
-                {name[0].toUpperCase()}
-              </span>
-            ) : (
-              <User className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
-            )}
-          </span>
-        </button>
-      </SheetTrigger>
-
-      <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-6">
-        <SheetHeader className="mb-5">
-          <SheetTitle className="text-left">
-            <ChapterNewLogo size="sm" asLink={false} />
-          </SheetTitle>
-        </SheetHeader>
-
-        <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
-          <Link
-            href="/properties"
-            className={cn(
-              'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
-              pathname.startsWith('/properties')
-                ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
-                : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
-            )}
-          >
-            <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-            Browse Properties
-          </Link>
-          <Link
-            href="/sell"
-            className="flex items-center gap-2.5 rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          >
-            <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
-            Post Property
-          </Link>
-
-          <div className="my-2 border-t border-[var(--color-border)]" />
-
-          {isLoggedIn ? (
-            <>
-              {hasListings && (
-                <Link
-                  href="/dashboard"
-                  className={cn(
-                    'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
-                    pathname.startsWith('/dashboard')
-                      ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
-                      : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
-                  )}
-                >
-                  <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  Dashboard
-                </Link>
-              )}
-              <Link
-                href="/notifications"
-                className={cn(
-                  'flex items-center justify-between gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
-                  pathname.startsWith('/notifications')
-                    ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
-                    : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
-                )}
-              >
-                <span className="flex items-center gap-2.5">
-                  <Bell className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  Notifications
-                </span>
-                {notificationCount > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-accent)] px-1.5 text-[10px] font-bold text-white">
-                    {notificationCount > 99 ? '99+' : notificationCount}
-                  </span>
-                )}
-              </Link>
-              <Link
-                href="/profile"
-                className={cn(
-                  'flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
-                  pathname.startsWith('/profile')
-                    ? 'bg-[var(--color-muted)] text-[var(--color-foreground)]'
-                    : 'text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
-                )}
-              >
-                <User className="h-4 w-4 shrink-0" aria-hidden="true" />
-                My Profile
-              </Link>
-
-              <div className="my-2 border-t border-[var(--color-border)]" />
-
-              <button
-                type="button"
-                onClick={onSignOut}
-                className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-              >
-                <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
-              >
-                <User className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
-              >
-                <UserPlus className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Create Account
-              </Link>
-            </>
-          )}
-        </nav>
-      </SheetContent>
-    </Sheet>
-  )
-}
-
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 export function Header() {
   const { user, loading, signOut } = useAuth()
-  const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const hasListings = useHasListings(user?.id)
   // Single shared hook — bell and mobile badge read from the same state
@@ -469,16 +305,44 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile only */}
+        {/* Mobile only — avatar/profile link replaces hamburger sheet */}
         <div className="shrink-0 md:hidden">
-          <MobileSheet
-            name={name}
-            isLoggedIn={!!user}
-            hasListings={hasListings}
-            pathname={pathname}
-            onSignOut={signOut}
-            notificationCount={notificationsHook.unreadCount}
-          />
+          {loading ? (
+            <div
+              className="h-9 w-9 animate-pulse rounded-full bg-[var(--color-muted)]"
+              aria-hidden="true"
+            />
+          ) : user ? (
+            <Link
+              href="/profile"
+              aria-label="My profile"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+            >
+              <span
+                className={cn(
+                  'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold',
+                  name?.[0]
+                    ? 'bg-[var(--color-primary)] text-white'
+                    : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+                )}
+              >
+                {name?.[0]?.toUpperCase() ?? <User className="h-4 w-4" />}
+              </span>
+              {notificationsHook.unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                  {notificationsHook.unreadCount > 9 ? '9+' : notificationsHook.unreadCount}
+                </span>
+              )}
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              aria-label="Sign in"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white text-[var(--color-muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+            >
+              <User className="h-4 w-4" />
+            </Link>
+          )}
         </div>
       </div>
     </header>

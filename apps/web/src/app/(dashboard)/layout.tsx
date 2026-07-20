@@ -18,6 +18,8 @@ import { Suspense, useEffect, useState } from 'react'
 import { SignOutButton } from '@/components/auth/sign-out-button'
 import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
 import { ToastProvider } from '@/components/ui/toast'
+import { useNotifications } from '@/hooks/use-notifications'
+import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
@@ -141,18 +143,61 @@ function SidebarNav(props: SidebarNavProps) {
   )
 }
 
-function TopBar() {
-  // No "List property" CTA here — Post is already the centre tab in the bottom nav.
+// TopBar shows logo + user avatar (with notif badge) — mirrors the browse header avatar
+function TopBarInner() {
+  const { user } = useAuth()
+  const { unreadCount } = useNotifications(user?.id)
+
+  const name =
+    user?.user_metadata?.full_name ??
+    (user?.email?.includes('@') ? user.email.split('@')[0] : (user?.email ?? null)) ??
+    null
+  const initial = name?.[0]?.toUpperCase() ?? null
+
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center border-b border-[var(--color-border)] bg-white/95 px-4 backdrop-blur-sm lg:hidden">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-4 backdrop-blur-sm lg:hidden">
       <ChapterNewLogo size="sm" />
+      <Link
+        href="/profile"
+        aria-label="My profile"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+      >
+        <span
+          className={cn(
+            'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold',
+            initial
+              ? 'bg-[var(--color-primary)] text-white'
+              : 'bg-[var(--color-muted)] text-[var(--color-muted-foreground)]',
+          )}
+        >
+          {initial ?? <User className="h-4 w-4" />}
+        </span>
+        {unreadCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </Link>
     </header>
   )
 }
 
-// Unified 5-item mobile nav — identical labels/icons to the browse MobileNav so
-// users see the same bottom bar on every logged-in page (browse + dashboard).
-// Browse | My Activity | Post | Inbox | Me
+function TopBar() {
+  return (
+    <Suspense
+      fallback={
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-4 lg:hidden">
+          <ChapterNewLogo size="sm" />
+        </header>
+      }
+    >
+      <TopBarInner />
+    </Suspense>
+  )
+}
+
+// 4-tab mobile nav — Browse | My Activity | Post | Inbox
+// Me is now accessible via the avatar in the top header
 const MOBILE_ITEMS = [
   {
     href: '/properties',
@@ -174,7 +219,6 @@ const MOBILE_ITEMS = [
     matchPath: '/messages',
     matchMsg: true,
   },
-  { href: '/profile', label: 'Me', icon: <User className="h-5 w-5" /> },
 ]
 
 interface MobileBottomNavProps {
@@ -192,11 +236,9 @@ function MobileBottomNavInner({ totalUnread }: MobileBottomNavProps) {
       {MOBILE_ITEMS.map((item) => {
         const isActive =
           'matchDash' in item
-            ? // My Activity: active on all /dashboard/** routes
-              pathname === '/dashboard' || pathname.startsWith('/dashboard/')
+            ? pathname === '/dashboard' || pathname.startsWith('/dashboard/')
             : 'matchPath' in item && item.matchPath === '/properties'
-              ? // Browse: active on /properties and /property/* detail pages
-                pathname.startsWith('/properties') || pathname.startsWith('/property')
+              ? pathname.startsWith('/properties') || pathname.startsWith('/property')
               : 'matchPath' in item
                 ? item.matchPath !== undefined && pathname.startsWith(item.matchPath)
                 : pathname.startsWith(item.href)
