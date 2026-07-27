@@ -56,6 +56,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'OTP must be 6 digits.' }, { status: 422 })
   }
 
+  // If the user already has this exact phone verified, treat as success immediately.
+  // This guards against the stale-JWT case where the widget shows for an already-verified user.
+  if (user.user_metadata?.phone_verified === true && user.user_metadata?.phone === phone) {
+    return NextResponse.json({ message: 'Phone already verified.', phone })
+  }
+
   const admin = createServiceClient()
   if (!admin) {
     return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })

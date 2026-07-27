@@ -116,6 +116,7 @@ function SellPageInner() {
   const [showErrors, setShowErrors] = useState(false)
   const [saveErrorIsAuth, setSaveErrorIsAuth] = useState(false)
   // phoneVerified tracks live verification state — updated when InlinePhoneVerification succeeds
+  // or when we detect it in a freshly-refreshed session on review step entry.
   const [phoneVerified, setPhoneVerified] = useState<boolean | null>(null)
 
   const currentIndex = SELL_STEPS.indexOf(currentStep)
@@ -209,14 +210,20 @@ function SellPageInner() {
     })()
   }, [searchParams])
 
-  // Refresh the session when the review step is entered so that stale JWT metadata
-  // (e.g. phone_verified) is replaced with the latest server-side values.
-  // The SupabaseAuthProvider onAuthStateChange handler picks up the TOKEN_REFRESHED
-  // event and updates the shared `user` state automatically.
+  // On review step entry, refresh the session so stale JWT metadata (e.g. phone_verified
+  // set on a previous visit) is reflected before the step renders.
+  // We await the result and seed phoneVerified directly so the widget never flashes
+  // for an already-verified user whose token was cached.
   useEffect(() => {
     if (currentStep !== 'review') return
     createClient()
       .auth.refreshSession()
+      .then(({ data }) => {
+        const meta = data.session?.user?.user_metadata
+        if (meta?.phone_verified === true && meta?.phone) {
+          setPhoneVerified(true)
+        }
+      })
       .catch(() => {})
   }, [currentStep])
 
@@ -278,11 +285,14 @@ function SellPageInner() {
       case 'pricing':
         return <StepPricing showErrors={showErrors} />
       case 'review': {
-        // Use live phoneVerified state if available; fall back to user metadata on first render
-        const hasPhone =
-          phoneVerified !== null
-            ? phoneVerified
-            : !!(user?.user_metadata?.phone_verified && (user?.user_metadata?.phone ?? user?.phone))
+        // Prefer the live phoneVerified state (set after inline OTP or after session refresh).
+        // While waiting for the refresh, treat as verified if user metadata already says so —
+        // this avoids a flash of the verification widget for users who verified long ago.
+        const metaVerified = !!(
+          user?.user_metadata?.phone_verified &&
+          (user?.user_metadata?.phone ?? user?.phone)
+        )
+        const hasPhone = phoneVerified !== null ? phoneVerified : metaVerified
         return (
           <StepReview
             draftId={draftId}
