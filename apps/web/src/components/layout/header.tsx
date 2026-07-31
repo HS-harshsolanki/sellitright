@@ -361,20 +361,20 @@ export function Header() {
         {/* Zone 1: Logo — always left */}
         <Logo />
 
-        {/* Zone 2: Search — accordion modal trigger on mobile, SmartSearch pill on sm+ */}
-        <div className="min-w-0 flex-1 sm:hidden">
+        {/* Zone 2: Search — modal trigger on mobile/tablet (<lg), SmartSearch pill on lg+ */}
+        <div className="min-w-0 flex-1 lg:hidden">
           <Suspense fallback={<SearchFallback />}>
             <HeaderMobileSearch />
           </Suspense>
         </div>
-        <div className="hidden min-w-0 flex-1 items-center justify-center px-2 sm:flex">
+        <div className="hidden min-w-0 flex-1 items-center justify-center px-2 lg:flex">
           <Suspense fallback={<SearchFallback />}>
             <HeaderSmartSearch />
           </Suspense>
         </div>
 
-        {/* Zone 3: Right actions — desktop */}
-        <div className="hidden shrink-0 items-center gap-3 md:flex">
+        {/* Zone 3: Right actions — desktop lg+ */}
+        <div className="hidden shrink-0 items-center gap-3 lg:flex">
           <nav aria-label="Main navigation" className="flex items-center gap-3">
             {pathname !== '/properties' && (
               <Link
@@ -425,8 +425,8 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile only — avatar menu (profile + notifications + sign out) */}
-        <div className="ml-auto shrink-0 md:hidden">
+        {/* Mobile/tablet only — avatar menu (profile + notifications + sign out) */}
+        <div className="ml-auto shrink-0 lg:hidden">
           {loading ? (
             <div
               className="h-9 w-9 animate-pulse rounded-full bg-[var(--color-muted)]"

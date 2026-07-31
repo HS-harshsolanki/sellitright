@@ -89,7 +89,7 @@ function Segment({
   roundingClass = '',
 }: SegmentProps) {
   return (
-    <div className="group/seg relative flex w-[220px] min-w-[150px] shrink items-stretch">
+    <div className="group/seg relative flex w-[160px] min-w-[130px] shrink items-stretch xl:w-[220px]">
       <button
         type="button"
         onClick={onToggle}
@@ -399,8 +399,8 @@ export function SmartSearchBar({ defaultValues = {}, onSearch, className }: Smar
 
   // ── Normal segmented bar ──────────────────────────────────────────────────
   return (
-    <div ref={containerRef} className={cn('flex justify-center', className)}>
-      <div className="group/pill inline-flex items-stretch rounded-full border border-[var(--color-border)] bg-white shadow-sm">
+    <div ref={containerRef} className={cn('flex min-w-0 justify-center', className)}>
+      <div className="group/pill flex min-w-0 items-stretch rounded-full border border-[var(--color-border)] bg-white shadow-sm">
         {/* WHERE */}
         <Segment
           segKey="where"
