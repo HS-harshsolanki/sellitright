@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
-import { HeaderSmartSearch } from '@/components/layout/header-smart-search'
+import { HeaderMobileSearch, HeaderSmartSearch } from '@/components/layout/header-smart-search'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useAuth } from '@/lib/supabase/auth-context'
@@ -61,7 +61,7 @@ function Logo() {
 
 function SearchFallback() {
   return (
-    <div className="h-11 w-[760px] max-w-full animate-pulse rounded-full border border-[var(--color-border)] bg-[var(--color-muted)]" />
+    <div className="h-10 w-full max-w-[760px] animate-pulse rounded-full border border-[var(--color-border)] bg-[var(--color-muted)]" />
   )
 }
 
@@ -357,11 +357,16 @@ export function Header() {
         scrolled ? 'shadow-sm' : 'shadow-none',
       )}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 overflow-x-hidden px-4 sm:h-[4.5rem] sm:gap-6 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:h-[4.5rem] sm:gap-6 sm:px-6">
         {/* Zone 1: Logo — always left */}
         <Logo />
 
-        {/* Zone 2: Search — hidden on mobile (pill overflows <640px), shown on sm+ */}
+        {/* Zone 2: Search — accordion modal trigger on mobile, SmartSearch pill on sm+ */}
+        <div className="min-w-0 flex-1 sm:hidden">
+          <Suspense fallback={<SearchFallback />}>
+            <HeaderMobileSearch />
+          </Suspense>
+        </div>
         <div className="hidden min-w-0 flex-1 items-center justify-center px-2 sm:flex">
           <Suspense fallback={<SearchFallback />}>
             <HeaderSmartSearch />
@@ -421,7 +426,7 @@ export function Header() {
         </div>
 
         {/* Mobile only — avatar menu (profile + notifications + sign out) */}
-        <div className="shrink-0 md:hidden">
+        <div className="ml-auto shrink-0 md:hidden">
           {loading ? (
             <div
               className="h-9 w-9 animate-pulse rounded-full bg-[var(--color-muted)]"

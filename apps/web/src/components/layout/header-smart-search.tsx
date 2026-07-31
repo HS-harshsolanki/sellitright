@@ -1,7 +1,10 @@
 'use client'
 
+import { Search } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 
+import { MobileSearchModal } from '@/components/search/mobile-search-modal'
 import { SmartSearchBar } from '@/components/search/smart-search-bar'
 import type {
   SmartSearchState,
@@ -133,7 +136,7 @@ function defaultsFromParams(params: URLSearchParams): Partial<SmartSearchState> 
   return d
 }
 
-// ── Inner component ────────────────────────────────────────────────────────────
+// ── Desktop inner ─────────────────────────────────────────────────────────────
 
 function HeaderSmartSearchInner() {
   const router = useRouter()
@@ -148,10 +151,60 @@ function HeaderSmartSearchInner() {
   return <SmartSearchBar defaultValues={defaults} onSearch={handleSearch} className="w-full" />
 }
 
-// ── Public component ───────────────────────────────────────────────────────────
+// ── Mobile trigger + modal ────────────────────────────────────────────────────
+
+function MobileTriggerInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [open, setOpen] = useState(false)
+
+  const defaults = defaultsFromParams(searchParams)
+
+  // Build a short summary of active filters to show in the trigger
+  const active = [
+    defaults.city ?? defaults.locality ?? null,
+    defaults.bhkTypes && defaults.bhkTypes.length > 0 ? defaults.bhkTypes[0] : null,
+    defaults.budget?.label ?? null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  function handleSearch(state: SmartSearchState) {
+    router.push(buildURL(state, searchParams))
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Search properties"
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] px-3 py-2 text-sm text-[var(--color-muted-foreground)]"
+      >
+        <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="truncate">{active || 'Search city, area, BHK…'}</span>
+      </button>
+
+      <MobileSearchModal
+        open={open}
+        defaultValues={defaults}
+        onSearch={handleSearch}
+        onClose={() => setOpen(false)}
+      />
+    </>
+  )
+}
+
+// ── Public components ─────────────────────────────────────────────────────────
 
 export function HeaderSmartSearch() {
   const pathname = usePathname()
   if (pathname === '/') return null
   return <HeaderSmartSearchInner />
+}
+
+export function HeaderMobileSearch() {
+  const pathname = usePathname()
+  if (pathname === '/') return null
+  return <MobileTriggerInner />
 }
