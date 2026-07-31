@@ -357,7 +357,7 @@ export function Header() {
         scrolled ? 'shadow-sm' : 'shadow-none',
       )}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 overflow-x-hidden px-4 sm:h-[4.5rem] sm:gap-6 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:h-[4.5rem] sm:gap-6 sm:px-6">
         {/* Zone 1: Logo — always left */}
         <Logo />
 
@@ -421,7 +421,7 @@ export function Header() {
         </div>
 
         {/* Mobile only — avatar menu (profile + notifications + sign out) */}
-        <div className="shrink-0 md:hidden">
+        <div className="ml-auto shrink-0 md:hidden">
           {loading ? (
             <div
               className="h-9 w-9 animate-pulse rounded-full bg-[var(--color-muted)]"
