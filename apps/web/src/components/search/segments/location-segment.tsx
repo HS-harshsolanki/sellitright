@@ -13,6 +13,9 @@ interface LocationSegmentProps {
   aiFilledFields: boolean
   onCityChange: (city: string | null) => void
   onLocalityChange: (locality: string | null) => void
+  /** Render autocomplete results as a static block instead of position:absolute
+   *  — required inside containers with overflow:hidden (e.g. accordion) */
+  inlineResults?: boolean
 }
 
 export function LocationSegment({
@@ -21,6 +24,7 @@ export function LocationSegment({
   aiFilledFields,
   onCityChange,
   onLocalityChange,
+  inlineResults = false,
 }: LocationSegmentProps) {
   const [localityQuery, setLocalityQuery] = useState(locality ?? '')
   const [cityQuery, setCityQuery] = useState('')
@@ -104,7 +108,7 @@ export function LocationSegment({
       </div>
 
       {/* ── Locality typeahead — always shown, disabled until city picked ── */}
-      <div className="relative">
+      <div className={inlineResults ? undefined : 'relative'}>
         <input
           ref={inputRef}
           type="text"
@@ -133,7 +137,14 @@ export function LocationSegment({
           )}
         />
         {localityQuery.trim() && localities.length > 0 && (
-          <ul className="absolute left-0 right-0 top-[calc(100%+4px)] z-[60] max-h-48 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-white shadow-xl">
+          <ul
+            className={cn(
+              'max-h-48 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-white',
+              inlineResults
+                ? 'mt-1 shadow-sm'
+                : 'absolute left-0 right-0 top-[calc(100%+4px)] z-[60] shadow-xl',
+            )}
+          >
             {localities.slice(0, 8).map((loc) => (
               <li key={loc.name}>
                 <button

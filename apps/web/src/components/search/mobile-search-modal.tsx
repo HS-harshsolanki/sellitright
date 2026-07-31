@@ -412,6 +412,7 @@ function SheetInner({
               aiFilledFields={state.aiFilledFields}
               onCityChange={(city) => patch({ city, locality: null })}
               onLocalityChange={(locality) => patch({ locality })}
+              inlineResults
             />
           </AccordionRow>
 
