@@ -205,15 +205,14 @@ export default async function LandingPage({
             >
               Buy or sell a home.
               <br />
-              No broker in the <span style={{ color: '#F86039' }}>middle.</span>
+              Let AI do the <span style={{ color: '#F86039' }}>hard work.</span>
             </h1>
           </Reveal>
 
           <Reveal delay={0.1} y={20}>
             <p className="mt-6 max-w-lg text-xl leading-relaxed text-[var(--color-muted-foreground)] sm:text-2xl">
-              AI quietly improves your listing behind the scenes — from writing compelling
-              descriptions to measuring listing quality and matching you with serious buyers. You
-              stay in control.
+              AI writes better listings, improves listing quality, and helps the right buyers
+              discover your property — while you stay in complete control.
             </p>
           </Reveal>
 
@@ -241,6 +240,7 @@ export default async function LandingPage({
             </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+              {/* AI-assisted listings */}
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-white">
                   <svg
@@ -254,19 +254,21 @@ export default async function LandingPage({
                     strokeLinejoin="round"
                     aria-hidden="true"
                   >
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    <polyline points="9 12 11 14 15 10" />
+                    {/* Sparkles */}
+                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+                    <path d="M20 3v4M22 5h-4" />
                   </svg>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[var(--color-foreground)]">
-                    No brokerage
+                    AI-assisted listings
                   </p>
                   <p className="text-xs text-[var(--color-muted-foreground)]">
-                    Keep 2–3 lakhs in your pocket
+                    Write better descriptions in seconds.
                   </p>
                 </div>
               </div>
+              {/* Smarter buyer matching */}
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-white">
                   <svg
@@ -280,19 +282,22 @@ export default async function LandingPage({
                     strokeLinejoin="round"
                     aria-hidden="true"
                   >
-                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.89 10.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012.8 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.72 6.72l1.28-1.28a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-                    <line x1="23" y1="1" x2="1" y2="23" />
+                    {/* Target/crosshair */}
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="6" />
+                    <circle cx="12" cy="12" r="2" />
                   </svg>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[var(--color-foreground)]">
-                    No spam calls
+                    Smarter buyer matching
                   </p>
                   <p className="text-xs text-[var(--color-muted-foreground)]">
-                    Only serious buyers
+                    Connect with people looking for homes like yours.
                   </p>
                 </div>
               </div>
+              {/* You stay in control */}
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-white">
                   <svg
@@ -306,17 +311,24 @@ export default async function LandingPage({
                     strokeLinejoin="round"
                     aria-hidden="true"
                   >
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0110 0v4" />
-                    <circle cx="12" cy="16" r="1" fill="currentColor" stroke="none" />
+                    {/* Sliders */}
+                    <line x1="4" y1="21" x2="4" y2="14" />
+                    <line x1="4" y1="10" x2="4" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12" y2="3" />
+                    <line x1="20" y1="21" x2="20" y2="16" />
+                    <line x1="20" y1="12" x2="20" y2="3" />
+                    <line x1="1" y1="14" x2="7" y2="14" />
+                    <line x1="9" y1="8" x2="15" y2="8" />
+                    <line x1="17" y1="16" x2="23" y2="16" />
                   </svg>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[var(--color-foreground)]">
-                    100% private
+                    You stay in control
                   </p>
                   <p className="text-xs text-[var(--color-muted-foreground)]">
-                    You control what you share
+                    AI suggests. You decide.
                   </p>
                 </div>
               </div>
