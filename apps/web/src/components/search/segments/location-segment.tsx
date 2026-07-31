@@ -133,7 +133,7 @@ export function LocationSegment({
           )}
         />
         {localityQuery.trim() && localities.length > 0 && (
-          <ul className="absolute left-0 right-0 top-[calc(100%+4px)] z-10 max-h-44 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-white shadow-xl">
+          <ul className="absolute left-0 right-0 top-[calc(100%+4px)] z-[60] max-h-48 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-white shadow-xl">
             {localities.slice(0, 8).map((loc) => (
               <li key={loc.name}>
                 <button
@@ -142,7 +142,7 @@ export function LocationSegment({
                     onLocalityChange(loc.name)
                     setLocalityQuery(loc.name)
                   }}
-                  className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-gray-50"
+                  className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
                 >
                   {loc.name}
                 </button>

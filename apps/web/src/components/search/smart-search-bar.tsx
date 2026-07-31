@@ -415,7 +415,7 @@ export function SmartSearchBar({ defaultValues = {}, onSearch, className }: Smar
           roundingClass="rounded-l-full"
           popoverAlign="left"
           popover={
-            <div className="w-80 p-4">
+            <div className="w-96 p-5">
               <LocationSegment
                 city={state.city}
                 locality={state.locality}
