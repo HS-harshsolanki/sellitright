@@ -393,7 +393,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
         {/* Quality widget — mobile only, directly below photos — shown for everyone */}
         {qualityResult && (
-          <div className="px-4 pb-4 sm:px-6 lg:hidden">
+          <div className="px-4 pb-2 pt-4 sm:px-6 sm:pb-3 sm:pt-5 lg:hidden">
             <OwnerQualityWidget
               score={qualityResult.score}
               breakdown={qualityResult.breakdown}
