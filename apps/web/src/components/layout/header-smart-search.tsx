@@ -174,12 +174,12 @@ function MobileTriggerInner() {
   }
 
   return (
-    <>
+    <div className="flex w-full min-w-0">
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Search properties"
-        className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] px-3 py-2 text-sm text-[var(--color-muted-foreground)]"
+        className="flex w-full min-w-0 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] px-3 py-2 text-sm text-[var(--color-muted-foreground)]"
       >
         <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span className="truncate">{active || 'Search city, area, BHK…'}</span>
@@ -191,7 +191,7 @@ function MobileTriggerInner() {
         onSearch={handleSearch}
         onClose={() => setOpen(false)}
       />
-    </>
+    </div>
   )
 }
 
