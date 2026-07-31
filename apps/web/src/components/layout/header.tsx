@@ -1,12 +1,12 @@
 'use client'
 
-import { Bell, Plus, LogOut, LayoutDashboard, User, Search } from 'lucide-react'
+import { Bell, Plus, LogOut, LayoutDashboard, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
-import { HeaderSmartSearch } from '@/components/layout/header-smart-search'
+import { HeaderMobileSearch, HeaderSmartSearch } from '@/components/layout/header-smart-search'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useAuth } from '@/lib/supabase/auth-context'
@@ -61,21 +61,7 @@ function Logo() {
 
 function SearchFallback() {
   return (
-    <div className="h-11 w-[760px] max-w-full animate-pulse rounded-full border border-[var(--color-border)] bg-[var(--color-muted)]" />
-  )
-}
-
-function MobileSearchButton({ pathname }: { pathname: string }) {
-  if (pathname === '/') return null
-  return (
-    <Link
-      href="/properties"
-      aria-label="Search properties"
-      className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] px-3 py-2 text-sm text-[var(--color-muted-foreground)]"
-    >
-      <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span className="truncate">Search city, locality…</span>
-    </Link>
+    <div className="h-10 w-full max-w-[760px] animate-pulse rounded-full border border-[var(--color-border)] bg-[var(--color-muted)]" />
   )
 }
 
@@ -375,9 +361,11 @@ export function Header() {
         {/* Zone 1: Logo — always left */}
         <Logo />
 
-        {/* Zone 2: Search — compact tap target on mobile, full SmartSearch pill on sm+ */}
+        {/* Zone 2: Search — accordion modal trigger on mobile, SmartSearch pill on sm+ */}
         <div className="min-w-0 flex-1 sm:hidden">
-          <MobileSearchButton pathname={pathname} />
+          <Suspense fallback={<SearchFallback />}>
+            <HeaderMobileSearch />
+          </Suspense>
         </div>
         <div className="hidden min-w-0 flex-1 items-center justify-center px-2 sm:flex">
           <Suspense fallback={<SearchFallback />}>
