@@ -53,7 +53,7 @@ function formatFileSize(bytes: number): string {
 function isValidUrl(value: string): boolean {
   try {
     const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:'
+    return url.protocol === 'https:'
   } catch {
     return false
   }

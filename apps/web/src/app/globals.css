@@ -39,6 +39,8 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    overflow-x: hidden;
+    min-width: 320px;
   }
 
   html {
@@ -59,5 +61,50 @@
   }
   .pb-safe-0 {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@keyframes search-shake {
+  0% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-4px);
+  }
+  30% {
+    transform: translateX(4px);
+  }
+  45% {
+    transform: translateX(-4px);
+  }
+  60% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-4px);
+  }
+  90% {
+    transform: translateX(4px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  .animate-search-shake {
+    animation: search-shake 350ms ease both;
+  }
+  .animate-fade-in {
+    animation: fade-in 300ms ease both;
   }
 }

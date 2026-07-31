@@ -72,6 +72,11 @@ export interface MockListing {
   seller: MockSeller
   images: MockListingImage[]
   createdAt: string
+  qualityScore?: number
+  qualityBreakdown?: Record<string, unknown> | null
+  negotiable?: boolean
+  /** Ephemeral buyer match score (0–100), computed client-side from active filters. Never stored in DB. */
+  matchScore?: number
 }
 
 export const MOCK_LISTINGS: MockListing[] = [

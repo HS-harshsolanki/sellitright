@@ -176,7 +176,7 @@ function TopBarInner() {
           aria-expanded={menuOpen}
           aria-haspopup="menu"
           onClick={() => setMenuOpen((v) => !v)}
-          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+          className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
         >
           <span
             className={cn(
@@ -315,7 +315,7 @@ function MobileBottomNavInner({ totalUnread }: MobileBottomNavProps) {
             href={item.href}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors',
+              'flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
               isActive
                 ? 'text-[var(--color-foreground)]'
@@ -330,7 +330,7 @@ function MobileBottomNavInner({ totalUnread }: MobileBottomNavProps) {
                 </span>
               ) : null}
             </span>
-            <span className="text-[10px] font-medium">{item.label}</span>
+            <span className="text-xs font-medium">{item.label}</span>
           </Link>
         )
       })}

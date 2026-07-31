@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { computeQualityScore } from '@/lib/quality-score'
 import { listingCreateSchema } from '@/lib/validators'
 
 // Accept all listingCreateSchema fields + optional draftId for upsert
@@ -97,7 +98,62 @@ export async function POST(request: NextRequest) {
       longitude: validated.longitude ?? null,
       amenities: validated.amenities,
       image_urls: validated.imageUrls,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      negotiable: validated.negotiable ?? false,
       status: 'PENDING_REVIEW',
+    } as any
+
+    // Fetch price benchmark for this locality (best-effort — no failure if missing)
+    let priceBenchmark = null
+    try {
+      const { data: benchmarkRow } = await admin
+        .from('locality_price_benchmarks')
+        .select('median_price_sqft, stddev_price_sqft, sample_count')
+        .eq('city', validated.city)
+        .eq('locality', validated.locality)
+        .eq('property_type', validated.propertyType)
+        .maybeSingle()
+      if (benchmarkRow && benchmarkRow.sample_count >= 10) {
+        priceBenchmark = {
+          medianPriceSqft: Number(benchmarkRow.median_price_sqft),
+          stddevPriceSqft: Number(benchmarkRow.stddev_price_sqft),
+        }
+      }
+    } catch {
+      // Benchmark lookup failure is non-fatal — score will give full price sanity points
+    }
+
+    // Compute quality score (pure TypeScript, <1ms)
+    const qualityResult = computeQualityScore({
+      propertyType: validated.propertyType,
+      imageUrls: validated.imageUrls,
+      description: validated.description,
+      bhkType: validated.bhkType ?? null,
+      builtUpArea: validated.builtUpArea,
+      carpetArea: validated.carpetArea ?? null,
+      floor: validated.floor ?? null,
+      totalFloors: validated.totalFloors ?? null,
+      facing: validated.facing ?? null,
+      furnishing: validated.furnishing ?? null,
+      bathrooms: validated.bathrooms,
+      balconies: validated.balconies ?? null,
+      parking: validated.parking ?? null,
+      ageOfProperty: validated.ageOfProperty ?? null,
+      amenities: validated.amenities,
+      price: validated.price,
+      locality: validated.locality,
+      city: validated.city,
+      isVerified: false, // new listings are never verified on creation
+      priceBenchmark,
+    })
+
+    const recordWithScore = {
+      ...record,
+      quality_score: qualityResult.score,
+      quality_breakdown:
+        qualityResult.breakdown as unknown as import('@/lib/supabase/database.types').Json,
+      quality_scored_at: new Date().toISOString(),
+      quality_v2_scored: false,
     }
 
     let data, error
@@ -109,7 +165,7 @@ export async function POST(request: NextRequest) {
       // seller_id check is enforced explicitly so service-role bypass is safe.
       ;({ data, error } = await admin
         .from('listings')
-        .update(record)
+        .update(recordWithScore)
         .eq('id', draftId)
         .eq('seller_id', user.id)
         .in('status', ['DRAFT', 'REJECTED', 'ACTIVE', 'INACTIVE', 'PENDING_REVIEW'])
@@ -119,7 +175,7 @@ export async function POST(request: NextRequest) {
       // New listing
       ;({ data, error } = await supabase
         .from('listings')
-        .insert(record)
+        .insert(recordWithScore)
         .select('id, status, created_at')
         .single())
     }
@@ -136,6 +192,21 @@ export async function POST(request: NextRequest) {
         { status: 404 },
       )
     }
+
+    // Insert quality history row (fire-and-forget — non-critical)
+    void admin
+      .from('listing_quality_history')
+      .insert({
+        listing_id: data.id,
+        score: qualityResult.score,
+        breakdown:
+          qualityResult.breakdown as unknown as import('@/lib/supabase/database.types').Json,
+        reason: 'initial',
+      })
+      .then(({ error: histErr }) => {
+        if (histErr)
+          console.error('[listings/create] quality history insert error:', histErr.message)
+      })
 
     return NextResponse.json(data, { status: 201 })
   } catch (error) {

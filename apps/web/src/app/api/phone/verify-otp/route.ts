@@ -61,10 +61,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Service not configured.' }, { status: 503 })
   }
 
+  // Guard: if the user already has this number verified in the DB, skip MSG91 and
+  // just re-write user_metadata so the JWT gets refreshed. This handles the
+  // re-verify loop caused by a stale JWT.
+  const { data: alreadyVerified } = await (admin as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    .from('profiles')
+    .select('phone_verified')
+    .eq('id', user.id)
+    .eq('phone', phone)
+    .maybeSingle()
+
+  if (alreadyVerified?.phone_verified) {
+    // Re-write metadata so the JWT will be fresh on next refreshSession()
+    await admin.auth.admin.updateUserById(user.id, {
+      user_metadata: { ...user.user_metadata, phone, phone_verified: true },
+    })
+    return NextResponse.json({ message: 'Phone already verified.', phone })
+  }
+
+  const MAX_VERIFY_ATTEMPTS = 5
+
   // Find the most recent unexpired, unused OTP request for this user+phone
   const now = new Date().toISOString()
   const { data: rows } = await otpTable(admin)
-    .select('id, otp_hash')
+    .select('id, otp_hash, attempt_count')
     .eq('user_id', user.id)
     .eq('phone', phone)
     .eq('used', false)
@@ -79,7 +99,22 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { id: rowId, otp_hash: reqId } = rows[0] as { id: string; otp_hash: string }
+  const {
+    id: rowId,
+    otp_hash: reqId,
+    attempt_count: attemptCount,
+  } = rows[0] as { id: string; otp_hash: string; attempt_count: number | null }
+
+  // Increment attempt counter and lock out after MAX_VERIFY_ATTEMPTS failures
+  const attempts = (attemptCount ?? 0) + 1
+  if (attempts > MAX_VERIFY_ATTEMPTS) {
+    await otpTable(admin).update({ used: true }).eq('id', rowId)
+    return NextResponse.json(
+      { error: 'Too many incorrect attempts. Please request a new OTP.' },
+      { status: 429 },
+    )
+  }
+  await otpTable(admin).update({ attempt_count: attempts }).eq('id', rowId)
 
   // Block if another verified account already holds this phone number BEFORE consuming the OTP.
   // Doing this first ensures a 409 doesn't waste the user's OTP.
@@ -101,14 +136,45 @@ export async function POST(request: NextRequest) {
   }
 
   if (existingHolder) {
-    return NextResponse.json(
-      {
-        error:
-          'This phone number is already linked to another account. If you believe this is a mistake, please contact support.',
-        code: 'PHONE_ALREADY_CLAIMED',
-      },
-      { status: 409 },
-    )
+    // Check whether the existing holder is a ghost phone-auth account
+    // (created by the old Firebase phone-auth system, email = phone.XXXXXXXXXX@chapternew.app).
+    // These accounts are safe to release — the real user is verifying via OTP.
+    const { data: holderAuthUser } = await admin.auth.admin.getUserById(existingHolder.id)
+    const holderEmail = holderAuthUser?.user?.email ?? ''
+    const isGhostAccount = /^phone\.\d+@chapternew\.app$/.test(holderEmail)
+
+    if (isGhostAccount) {
+      // Release the ghost account's phone claim so the real user can take it.
+      // Also clear auth metadata — the handle_user_update trigger re-reads raw_user_meta_data
+      // on any auth.users UPDATE, so leaving stale metadata would cause the trigger to
+      // re-populate profiles.phone_verified on the ghost account.
+      logger.error('[verify-otp] releasing ghost phone-auth account claim', {
+        ghostId: existingHolder.id,
+        phone,
+      })
+      await Promise.all([
+        (admin as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+          .from('profiles')
+          .update({ phone: null, phone_verified: false })
+          .eq('id', existingHolder.id),
+        admin.auth.admin.updateUserById(existingHolder.id, {
+          user_metadata: {
+            ...(holderAuthUser?.user?.user_metadata ?? {}),
+            phone: null,
+            phone_verified: false,
+          },
+        }),
+      ])
+    } else {
+      return NextResponse.json(
+        {
+          error:
+            'This phone number is already linked to another account. If you believe this is a mistake, please contact support.',
+          code: 'PHONE_ALREADY_CLAIMED',
+        },
+        { status: 409 },
+      )
+    }
   }
 
   // Delegate verification to MSG91 widget (it is the authoritative OTP source)
@@ -120,10 +186,16 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Mark the OTP request as used so it can't be replayed
-  const { error: markUsedError } = await otpTable(admin).update({ used: true }).eq('id', rowId)
+  // Mark ALL unused OTP rows for this user+phone as used (not just the matched one).
+  // This prevents stale rows from counting toward the rate limit and avoids the
+  // "re-verify loop" where leftover unused rows trick the send-limit check.
+  const { error: markUsedError } = await otpTable(admin)
+    .update({ used: true })
+    .eq('user_id', user.id)
+    .eq('phone', phone)
+    .eq('used', false)
   if (markUsedError) {
-    logger.error('[verify-otp] failed to mark OTP used', { error: markUsedError.message, rowId })
+    logger.error('[verify-otp] failed to mark OTP rows used', { error: markUsedError.message })
   }
 
   // Persist verified phone to user metadata

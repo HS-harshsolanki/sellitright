@@ -25,7 +25,7 @@ const getInitialListings = unstable_cache(
       const { data, count } = await admin
         .from('listings')
         .select(
-          'id, title, price, property_type, bhk_type, built_up_area, carpet_area, furnishing, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id',
+          'id, title, description, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, quality_score, quality_breakdown',
           { count: 'exact' },
         )
         .eq('status', 'ACTIVE')
@@ -41,8 +41,17 @@ const getInitialListings = unstable_cache(
   { revalidate: 60, tags: ['listings'] },
 )
 
-export default async function BrowsePage() {
-  const { listings: initialListings, total: initialTotal } = await getInitialListings()
+interface BrowsePageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function BrowsePage({ searchParams }: BrowsePageProps) {
+  const params = await searchParams
+  // Only use cached initial listings when no filters are active (clean browse page)
+  const hasFilters = Object.keys(params).some((k) => !['sort', 'page'].includes(k))
+  const { listings: initialListings, total: initialTotal } = hasFilters
+    ? { listings: [], total: 0 }
+    : await getInitialListings()
   const initialTotalPages = Math.max(1, Math.ceil(initialTotal / 12))
 
   return (

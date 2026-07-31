@@ -57,15 +57,16 @@ export async function GET(request: Request) {
       return response
     }
 
-    // Code exchange failed — likely redirect URL mismatch in Supabase dashboard
     console.error(
       '[auth/callback] exchangeCodeForSession failed:',
       error.message,
       '| origin:',
       origin,
     )
+    return NextResponse.redirect(
+      `${origin}/login?error=auth_failed&detail=${encodeURIComponent(error.message)}`,
+    )
   }
 
-  // No code or exchange failed — redirect to login with error hint
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  return NextResponse.redirect(`${origin}/login?error=auth_failed&detail=no_code`)
 }

@@ -346,6 +346,83 @@ function DetailModal({
             </div>
           </div>
 
+          {/* Quality Score */}
+          {listing.qualityScore !== undefined && (
+            <div className="rounded-lg border border-[var(--color-border)] p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                Quality Score
+              </p>
+              <div className="flex items-center gap-3">
+                <span
+                  className={cn(
+                    'text-2xl font-bold',
+                    listing.qualityScore >= 80
+                      ? 'text-emerald-600'
+                      : listing.qualityScore >= 50
+                        ? 'text-amber-600'
+                        : 'text-red-600',
+                  )}
+                >
+                  {listing.qualityScore}/100
+                </span>
+                {listing.qualityScore < 20 && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                    Excluded from default browse
+                  </span>
+                )}
+              </div>
+              {listing.qualityBreakdown &&
+                (() => {
+                  const bd = listing.qualityBreakdown as Record<
+                    string,
+                    { score?: number; max?: number }
+                  >
+                  const dims = [
+                    { key: 'photos', label: 'Photos' },
+                    { key: 'description', label: 'Description' },
+                    { key: 'details', label: 'Details' },
+                    { key: 'price', label: 'Price' },
+                    { key: 'location', label: 'Location' },
+                    { key: 'trust', label: 'Verified' },
+                  ]
+                  return (
+                    <div className="mt-3 space-y-1.5">
+                      {dims.map(({ key, label }) => {
+                        const dim = bd[key]
+                        if (!dim) return null
+                        const score = dim.score ?? 0
+                        const max = dim.max ?? 1
+                        const pct = Math.round((score / max) * 100)
+                        return (
+                          <div key={key} className="flex items-center gap-2 text-xs">
+                            <span className="w-24 shrink-0 text-[var(--color-muted-foreground)]">
+                              {label}
+                            </span>
+                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--color-muted)]">
+                              <div
+                                className={cn(
+                                  'h-full rounded-full',
+                                  pct >= 80
+                                    ? 'bg-emerald-500'
+                                    : pct >= 50
+                                      ? 'bg-amber-500'
+                                      : 'bg-red-500',
+                                )}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="w-12 text-right font-medium text-[var(--color-foreground)]">
+                              {score}/{max}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+            </div>
+          )}
+
           {/* Seller */}
           <div className="rounded-lg border border-[var(--color-border)] p-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
@@ -647,6 +724,7 @@ function AdminListingsPageInner() {
   const [query, setQuery] = useState('')
   const [cityFilter, setCityFilter] = useState('')
   const [propertyTypeFilter, setPropertyTypeFilter] = useState('')
+  const [lowQualityOnly, setLowQualityOnly] = useState(false)
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [selectedListing, setSelectedListing] = useState<MockListing | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -731,6 +809,10 @@ function AdminListingsPageInner() {
         </Button>
       </div>
     )
+
+  const filteredListings = lowQualityOnly
+    ? listings.filter((l) => (l.qualityScore ?? 100) < 50)
+    : listings
 
   return (
     <>
@@ -931,12 +1013,25 @@ function AdminListingsPageInner() {
               </option>
             ))}
           </select>
-          {(query || cityFilter || propertyTypeFilter) && (
+          <label className="flex cursor-pointer items-center gap-1.5 text-sm text-[var(--color-foreground)]">
+            <input
+              type="checkbox"
+              checked={lowQualityOnly}
+              onChange={(e) => {
+                setLowQualityOnly(e.target.checked)
+                setTimeout(() => void fetchListings(true), 0)
+              }}
+              className="rounded"
+            />
+            Low quality (&lt;50)
+          </label>
+          {(query || cityFilter || propertyTypeFilter || lowQualityOnly) && (
             <button
               onClick={() => {
                 setQuery('')
                 setCityFilter('')
                 setPropertyTypeFilter('')
+                setLowQualityOnly(false)
                 setTimeout(() => void fetchListings(true), 0)
               }}
               className="text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
@@ -947,11 +1042,11 @@ function AdminListingsPageInner() {
         </div>
 
         {/* Table */}
-        {loading && listings.length === 0 ? (
+        {loading && filteredListings.length === 0 ? (
           <div className="flex h-40 items-center justify-center">
             <p className="text-sm text-[var(--color-muted-foreground)]">Loading listings...</p>
           </div>
-        ) : listings.length === 0 ? (
+        ) : filteredListings.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-white py-16 text-center">
             <p className="text-sm text-[var(--color-muted-foreground)]">No listings found.</p>
           </div>
@@ -965,13 +1060,14 @@ function AdminListingsPageInner() {
                     <th className="px-4 py-2.5">Listing</th>
                     <th className="px-4 py-2.5">Location</th>
                     <th className="px-4 py-2.5">Price</th>
+                    <th className="px-4 py-2.5">Score</th>
                     <th className="px-4 py-2.5">Seller</th>
                     <th className="px-4 py-2.5">Submitted</th>
                     <th className="px-4 py-2.5">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
-                  {listings.map((listing) => (
+                  {filteredListings.map((listing) => (
                     <tr
                       key={listing.id}
                       className="cursor-pointer hover:bg-[var(--color-muted)]"
@@ -990,6 +1086,24 @@ function AdminListingsPageInner() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-2.5 font-medium text-[var(--color-foreground)]">
                         {formatPrice(listing.price)}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-2.5">
+                        {listing.qualityScore !== undefined ? (
+                          <span
+                            className={cn(
+                              'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
+                              listing.qualityScore >= 80
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : listing.qualityScore >= 50
+                                  ? 'bg-amber-50 text-amber-700'
+                                  : 'bg-red-50 text-red-600',
+                            )}
+                          >
+                            {listing.qualityScore}/100
+                          </span>
+                        ) : (
+                          <span className="text-xs text-[var(--color-muted-foreground)]">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5">
                         <p className="text-sm text-[var(--color-foreground)]">

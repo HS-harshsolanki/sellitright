@@ -1,6 +1,8 @@
 'use client'
 
-import { Minus, Plus } from 'lucide-react'
+import { useMemo, useState } from 'react'
+
+import { ChevronDown, Minus, Plus } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import {
@@ -121,7 +123,26 @@ interface StepDetailsProps {
 }
 
 export function StepDetails({ showErrors = false }: StepDetailsProps) {
-  const { details, setDetails } = useSellFormStore()
+  const { details, propertyType, setDetails } = useSellFormStore()
+
+  const [showOptional, setShowOptional] = useState(() => {
+    const d = useSellFormStore.getState().details
+    return !!(
+      d.carpetArea ||
+      d.floor ||
+      d.totalFloors ||
+      d.facing ||
+      d.ageOfProperty ||
+      d.parking ||
+      (d.amenities && d.amenities.length > 0)
+    )
+  })
+
+  const suggestedAmenities = useMemo(() => {
+    const base = ['Lift', 'Security', 'Power Backup']
+    if (propertyType === 'PENTHOUSE') return [...base, 'Gym', 'Swimming Pool', 'Clubhouse']
+    return base
+  }, [propertyType])
 
   const bhkMissing = showErrors && !details.bhkType
   const areaMissing = showErrors && !details.builtUpArea
@@ -147,7 +168,7 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
         </p>
       </div>
 
-      {/* ── Home details ── */}
+      {/* ── Home details (required) ── */}
       <div className="space-y-6">
         <SectionHeading>Home details</SectionHeading>
 
@@ -184,159 +205,38 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
           )}
         </fieldset>
 
-        {/* Area */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label htmlFor="builtup" className={labelClass}>
-              Built-up area (sq ft) <span className="text-destructive">*</span>
-            </label>
-            <input
-              id="builtup"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              placeholder="e.g. 1200"
-              value={details.builtUpArea}
-              onChange={(e) => setDetails({ builtUpArea: e.target.value })}
-              aria-invalid={areaMissing ? 'true' : undefined}
-              aria-describedby={areaMissing ? 'builtup-error' : undefined}
-              className={cn(
-                inputBase,
-                areaMissing
-                  ? 'border-destructive focus:border-destructive'
-                  : 'border-border focus:border-primary',
-              )}
-            />
-            {areaMissing && (
-              <p id="builtup-error" role="alert" className="text-destructive text-xs">
-                Please enter the built-up area.
-              </p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="carpet" className={labelClass}>
-              Carpet area (sq ft)
-            </label>
-            <input
-              id="carpet"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              placeholder="Optional"
-              value={details.carpetArea}
-              onChange={(e) => setDetails({ carpetArea: e.target.value })}
-              className={cn(inputBase, 'border-border focus:border-primary')}
-            />
-          </div>
-        </div>
-
-        {/* Floor */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label htmlFor="floor" className={labelClass}>
-              Floor number
-            </label>
-            <input
-              id="floor"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              placeholder="e.g. 5"
-              value={details.floor}
-              onChange={(e) => setDetails({ floor: e.target.value })}
-              className={cn(inputBase, 'border-border focus:border-primary')}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="totalfloors" className={labelClass}>
-              Total floors
-            </label>
-            <input
-              id="totalfloors"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              placeholder="e.g. 14"
-              value={details.totalFloors}
-              onChange={(e) => setDetails({ totalFloors: e.target.value })}
-              className={cn(inputBase, 'border-border focus:border-primary')}
-            />
-          </div>
-        </div>
-
-        {/* Facing */}
+        {/* Built-up area */}
         <div className="space-y-1.5">
-          <label htmlFor="facing" className={labelClass}>
-            Facing direction
+          <label htmlFor="builtup" className={labelClass}>
+            Built-up area (sq ft) <span className="text-destructive">*</span>
           </label>
-          <select
-            id="facing"
-            value={details.facing ?? ''}
-            onChange={(e) => setDetails({ facing: (e.target.value as Facing) || null })}
+          <input
+            id="builtup"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            placeholder="e.g. 1200"
+            value={details.builtUpArea}
+            onChange={(e) => setDetails({ builtUpArea: e.target.value })}
+            aria-invalid={areaMissing ? 'true' : undefined}
+            aria-describedby={areaMissing ? 'builtup-error' : undefined}
             className={cn(
               inputBase,
-              'border-border focus:border-primary cursor-pointer appearance-none',
+              'max-w-xs',
+              areaMissing
+                ? 'border-destructive focus:border-destructive'
+                : 'border-border focus:border-primary',
             )}
-          >
-            <option value="">Select facing</option>
-            {FACING_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          />
+          {areaMissing && (
+            <p id="builtup-error" role="alert" className="text-destructive text-xs">
+              Please enter the built-up area.
+            </p>
+          )}
         </div>
       </div>
 
-      {/* ── Living experience ── */}
-      <div className="space-y-6">
-        <SectionHeading>Living experience</SectionHeading>
-
-        {/* Counters */}
-        <div className="border-border space-y-4 rounded-xl border p-4">
-          <Counter
-            label="Bathrooms"
-            value={details.bathrooms}
-            min={1}
-            max={10}
-            onChange={(val) => setDetails({ bathrooms: val })}
-          />
-          <div className="border-border border-t" />
-          <Counter
-            label="Balconies"
-            value={details.balconies}
-            min={0}
-            max={10}
-            onChange={(val) => setDetails({ balconies: val })}
-          />
-        </div>
-
-        {/* Parking */}
-        <fieldset className="space-y-3">
-          <legend className={labelClass}>Parking</legend>
-          <div className="flex flex-wrap gap-2">
-            {PARKING_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                aria-pressed={details.parking === opt.value}
-                onClick={() => setDetails({ parking: opt.value })}
-                className={cn(
-                  'rounded-full border-2 px-4 py-2 text-sm font-medium transition-all',
-                  'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                  details.parking === opt.value
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-border text-foreground hover:border-primary/50',
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      </div>
-
-      {/* ── Condition ── */}
+      {/* ── Condition (required) ── */}
       <div className="space-y-6">
         <SectionHeading>Condition</SectionHeading>
 
@@ -383,61 +283,237 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
             </p>
           )}
         </fieldset>
-
-        {/* Age */}
-        <div className="space-y-1.5">
-          <label htmlFor="age" className={labelClass}>
-            Age of property (years)
-          </label>
-          <input
-            id="age"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            placeholder="e.g. 3"
-            value={details.ageOfProperty}
-            onChange={(e) => setDetails({ ageOfProperty: e.target.value })}
-            className={cn(inputBase, 'border-border focus:border-primary max-w-xs')}
-          />
-        </div>
       </div>
 
-      {/* ── Amenities ── */}
-      <div className="space-y-4">
-        <SectionHeading>Amenities</SectionHeading>
-        <p className="text-muted-foreground text-sm">
-          Select everything available in your society.
-        </p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {AMENITY_LIST.map((amenity) => {
-            const isChecked = details.amenities.includes(amenity)
-            return (
-              <label
-                key={amenity}
+      {/* ── Optional expander ── */}
+      {!showOptional && (
+        <button
+          type="button"
+          onClick={() => setShowOptional(true)}
+          className="flex w-full items-center gap-1.5 rounded-lg border border-dashed border-[var(--color-border)] px-4 py-3 text-sm font-medium text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+        >
+          <ChevronDown className="h-4 w-4" />
+          Add more details — floor, parking, amenities & more (optional)
+        </button>
+      )}
+
+      {/* ── Optional fields ── */}
+      {showOptional && (
+        <>
+          {/* More home details: carpet area, floor, facing */}
+          <div className="space-y-6">
+            <SectionHeading>More home details</SectionHeading>
+
+            {/* Carpet area */}
+            <div className="space-y-1.5">
+              <label htmlFor="carpet" className={labelClass}>
+                Carpet area (sq ft)
+              </label>
+              <input
+                id="carpet"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="Optional"
+                value={details.carpetArea}
+                onChange={(e) => setDetails({ carpetArea: e.target.value })}
+                className={cn(inputBase, 'border-border focus:border-primary max-w-xs')}
+              />
+              {details.builtUpArea &&
+                parseInt(details.builtUpArea, 10) > 0 &&
+                !details.carpetArea && (
+                  <p className="text-xs text-[var(--color-muted-foreground)]">
+                    Approx.{' '}
+                    <span className="font-medium">
+                      {Math.round(parseInt(details.builtUpArea, 10) * 0.7).toLocaleString('en-IN')}{' '}
+                      sq ft
+                    </span>{' '}
+                    typical for Indian apartments (70% of built-up area).{' '}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDetails({
+                          carpetArea: String(Math.round(parseInt(details.builtUpArea, 10) * 0.7)),
+                        })
+                      }
+                      className="text-[var(--color-accent)] underline hover:no-underline focus-visible:outline-none"
+                    >
+                      Use this
+                    </button>
+                  </p>
+                )}
+            </div>
+
+            {/* Floor */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="floor" className={labelClass}>
+                  Floor number
+                </label>
+                <input
+                  id="floor"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  placeholder="e.g. 5"
+                  value={details.floor}
+                  onChange={(e) => setDetails({ floor: e.target.value })}
+                  className={cn(inputBase, 'border-border focus:border-primary')}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="totalfloors" className={labelClass}>
+                  Total floors
+                </label>
+                <input
+                  id="totalfloors"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  placeholder="e.g. 14"
+                  value={details.totalFloors}
+                  onChange={(e) => setDetails({ totalFloors: e.target.value })}
+                  className={cn(inputBase, 'border-border focus:border-primary')}
+                />
+              </div>
+            </div>
+
+            {/* Facing */}
+            <div className="space-y-1.5">
+              <label htmlFor="facing" className={labelClass}>
+                Facing direction
+              </label>
+              <select
+                id="facing"
+                value={details.facing ?? ''}
+                onChange={(e) => setDetails({ facing: (e.target.value as Facing) || null })}
                 className={cn(
-                  'border-border flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 transition-colors',
-                  isChecked ? 'border-primary bg-primary/5' : 'hover:border-primary/40',
+                  inputBase,
+                  'border-border focus:border-primary cursor-pointer appearance-none',
                 )}
               >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() => toggleAmenity(amenity)}
-                  className="accent-primary h-4 w-4 cursor-pointer"
-                />
-                <span
-                  className={cn(
-                    'text-sm',
-                    isChecked ? 'text-primary font-medium' : 'text-foreground',
-                  )}
-                >
-                  {amenity}
-                </span>
+                <option value="">Select facing</option>
+                {FACING_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* ── Living experience ── */}
+          <div className="space-y-6">
+            <SectionHeading>Living experience</SectionHeading>
+
+            {/* Counters */}
+            <div className="border-border space-y-4 rounded-xl border p-4">
+              <Counter
+                label="Bathrooms"
+                value={details.bathrooms}
+                min={1}
+                max={10}
+                onChange={(val) => setDetails({ bathrooms: val })}
+              />
+              <div className="border-border border-t" />
+              <Counter
+                label="Balconies"
+                value={details.balconies}
+                min={0}
+                max={10}
+                onChange={(val) => setDetails({ balconies: val })}
+              />
+            </div>
+
+            {/* Parking */}
+            <fieldset className="space-y-3">
+              <legend className={labelClass}>Parking</legend>
+              <div className="flex flex-wrap gap-2">
+                {PARKING_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    aria-pressed={details.parking === opt.value}
+                    onClick={() => setDetails({ parking: opt.value })}
+                    className={cn(
+                      'rounded-full border-2 px-4 py-2 text-sm font-medium transition-all',
+                      'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                      details.parking === opt.value
+                        ? 'border-primary bg-primary text-white'
+                        : 'border-border text-foreground hover:border-primary/50',
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+
+          {/* ── Age of property ── */}
+          <div className="space-y-6">
+            <SectionHeading>Property age</SectionHeading>
+            <div className="space-y-1.5">
+              <label htmlFor="age" className={labelClass}>
+                Age of property (years)
               </label>
-            )
-          })}
-        </div>
-      </div>
+              <input
+                id="age"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="e.g. 3"
+                value={details.ageOfProperty}
+                onChange={(e) => setDetails({ ageOfProperty: e.target.value })}
+                className={cn(inputBase, 'border-border focus:border-primary max-w-xs')}
+              />
+            </div>
+          </div>
+
+          {/* ── Amenities ── */}
+          <div className="space-y-4">
+            <SectionHeading>Amenities</SectionHeading>
+            <p className="text-muted-foreground text-sm">
+              Select everything available in your society.
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {AMENITY_LIST.map((amenity) => {
+                const isChecked = details.amenities.includes(amenity)
+                const isSuggested = suggestedAmenities.includes(amenity) && !isChecked
+                return (
+                  <label
+                    key={amenity}
+                    className={cn(
+                      'border-border flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 transition-colors',
+                      isChecked ? 'border-primary bg-primary/5' : 'hover:border-primary/40',
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleAmenity(amenity)}
+                      className="accent-primary h-4 w-4 cursor-pointer"
+                    />
+                    <span
+                      className={cn(
+                        'text-sm',
+                        isChecked ? 'text-primary font-medium' : 'text-foreground',
+                      )}
+                    >
+                      {amenity}
+                      {isSuggested && (
+                        <span className="ml-1 text-xs text-[var(--color-muted-foreground)]">
+                          Suggested
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

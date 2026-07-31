@@ -11,6 +11,7 @@ import {
   Layers,
   Eye,
   Calendar,
+  Sparkle,
 } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -20,26 +21,35 @@ import { cache } from 'react'
 import { ContactSeller } from '@/components/listing/contact-seller'
 import { ExpandableDescription } from '@/components/listing/expandable-description'
 import { ListingGallery } from '@/components/listing/listing-gallery'
+import { MatchScoreWidget } from '@/components/listing/match-score-widget'
 import { MobileBottomBar } from '@/components/listing/mobile-bottom-bar'
+import { OwnerQualityWidget } from '@/components/listing/owner-quality-widget'
 import { PropertyHighlights } from '@/components/listing/property-highlights'
 import { ShareSaveButtons } from '@/components/listing/share-save-buttons'
 import { ShowAllAmenities } from '@/components/listing/show-all-amenities'
 import { formatPrice, formatBHK, formatArea, formatFloor } from '@/lib/format'
 import { mapSupabaseListingToMock } from '@/lib/listing-mapper'
 import type { MockListing } from '@/lib/mock-data'
+import {
+  computeQualityScore,
+  getImprovementActions,
+  type QualityBreakdown,
+  type ImprovementAction,
+} from '@/lib/quality-score'
 import { createClient } from '@/lib/supabase/server'
 
 export const revalidate = 300
 
 const getListingData = cache(async (id: string) => {
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('listings')
     .select(
-      'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description',
+      'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description, quality_score, quality_breakdown, quality_scored_at',
     )
     .eq('id', id)
     .single()
+  if (error && error.code !== 'PGRST116') throw error
   return data
 })
 
@@ -56,7 +66,11 @@ export async function generateMetadata({ params }: ListingPageProps): Promise<Me
 
   const priceStr = formatPrice(listing.price)
   const bhk = formatBHK(listing.bhk_type ?? '')
-  const description = (listing.description ?? '').slice(0, 155)
+  const rawDesc = (listing.description ?? '').trim()
+  const description = (
+    rawDesc ||
+    `${bhk} property for sale in ${listing.locality}, ${listing.city}. Contact the owner for more details.`
+  ).slice(0, 155)
 
   return {
     title: `${bhk} in ${listing.locality}, ${listing.city} — ${priceStr}`,
@@ -113,8 +127,10 @@ export default async function ListingPage({ params }: ListingPageProps) {
         listingRaw = mapSupabaseListingToMock(data)
       }
     }
-  } catch {
-    // Supabase not configured or network error — fall through to notFound()
+  } catch (err: unknown) {
+    // Only swallow "not configured" errors; rethrow real DB/network errors
+    const msg = err instanceof Error ? err.message : String(err)
+    if (!msg.includes('not available') && !msg.includes('not configured')) throw err
   }
 
   // ── 2. 404 if Supabase returned nothing ──────────────────────────────────
@@ -125,6 +141,46 @@ export default async function ListingPage({ params }: ListingPageProps) {
   const listing = listingRaw!
 
   const isAuthenticated = !!viewer
+
+  // ── Quality score — computed server-side for everyone (actions only for owner) ─
+  let qualityResult: {
+    score: number
+    breakdown: QualityBreakdown
+    actions: ImprovementAction[]
+  } | null = null
+  {
+    // Re-fetch raw data for quality input (already cached by React cache())
+    const rawData = await getListingData(id)
+    if (rawData) {
+      const qInput = {
+        propertyType: rawData.property_type ?? '',
+        imageUrls: rawData.image_urls ?? [],
+        description: rawData.description ?? '',
+        bhkType: rawData.bhk_type ?? null,
+        builtUpArea: rawData.built_up_area ?? null,
+        carpetArea: rawData.carpet_area ?? null,
+        floor: rawData.floor ?? null,
+        totalFloors: rawData.total_floors ?? null,
+        facing: rawData.facing ?? null,
+        furnishing: rawData.furnishing ?? null,
+        bathrooms: rawData.bathrooms ?? null,
+        balconies: rawData.balconies ?? null,
+        parking: rawData.parking ?? null,
+        ageOfProperty: rawData.age_of_property ?? null,
+        amenities: rawData.amenities ?? [],
+        price: rawData.price ?? 0,
+        locality: rawData.locality ?? '',
+        city: rawData.city ?? '',
+        address: rawData.address ?? null,
+        pincode: rawData.pincode ?? null,
+        isVerified: rawData.is_verified ?? false,
+      }
+      const { score, breakdown } = computeQualityScore(qInput)
+      // Actions (improvement tips) are only relevant for the owner
+      const actions = isOwner ? getImprovementActions(breakdown, rawData.id) : []
+      qualityResult = { score, breakdown, actions }
+    }
+  }
 
   // Check buyer's interest state for this listing (server-side, avoids flash)
   let hasExistingRequest = false
@@ -335,6 +391,19 @@ export default async function ListingPage({ params }: ListingPageProps) {
           <ListingGallery images={listing.images} title={listing.title} />
         </div>
 
+        {/* Quality widget — mobile only, directly below photos — shown for everyone */}
+        {qualityResult && (
+          <div className="px-4 pb-4 sm:px-6 lg:hidden">
+            <OwnerQualityWidget
+              score={qualityResult.score}
+              breakdown={qualityResult.breakdown}
+              actions={qualityResult.actions}
+              listingId={listing.id}
+              isOwner={isOwner}
+            />
+          </div>
+        )}
+
         {/* ────────────────────────────────────────────────────────────────── */}
         {/* SECTION 3: Two-column content grid                                */}
         {/* Left: all content sections · Right: sticky contact card           */}
@@ -348,7 +417,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 {typeLabel} in {listing.locality}, {listing.city}
               </p>
 
-              {/* Meta row: verified · listed date · views */}
+              {/* Meta row: verified · AI score · listed date · views */}
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                 {listing.isVerified && (
                   <span
@@ -357,6 +426,24 @@ export default async function ListingPage({ params }: ListingPageProps) {
                   >
                     <BadgeCheck className="h-3 w-3" aria-hidden="true" />
                     Verified listing
+                  </span>
+                )}
+                {qualityResult && (
+                  <span
+                    title="AI-computed listing quality score based on photos, description, and completeness"
+                    className="flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-white px-2 py-0.5 text-xs font-medium text-gray-700"
+                  >
+                    <Sparkle
+                      className={
+                        qualityResult.score >= 80
+                          ? 'h-3 w-3 text-emerald-500'
+                          : qualityResult.score >= 60
+                            ? 'h-3 w-3 text-amber-500'
+                            : 'h-3 w-3 text-red-400'
+                      }
+                      aria-hidden="true"
+                    />
+                    AI Score {qualityResult.score}
                   </span>
                 )}
                 {listedAgo && (
@@ -507,6 +594,12 @@ export default async function ListingPage({ params }: ListingPageProps) {
             {/* Contact card — mobile inline (below location) */}
             <div className="py-8 lg:hidden">
               <hr className="mb-8 border-t border-[var(--color-border)]" />
+              {/* Match score widget — shown only when buyer navigated from a filtered search */}
+              {!isOwner && (
+                <div className="mb-4">
+                  <MatchScoreWidget listing={listing} />
+                </div>
+              )}
               <ContactSeller
                 seller={listing.seller}
                 listingId={listing.id}
@@ -530,7 +623,19 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
           {/* ── RIGHT COLUMN — sticky contact card (desktop only) ───── */}
           <aside className="hidden lg:block">
-            <div className="sticky top-24">
+            <div className="sticky top-24 flex flex-col gap-4">
+              {/* Quality widget — shown for everyone; edit button hidden for buyers */}
+              {qualityResult && (
+                <OwnerQualityWidget
+                  score={qualityResult.score}
+                  breakdown={qualityResult.breakdown}
+                  actions={qualityResult.actions}
+                  listingId={listing.id}
+                  isOwner={isOwner}
+                />
+              )}
+              {/* Match score widget — shown only to buyers when they navigated from a filtered search */}
+              {!isOwner && <MatchScoreWidget listing={listing} />}
               <ContactSeller
                 seller={listing.seller}
                 listingId={listing.id}

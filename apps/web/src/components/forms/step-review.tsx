@@ -1,9 +1,11 @@
 'use client'
 
-import { AlertCircle, CheckCircle2, Edit2, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { AlertCircle, CheckCircle2, Edit2, Loader2, Sparkles } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
 import { InlinePhoneVerification } from '@/components/forms/inline-phone-verification'
+import { QualityScorePanel } from '@/components/listing/quality-score-panel'
+import { computeQualityScore, getImprovementActions } from '@/lib/quality-score'
 import { cn } from '@/lib/utils'
 import { useSellFormStore } from '@/stores/sell-form.store'
 
@@ -141,11 +143,54 @@ interface StepReviewProps {
 }
 
 export function StepReview({ draftId, hasPhone = true, onPhoneVerified }: StepReviewProps) {
-  const { propertyType, location, details, photos, pricing, goToStep, reset, setSubmitted } =
-    useSellFormStore()
+  const {
+    propertyType,
+    location,
+    details,
+    photos,
+    pricing,
+    goToStep,
+    reset,
+    setSubmitted,
+    descriptionSource,
+    titleSource,
+  } = useSellFormStore()
 
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const qualityResult = useMemo(
+    () =>
+      computeQualityScore({
+        propertyType: propertyType ?? 'APARTMENT',
+        imageUrls: photos,
+        description: pricing.description,
+        bhkType: details.bhkType ?? null,
+        builtUpArea: details.builtUpArea ? parseInt(details.builtUpArea, 10) : null,
+        carpetArea: details.carpetArea ? parseInt(details.carpetArea, 10) : null,
+        floor: details.floor ? parseInt(details.floor, 10) : null,
+        totalFloors: details.totalFloors ? parseInt(details.totalFloors, 10) : null,
+        facing: details.facing ?? null,
+        furnishing: details.furnishing ?? null,
+        bathrooms: details.bathrooms ?? null,
+        balconies: details.balconies ?? null,
+        parking: details.parking ?? null,
+        ageOfProperty: details.ageOfProperty ? parseInt(details.ageOfProperty, 10) : null,
+        amenities: details.amenities ?? [],
+        price: Number((pricing.price ?? '').replace(/,/g, '')) || 0,
+        locality: location.locality ?? '',
+        city: location.city ?? '',
+        isVerified: false,
+        priceBenchmark: null,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [propertyType, photos, pricing.description, pricing.price, details, location],
+  )
+
+  const qualityActions = useMemo(
+    () => getImprovementActions(qualityResult.breakdown, draftId ?? undefined),
+    [qualityResult.breakdown, draftId],
+  )
 
   // Build a list of everything that would fail Zod validation at submit time
   function getIncompleteFields(): IncompleteField[] {
@@ -219,6 +264,7 @@ export function StepReview({ draftId, hasPhone = true, onPhoneVerified }: StepRe
       pincode: location.pincode,
       amenities: details.amenities,
       imageUrls: photos,
+      negotiable: pricing.negotiable,
       // Pass draftId so the API can update the existing row instead of inserting a new one
       ...(draftId ? { draftId } : {}),
     }
@@ -338,6 +384,24 @@ export function StepReview({ draftId, hasPhone = true, onPhoneVerified }: StepRe
         </h2>
         <p className="text-muted-foreground">Check all the details before submitting.</p>
       </div>
+
+      {/* Live Quality Score Preview */}
+      <QualityScorePanel
+        score={qualityResult.score}
+        breakdown={qualityResult.breakdown}
+        actions={qualityActions}
+        onNavigate={(step) => {
+          const map: Record<string, number> = {
+            photos: 3,
+            details: 2,
+            location: 1,
+            pricing: 4,
+            review: 5,
+          }
+          const idx = map[step]
+          if (idx !== undefined) goToStep(idx)
+        }}
+      />
 
       {/* Property Type */}
       <section className="border-border space-y-3 rounded-xl border p-4">
@@ -482,13 +546,61 @@ export function StepReview({ draftId, hasPhone = true, onPhoneVerified }: StepRe
             </span>
           )}
         </div>
-        {pricing.title && <ReviewRow label="Title" value={pricing.title} />}
-        {pricing.description && (
-          <div className="pt-1">
-            <p className="text-muted-foreground text-xs">Description</p>
-            <p className="text-foreground mt-1 line-clamp-3 text-sm">{pricing.description}</p>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-sm">Title</span>
+            {titleSource === 'ai' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
+                <Sparkles className="h-2.5 w-2.5" />
+                AI-suggested
+              </span>
+            )}
           </div>
-        )}
+          {pricing.title.trim() ? (
+            <p className="text-foreground text-sm font-medium">{pricing.title}</p>
+          ) : (
+            <p className="text-sm text-amber-700">
+              <span className="font-medium">No title — will use: </span>
+              <span className="italic">
+                &ldquo;{buildAutoTitle(bhkLabel, propertyLabel, location.locality, location.city)}
+                &rdquo;
+              </span>
+            </p>
+          )}
+        </div>
+        <div className="space-y-1 pt-1">
+          <div className="flex items-center gap-2">
+            <p className="text-muted-foreground text-xs">Description</p>
+            {descriptionSource === 'ai' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
+                <Sparkles className="h-2.5 w-2.5" />
+                AI-generated
+              </span>
+            )}
+          </div>
+          {pricing.description.trim() ? (
+            <p className="text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+              {pricing.description}
+            </p>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="mb-1 text-xs font-semibold text-amber-800">
+                No description — this placeholder will be published:
+              </p>
+              <p className="text-xs italic text-amber-700">
+                &ldquo;
+                {buildAutoDescription(
+                  bhkLabel,
+                  propertyLabel,
+                  details.builtUpArea,
+                  location.locality,
+                  location.city,
+                )}
+                &rdquo;
+              </p>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Submit CTA */}

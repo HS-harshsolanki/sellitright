@@ -68,6 +68,7 @@ export const listingCreateSchema = z.object({
     .array(z.string().url('Each image must be a valid URL').startsWith('https://'))
     .max(20)
     .default([]),
+  negotiable: z.boolean().optional(),
 })
 
 export type ListingCreateInput = z.infer<typeof listingCreateSchema>
@@ -76,7 +77,7 @@ export type ListingCreateInput = z.infer<typeof listingCreateSchema>
 // Listing filter / search schema (query params — all optional)
 // ---------------------------------------------------------------------------
 
-const sortValues = ['price_asc', 'price_desc', 'newest', 'oldest'] as const
+const sortValues = ['price_asc', 'price_desc', 'newest', 'oldest', 'quality'] as const
 
 export const listingFilterSchema = z.object({
   city: z.string().optional(),
