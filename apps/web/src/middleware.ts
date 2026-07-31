@@ -106,9 +106,17 @@ export async function middleware(request: NextRequest) {
   // Redirect authenticated users away from login/register
   if (user && (pathname === '/login' || pathname === '/register')) {
     const raw = request.nextUrl.searchParams.get('next') ?? '/properties'
+    const safe = sanitiseNext(raw)
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = sanitiseNext(raw)
-    redirectUrl.search = ''
+    // Parse safe as a URL so pathname and search are split correctly
+    try {
+      const parsed = new URL(safe, 'https://x')
+      redirectUrl.pathname = parsed.pathname
+      redirectUrl.search = parsed.search
+    } catch {
+      redirectUrl.pathname = safe
+      redirectUrl.search = ''
+    }
     return redirectWithCookies(redirectUrl)
   }
 

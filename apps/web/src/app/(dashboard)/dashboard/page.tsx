@@ -33,9 +33,11 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { useToast } from '@/components/ui/toast'
+import { QualityScoreBadge } from '@/components/listing/quality-score-panel'
 import { formatPrice } from '@/lib/format'
 import { useMessaging } from '@/lib/messaging-context'
 import type { MockListing, ListingStatus } from '@/lib/mock-data'
+import { getImprovementActions, type QualityBreakdown } from '@/lib/quality-score'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -400,6 +402,63 @@ function ListingCard({
             </span>
           </div>
         )}
+
+        {/* Quality score badge + top improvement actions */}
+        {listing.qualityScore !== undefined && listing.status !== 'DELETED' && (
+          <div className="mt-3">
+            <QualityScoreBadge
+              score={listing.qualityScore}
+              breakdown={
+                (listing.qualityBreakdown as unknown as QualityBreakdown) ?? {
+                  photos: { score: 0, max: 25, count: 0 },
+                  description: { score: 0, max: 20, wordCount: 0 },
+                  details: { score: 0, max: 25, missing: [], filled: [] },
+                  price: { score: 12, max: 15, benchmarkAvailable: false },
+                  location: {
+                    score: 0,
+                    max: 10,
+                    hasLocality: false,
+                    hasPincode: false,
+                    hasAddress: false,
+                  },
+                  trust: { score: 0, max: 5 },
+                }
+              }
+              actions={getImprovementActions(
+                (listing.qualityBreakdown as unknown as QualityBreakdown) ?? {
+                  photos: { score: 0, max: 25, count: 0 },
+                  description: { score: 0, max: 20, wordCount: 0 },
+                  details: { score: 0, max: 25, missing: [], filled: [] },
+                  price: { score: 12, max: 15, benchmarkAvailable: false },
+                  location: {
+                    score: 0,
+                    max: 10,
+                    hasLocality: false,
+                    hasPincode: false,
+                    hasAddress: false,
+                  },
+                  trust: { score: 0, max: 5 },
+                },
+                listing.id,
+              )}
+              listingId={listing.id}
+            />
+          </div>
+        )}
+
+        {/* "Views with 0 inquiries" insight */}
+        {listing.status === 'ACTIVE' &&
+          listing.viewCount > 20 &&
+          interestedCount === 0 &&
+          (listing.qualityScore ?? 100) < 70 && (
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700">
+              <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>
+                {listing.viewCount} people viewed this with no inquiries. Improving your listing
+                score can help.
+              </span>
+            </div>
+          )}
 
         {/* Rejection banner — with inline CTA */}
         {listing.status === 'REJECTED' && (

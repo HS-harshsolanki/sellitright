@@ -2,10 +2,11 @@
 
 import { Bell, Plus, LogOut, LayoutDashboard, User } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
-import { HeaderSearch } from '@/components/layout/header-search'
+import { HeaderSmartSearch } from '@/components/layout/header-smart-search'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useAuth } from '@/lib/supabase/auth-context'
@@ -60,7 +61,7 @@ function Logo() {
 
 function SearchFallback() {
   return (
-    <div className="relative h-10 max-w-md flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] sm:h-11" />
+    <div className="h-11 w-[760px] max-w-full animate-pulse rounded-full border border-[var(--color-border)] bg-[var(--color-muted)]" />
   )
 }
 
@@ -252,7 +253,7 @@ function MobileAvatarMenu({ initial, unreadCount, onSignOut }: MobileAvatarMenuP
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
       >
         <span
           className={cn(
@@ -329,6 +330,7 @@ function MobileAvatarMenu({ initial, unreadCount, onSignOut }: MobileAvatarMenuP
 
 export function Header() {
   const { user, loading, signOut } = useAuth()
+  const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const hasListings = useHasListings(user?.id)
   // Single shared hook — bell and mobile badge read from the same state
@@ -355,30 +357,32 @@ export function Header() {
         scrolled ? 'shadow-sm' : 'shadow-none',
       )}
     >
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:h-16 sm:gap-4 sm:px-6">
-        {/* Zone 1: Logo */}
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 overflow-x-hidden px-4 sm:h-[4.5rem] sm:gap-6 sm:px-6">
+        {/* Zone 1: Logo — always left */}
         <Logo />
 
-        {/* Zone 2: Search */}
-        <div className="flex flex-1 justify-center">
+        {/* Zone 2: Search — hidden on mobile (pill overflows <640px), shown on sm+ */}
+        <div className="hidden min-w-0 flex-1 items-center justify-center px-2 sm:flex">
           <Suspense fallback={<SearchFallback />}>
-            <HeaderSearch className="max-w-md" />
+            <HeaderSmartSearch />
           </Suspense>
         </div>
 
         {/* Zone 3: Right actions — desktop */}
         <div className="hidden shrink-0 items-center gap-3 md:flex">
           <nav aria-label="Main navigation" className="flex items-center gap-3">
-            <Link
-              href="/properties"
-              className={cn(
-                'rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-muted-foreground)]',
-                'transition-colors duration-150 hover:border-transparent hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
-              )}
-            >
-              Find a Home
-            </Link>
+            {pathname !== '/properties' && (
+              <Link
+                href="/properties"
+                className={cn(
+                  'rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-muted-foreground)]',
+                  'transition-colors duration-150 hover:border-transparent hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
+                )}
+              >
+                Find a Home
+              </Link>
+            )}
             <Link
               href="/sell"
               className={cn(

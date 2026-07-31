@@ -1,3 +1,4 @@
+import { computeQualityScore } from '@/lib/quality-score'
 import type { MockListing } from '@/lib/mock-data'
 import type { Database } from '@/lib/supabase/database.types'
 
@@ -9,6 +10,42 @@ export function mapSupabaseListingToMock(
   row: SupabaseListingRow | Partial<SupabaseListingRow>,
 ): MockListing {
   const imageUrls: string[] = Array.isArray(row.image_urls) ? row.image_urls : []
+
+  // When the stored score is 0 (or absent), compute it on-the-fly from available fields
+  // so listing cards always reflect the true quality rather than the un-scored default.
+  let resolvedScore: number | undefined =
+    typeof row.quality_score === 'number' && row.quality_score > 0 ? row.quality_score : undefined
+
+  if (resolvedScore === undefined && row.property_type) {
+    try {
+      const result = computeQualityScore({
+        propertyType: row.property_type ?? '',
+        imageUrls,
+        description: row.description ?? '',
+        bhkType: row.bhk_type ?? null,
+        builtUpArea: row.built_up_area ?? null,
+        carpetArea: row.carpet_area ?? null,
+        floor: row.floor ?? null,
+        totalFloors: row.total_floors ?? null,
+        facing: row.facing ?? null,
+        furnishing: row.furnishing ?? null,
+        bathrooms: row.bathrooms ?? null,
+        balconies: row.balconies ?? null,
+        parking: row.parking ?? null,
+        ageOfProperty: row.age_of_property ?? null,
+        amenities: Array.isArray(row.amenities) ? (row.amenities as string[]) : [],
+        price: Number(row.price ?? 0),
+        locality: row.locality ?? '',
+        city: row.city ?? '',
+        address: row.address ?? null,
+        pincode: row.pincode ?? null,
+        isVerified: Boolean(row.is_verified),
+      })
+      resolvedScore = result.score
+    } catch {
+      // score unavailable — chip won't show
+    }
+  }
 
   return {
     id: row.id ?? '',
@@ -55,5 +92,7 @@ export function mapSupabaseListingToMock(
       order: index,
     })),
     createdAt: row.created_at ?? new Date().toISOString(),
+    qualityScore: resolvedScore,
+    qualityBreakdown: (row.quality_breakdown as Record<string, unknown> | null) ?? null,
   }
 }

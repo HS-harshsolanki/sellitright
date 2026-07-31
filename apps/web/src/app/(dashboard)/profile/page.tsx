@@ -58,6 +58,9 @@ export default function ProfilePage() {
   const [phoneAvailability, setPhoneAvailability] = useState<
     'unknown' | 'checking' | 'available' | 'taken'
   >('unknown')
+  // Tracks whether the user has actively started the OTP flow.
+  // When true, the useEffect([user]) won't override flowState on a JWT refresh.
+  const flowActiveRef = useRef(false)
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -69,12 +72,20 @@ export default function ProfilePage() {
     }
   }, [])
 
-  // Refresh the session on mount so user_metadata reflects the latest server state.
-  // The cached JWT may be stale if phone was verified in a previous tab/session.
+  // On mount: check the DB directly for authoritative phone verification status.
+  // The JWT may be stale (no phone_verified flag) even if the DB says verified.
+  // This prevents the "verify again and again" loop.
   useEffect(() => {
     if (!isSupabaseConfiguredLocal()) return
-    createClient()
-      .auth.refreshSession()
+    fetch('/api/phone/status')
+      .then((r) => r.json())
+      .then((data: { verified?: boolean; phone?: string | null }) => {
+        if (data.verified && data.phone) {
+          setPhoneInput(data.phone)
+          setFlowState('verified')
+          flowActiveRef.current = false
+        }
+      })
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -82,8 +93,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setDisplayName(user.user_metadata?.full_name ?? '')
-      setPhoneInput(user.user_metadata?.phone ?? user.phone ?? '')
-      if (user.user_metadata?.phone_verified) setFlowState('verified')
+      // Only set phone input from JWT if not already showing the OTP flow
+      // and not already verified by the DB-check above. The ref guards against
+      // a JWT refresh mid-flow overriding flowState back to 'verified' or 'idle'
+      // while the user is actively entering their OTP.
+      if (!flowActiveRef.current) {
+        setPhoneInput(user.user_metadata?.phone ?? user.phone ?? '')
+        if (user.user_metadata?.phone_verified) setFlowState('verified')
+      }
     }
   }, [user])
 
@@ -103,8 +120,16 @@ export default function ProfilePage() {
   const provider = user.app_metadata?.provider ?? 'email'
   const avatarUrl: string | null = user.user_metadata?.avatar_url ?? null
   const initials = displayName?.[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? '?'
+  const INDIAN_MOBILE_RE = /^[6-9]\d{9}$/
+  function normalizePhone(raw: string): string {
+    const digits = raw.replace(/\D/g, '')
+    if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2)
+    if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1)
+    return digits
+  }
+
   const verifiedPhone: string = user.user_metadata?.phone_verified
-    ? (user.user_metadata?.phone ?? '')
+    ? normalizePhone(user.user_metadata?.phone ?? '')
     : ''
 
   const memberSince = (() => {
@@ -114,14 +139,6 @@ export default function ProfilePage() {
     if (isNaN(d.getTime())) return null
     return d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
   })()
-
-  const INDIAN_MOBILE_RE = /^[6-9]\d{9}$/
-  function normalizePhone(raw: string): string {
-    const digits = raw.replace(/\D/g, '')
-    if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2)
-    if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1)
-    return digits
-  }
 
   function startCooldown(seconds = 30) {
     setResendCooldown(seconds)
@@ -168,6 +185,7 @@ export default function ProfilePage() {
       setPhoneError('Enter a valid 10-digit Indian mobile number (e.g. 98765 43210)')
       return
     }
+    flowActiveRef.current = true
     setFlowState('sending')
     try {
       const res = await fetch('/api/phone/send-otp', {
@@ -177,6 +195,13 @@ export default function ProfilePage() {
       })
       const data = (await res.json()) as { error?: string; code?: string }
       if (!res.ok) {
+        if (data.code === 'ALREADY_VERIFIED') {
+          // DB says already verified — refresh JWT and show verified state
+          await createClient().auth.refreshSession()
+          setFlowState('verified')
+          flowActiveRef.current = false
+          return
+        }
         if (res.status === 409 || data.code === 'PHONE_ALREADY_CLAIMED') {
           setPhoneAvailability('taken')
           setPhoneAlreadyClaimed(true)
@@ -185,6 +210,7 @@ export default function ProfilePage() {
           setPhoneError(data.error ?? 'Failed to send OTP. Please try again.')
         }
         setFlowState('idle')
+        flowActiveRef.current = false
         return
       }
       setFlowState('otp-sent')
@@ -192,6 +218,7 @@ export default function ProfilePage() {
     } catch {
       setPhoneError('Failed to send OTP. Please check your connection.')
       setFlowState('idle')
+      flowActiveRef.current = false
     }
   }
 
@@ -224,6 +251,7 @@ export default function ProfilePage() {
       await createClient().auth.refreshSession()
       setFlowState('verified')
       setOtpInput('')
+      flowActiveRef.current = false
     } catch {
       setPhoneError('Network error — please check your connection.')
       setFlowState('otp-sent')
@@ -360,6 +388,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => {
+                  flowActiveRef.current = false
                   setFlowState('idle')
                   setPhoneInput('')
                   setOtpInput('')
@@ -486,6 +515,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => {
+                      flowActiveRef.current = false
                       setFlowState('idle')
                       setOtpInput('')
                       setPhoneError('')

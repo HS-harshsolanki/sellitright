@@ -35,6 +35,10 @@ export type Database = {
           is_verified: boolean
           rejection_reason: string | null
           view_count: number
+          quality_score: number
+          quality_breakdown: Json | null
+          quality_scored_at: string | null
+          quality_v2_scored: boolean
           created_at: string
           updated_at: string
         }
@@ -69,6 +73,10 @@ export type Database = {
           is_verified?: boolean
           rejection_reason?: string | null
           view_count?: number
+          quality_score?: number
+          quality_breakdown?: Json | null
+          quality_scored_at?: string | null
+          quality_v2_scored?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -103,6 +111,10 @@ export type Database = {
           is_verified?: boolean
           rejection_reason?: string | null
           view_count?: number
+          quality_score?: number
+          quality_breakdown?: Json | null
+          quality_scored_at?: string | null
+          quality_v2_scored?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -347,6 +359,66 @@ export type Database = {
           user_id?: string
           role?: string
           created_at?: string
+        }
+        Relationships: []
+      }
+      listing_quality_history: {
+        Row: {
+          id: string
+          listing_id: string
+          score: number
+          breakdown: Json
+          reason: string | null
+          scored_at: string
+        }
+        Insert: {
+          id?: string
+          listing_id: string
+          score: number
+          breakdown: Json
+          reason?: string | null
+          scored_at?: string
+        }
+        Update: {
+          id?: string
+          listing_id?: string
+          score?: number
+          breakdown?: Json
+          reason?: string | null
+          scored_at?: string
+        }
+        Relationships: []
+      }
+      locality_price_benchmarks: {
+        Row: {
+          id: string
+          city: string
+          locality: string
+          property_type: string
+          median_price_sqft: number
+          stddev_price_sqft: number
+          sample_count: number
+          computed_at: string
+        }
+        Insert: {
+          id?: string
+          city: string
+          locality: string
+          property_type: string
+          median_price_sqft: number
+          stddev_price_sqft: number
+          sample_count: number
+          computed_at?: string
+        }
+        Update: {
+          id?: string
+          city?: string
+          locality?: string
+          property_type?: string
+          median_price_sqft?: number
+          stddev_price_sqft?: number
+          sample_count?: number
+          computed_at?: string
         }
         Relationships: []
       }

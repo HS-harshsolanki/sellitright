@@ -28,12 +28,10 @@ interface FilterBarProps {
 const FILTER_OPTIONS = {
   bhkType: ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5+ BHK'],
   furnishing: ['Furnished', 'Semi Furnished', 'Unfurnished'],
-  propertyType: ['Apartment', 'Penthouse'],
+  propertyType: ['Apartment', 'Villa', 'Plot', 'Studio'],
 } as const
 
 const BUDGET_PRESETS: { label: string; min: number | null; max: number | null }[] = [
-  // "Under ₹50L" matched zero active listings (cheapest is ₹52L).
-  // Adjusted lower bound to ₹75L so the preset is never a dead end.
   { label: 'Under ₹75L', min: null, max: 7_500_000 },
   { label: '₹75L – ₹1.5Cr', min: 7_500_000, max: 15_000_000 },
   { label: '₹1.5Cr – ₹3Cr', min: 15_000_000, max: 30_000_000 },
@@ -274,33 +272,32 @@ function OptionList({ options, selected, onSelect, onClear, label }: OptionListP
   )
 }
 
-// ─── Popover wrapper ───────────────────────────────────────────────────────────
-
-interface PopoverProps {
-  isOpen: boolean
-  children: React.ReactNode
-  align?: 'left' | 'right'
-}
-
-function Popover({ isOpen, children, align = 'left' }: PopoverProps) {
-  if (!isOpen) return null
-  return (
-    <div
-      className={cn(
-        'absolute top-full z-50 mt-2 min-w-[200px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-lg',
-        align === 'right' ? 'right-0' : 'left-0',
-      )}
-    >
-      {children}
-    </div>
-  )
-}
-
 // ─── Main FilterBar ─────────────────────────────────────────────────────────────
+
+// Popover position — fixed coordinates relative to the viewport.
+// `right` is distance from the right edge of the viewport (for right-aligned panels).
+interface PopoverPosition {
+  top: number
+  left?: number
+  right?: number
+}
 
 export function FilterBar({ onFilterChange }: FilterBarProps) {
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({})
   const [openFilter, setOpenFilter] = useState<string | null>(null)
+  // Stores the viewport-relative position computed via getBoundingClientRect so the
+  // popover panel can be rendered with `position: fixed` — completely outside the
+  // overflow-x:auto scroll container that would otherwise clip it.
+  const [popoverPos, setPopoverPos] = useState<PopoverPosition | null>(null)
+
+  // One ref per pill wrapper div so we can read each button's bounding rect.
+  const budgetPillRef = useRef<HTMLDivElement>(null)
+  const bhkPillRef = useRef<HTMLDivElement>(null)
+  const typePillRef = useRef<HTMLDivElement>(null)
+  const furnishingPillRef = useRef<HTMLDivElement>(null)
+
+  // The outer container ref — still used by the outside-click handler.
+  // The fixed popover panel is a DOM child of this element so .contains() works correctly.
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Close on outside click or Escape
@@ -327,13 +324,14 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
 
   const updateFilter = (update: Partial<ActiveFilters>) => {
     const next = { ...activeFilters, ...update }
-    // Remove undefined/null budget keys
+    // Remove budget if both values are null/undefined
     if ('budget' in update && update.budget?.min == null && update.budget?.max == null) {
       delete next.budget
     }
     setActiveFilters(next)
     onFilterChange?.(next)
     setOpenFilter(null)
+    setPopoverPos(null)
   }
 
   const clearFilter = (key: keyof ActiveFilters) => {
@@ -342,99 +340,139 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
     setActiveFilters(next)
     onFilterChange?.(next)
     setOpenFilter(null)
+    setPopoverPos(null)
   }
 
   const clearAll = () => {
     setActiveFilters({})
     onFilterChange?.({})
+    setOpenFilter(null)
+    setPopoverPos(null)
   }
 
-  const toggle = (key: string) => setOpenFilter((o) => (o === key ? null : key))
+  // Compute the fixed position from the pill's bounding rect and open/close the panel.
+  const toggle = (key: string, pillRef: React.RefObject<HTMLDivElement | null>) => {
+    if (openFilter === key) {
+      setOpenFilter(null)
+      setPopoverPos(null)
+      return
+    }
+
+    if (pillRef.current) {
+      const rect = pillRef.current.getBoundingClientRect()
+      const GAP = 8 // px gap between pill bottom and panel top
+      // Align right for the last pill (furnishing) so the panel doesn't overflow off-screen.
+      const alignRight = key === 'furnishing'
+      setPopoverPos(
+        alignRight
+          ? { top: rect.bottom + GAP, right: window.innerWidth - rect.right }
+          : { top: rect.bottom + GAP, left: rect.left },
+      )
+    }
+
+    setOpenFilter(key)
+  }
 
   const activeCount = Object.keys(activeFilters).length
-
   const budgetLabel = activeFilters.budget ? formatBudgetLabel(activeFilters.budget) : 'Budget'
+
+  // Build the popover panel content for whichever filter is currently open.
+  const popoverContent = (() => {
+    switch (openFilter) {
+      case 'budget':
+        return (
+          <BudgetPopover
+            current={activeFilters.budget}
+            onApply={(range) => updateFilter({ budget: range })}
+            onClear={() => clearFilter('budget')}
+          />
+        )
+      case 'bhkType':
+        return (
+          <OptionList
+            options={FILTER_OPTIONS.bhkType}
+            selected={activeFilters.bhkType}
+            label="BHK"
+            onSelect={(v) => updateFilter({ bhkType: v })}
+            onClear={() => clearFilter('bhkType')}
+          />
+        )
+      case 'propertyType':
+        return (
+          <OptionList
+            options={FILTER_OPTIONS.propertyType}
+            selected={activeFilters.propertyType}
+            label="Property type"
+            onSelect={(v) => updateFilter({ propertyType: v })}
+            onClear={() => clearFilter('propertyType')}
+          />
+        )
+      case 'furnishing':
+        return (
+          <OptionList
+            options={FILTER_OPTIONS.furnishing}
+            selected={activeFilters.furnishing}
+            label="Furnishing"
+            onSelect={(v) => updateFilter({ furnishing: v })}
+            onClear={() => clearFilter('furnishing')}
+          />
+        )
+      default:
+        return null
+    }
+  })()
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* Filter chips row — scrollable on mobile so pills never wrap */}
+      {/* Filter chips row — scrollable on mobile so pills never wrap.
+          IMPORTANT: <Popover> panels are intentionally NOT rendered inside this
+          div. The overflow-x:auto on this element triggers the CSS spec behaviour
+          where overflow-y is coerced to auto as well, which clips any absolutely-
+          positioned children. Instead, panels are rendered as a sibling of this
+          row and positioned with `position:fixed` + getBoundingClientRect(). */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Budget */}
-        <div className="relative">
+        <div ref={budgetPillRef} className="shrink-0">
           <FilterButton
             label={budgetLabel}
             isActive={!!activeFilters.budget}
             isOpen={openFilter === 'budget'}
-            onToggle={() => toggle('budget')}
+            onToggle={() => toggle('budget', budgetPillRef)}
             onClear={() => clearFilter('budget')}
           />
-          <Popover isOpen={openFilter === 'budget'} align="left">
-            <BudgetPopover
-              current={activeFilters.budget}
-              onApply={(range) => updateFilter({ budget: range })}
-              onClear={() => clearFilter('budget')}
-            />
-          </Popover>
         </div>
 
         {/* BHK */}
-        <div className="relative">
+        <div ref={bhkPillRef} className="shrink-0">
           <FilterButton
             label={activeFilters.bhkType ?? 'BHK'}
             isActive={!!activeFilters.bhkType}
             isOpen={openFilter === 'bhkType'}
-            onToggle={() => toggle('bhkType')}
+            onToggle={() => toggle('bhkType', bhkPillRef)}
             onClear={() => clearFilter('bhkType')}
           />
-          <Popover isOpen={openFilter === 'bhkType'} align="left">
-            <OptionList
-              options={FILTER_OPTIONS.bhkType}
-              selected={activeFilters.bhkType}
-              label="BHK"
-              onSelect={(v) => updateFilter({ bhkType: v })}
-              onClear={() => clearFilter('bhkType')}
-            />
-          </Popover>
         </div>
 
         {/* Type */}
-        <div className="relative">
+        <div ref={typePillRef} className="shrink-0">
           <FilterButton
             label={activeFilters.propertyType ?? 'Type'}
             isActive={!!activeFilters.propertyType}
             isOpen={openFilter === 'propertyType'}
-            onToggle={() => toggle('propertyType')}
+            onToggle={() => toggle('propertyType', typePillRef)}
             onClear={() => clearFilter('propertyType')}
           />
-          <Popover isOpen={openFilter === 'propertyType'} align="left">
-            <OptionList
-              options={FILTER_OPTIONS.propertyType}
-              selected={activeFilters.propertyType}
-              label="Property type"
-              onSelect={(v) => updateFilter({ propertyType: v })}
-              onClear={() => clearFilter('propertyType')}
-            />
-          </Popover>
         </div>
 
-        {/* Furnishing — align right so the popover doesn't overflow on narrow viewports */}
-        <div className="relative">
+        {/* Furnishing */}
+        <div ref={furnishingPillRef} className="shrink-0">
           <FilterButton
             label={activeFilters.furnishing ?? 'Furnishing'}
             isActive={!!activeFilters.furnishing}
             isOpen={openFilter === 'furnishing'}
-            onToggle={() => toggle('furnishing')}
+            onToggle={() => toggle('furnishing', furnishingPillRef)}
             onClear={() => clearFilter('furnishing')}
           />
-          <Popover isOpen={openFilter === 'furnishing'} align="right">
-            <OptionList
-              options={FILTER_OPTIONS.furnishing}
-              selected={activeFilters.furnishing}
-              label="Furnishing"
-              onSelect={(v) => updateFilter({ furnishing: v })}
-              onClear={() => clearFilter('furnishing')}
-            />
-          </Popover>
         </div>
 
         {/* Clear all — only when there are active filters */}
@@ -448,6 +486,24 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
           </button>
         )}
       </div>
+
+      {/* Fixed-position popover panel — rendered outside the overflow scroll row so
+          it is never clipped, but still a DOM child of containerRef so the
+          outside-click handler (containerRef.contains) continues to work. */}
+      {openFilter && popoverPos && popoverContent && (
+        <div
+          style={{
+            position: 'fixed',
+            top: popoverPos.top,
+            ...(popoverPos.left !== undefined ? { left: popoverPos.left } : {}),
+            ...(popoverPos.right !== undefined ? { right: popoverPos.right } : {}),
+            zIndex: 200,
+          }}
+          className="min-w-[200px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-lg"
+        >
+          {popoverContent}
+        </div>
+      )}
 
       {/* Active filters — removable pills */}
       {activeCount > 0 && (

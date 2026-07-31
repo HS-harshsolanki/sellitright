@@ -118,39 +118,65 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   return NextResponse.json({ id: data.id, status: data.status })
 }
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
   // ── Supabase path ──────────────────────────────────────────────────────────
-  // Use the service-role client so this public read is RLS-independent. If the
-  // anon RLS policy is ever tightened (e.g. TO authenticated), an anon client
-  // would silently fall through to stale mock data instead of returning an error.
   if (isSupabaseConfigured()) {
     const supabase = createServiceClient()
     if (!supabase) {
       return NextResponse.json({ error: 'Service client unavailable' }, { status: 503 })
     }
-    const { data, error } = await supabase
+
+    const LISTING_COLS =
+      'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description'
+
+    // ── Primary: public ACTIVE listing ────────────────────────────────────
+    const { data: activeData, error: activeError } = await supabase
       .from('listings')
-      .select(
-        'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description',
-      )
+      .select(LISTING_COLS)
       .eq('id', id)
       .eq('status', 'ACTIVE')
       .single()
 
-    if (error) {
-      // PGRST116 = no rows — treat as 404
-      if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
-      }
-      console.error('[api/listings/[id]] Supabase error:', error.message)
-      // Fall through to mock on unexpected errors
-    } else if (data) {
-      return NextResponse.json(mapSupabaseListingToMock(data), {
+    if (activeData) {
+      return NextResponse.json(mapSupabaseListingToMock(activeData), {
         headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
       })
     }
+
+    if (activeError && activeError.code !== 'PGRST116') {
+      console.error('[api/listings/[id]] Supabase error:', activeError.message)
+    }
+
+    // ── Fallback: seller editing their own non-ACTIVE listing ─────────────
+    // Allow DRAFT, PENDING_REVIEW, PAUSED, INACTIVE, REJECTED so a seller can
+    // open the sell form with ?edit=ID regardless of the listing's current status.
+    const userClient = await createClient()
+    const {
+      data: { user },
+    } = await userClient.auth.getUser()
+
+    if (user) {
+      const { data: ownedData, error: ownedError } = await supabase
+        .from('listings')
+        .select(LISTING_COLS)
+        .eq('id', id)
+        .eq('seller_id', user.id)
+        .neq('status', 'DELETED')
+        .single()
+
+      if (ownedData) {
+        // No public cache — this is an authenticated, owner-only response.
+        return NextResponse.json(mapSupabaseListingToMock(ownedData))
+      }
+
+      if (ownedError && ownedError.code !== 'PGRST116') {
+        console.error('[api/listings/[id]] owner fallback error:', ownedError.message)
+      }
+    }
+
+    return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
   }
 
   // ── Mock fallback ────────────────────────────────────────────────────────

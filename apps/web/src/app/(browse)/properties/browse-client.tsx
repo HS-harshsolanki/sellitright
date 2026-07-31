@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { ListingCard } from '@/components/listing/listing-card'
-import { FilterBar, type ActiveFilters } from '@/components/search/filter-bar'
+import { type ParsedFilters } from '@/components/browse/ai-finder-button'
+import { computeMatchScore } from '@/lib/match-score'
 import type { MockListing } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
 
@@ -20,23 +21,68 @@ const BHK_MAP: Record<string, string> = {
   '5+ BHK': 'FIVE_PLUS_BHK',
 }
 
+// Reverse BHK map: API enum → display label (for reading URL params written by header)
+const BHK_REVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(BHK_MAP).map(([k, v]) => [v, k]),
+)
+
 const FURNISHING_MAP: Record<string, string> = {
   Furnished: 'FURNISHED',
   'Semi Furnished': 'SEMI_FURNISHED',
   Unfurnished: 'UNFURNISHED',
 }
 
+const FURNISHING_REVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(FURNISHING_MAP).map(([k, v]) => [v, k]),
+)
+
 const PROPERTY_TYPE_MAP: Record<string, string> = {
   Apartment: 'APARTMENT',
   Penthouse: 'PENTHOUSE',
+  Villa: 'VILLA',
+  Plot: 'PLOT',
+  Studio: 'STUDIO',
 }
 
-type SortOption = 'newest' | 'price_asc' | 'price_desc'
+const PROPERTY_TYPE_REVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(PROPERTY_TYPE_MAP).map(([k, v]) => [v, k]),
+)
+
+type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'best_match'
 
 const SORT_LABELS: Record<SortOption, string> = {
   newest: 'Newest first',
   price_asc: 'Price: Low to High',
   price_desc: 'Price: High to Low',
+  best_match: 'Best Match',
+}
+
+// ActiveFilters shape (formerly from filter-bar, now local)
+interface ActiveFilters {
+  bhkType?: string
+  furnishing?: string
+  propertyType?: string
+  budget?: { min: number | null; max: number | null }
+}
+
+// Read display-label filters from URL params (written by header-search in API-enum form)
+function filtersFromParams(params: URLSearchParams): ActiveFilters {
+  const f: ActiveFilters = {}
+  const bhk = params.get('bhkType')
+  if (bhk) f.bhkType = BHK_REVERSE[bhk] ?? bhk
+  const furn = params.get('furnishing')
+  if (furn) f.furnishing = FURNISHING_REVERSE[furn] ?? furn
+  const pt = params.get('propertyType')
+  if (pt) f.propertyType = PROPERTY_TYPE_REVERSE[pt] ?? pt
+  const minP = params.get('minPrice')
+  const maxP = params.get('maxPrice')
+  if (minP || maxP) {
+    f.budget = {
+      min: minP ? parseInt(minP, 10) : null,
+      max: maxP ? parseInt(maxP, 10) : null,
+    }
+  }
+  return f
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -58,13 +104,14 @@ export function BrowseClient({
 }: BrowseClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  // Read both `q` (canonical) and `city` (legacy — from CITIES_GRID links and old hero form)
-  const searchQuery = searchParams.get('q') ?? searchParams.get('city') ?? ''
+  // Read both `q` (canonical), `city` (legacy grid links), or construct from SmartSearch params
+  const cityName = searchParams.get('city_name')
+  const locality = searchParams.get('locality')
+  const smartQuery = cityName ? [locality, cityName].filter(Boolean).join(', ') : null
+  const searchQuery = smartQuery ?? searchParams.get('q') ?? searchParams.get('city') ?? ''
 
-  const [filters, setFilters] = useState<ActiveFilters>({})
-  // filterKey increments when the empty-state "Clear all filters" button is pressed,
-  // forcing FilterBar to remount and reset its internal visual state (pills, open popover).
-  const [filterKey, setFilterKey] = useState(0)
+  // Filters are driven by URL params (written by header-search's FilterPanel)
+  const filters = filtersFromParams(searchParams)
   const [sort, setSort] = useState<SortOption>(
     () => (searchParams.get('sort') as SortOption | null) ?? 'newest',
   )
@@ -110,7 +157,7 @@ export function BrowseClient({
     }
   }, [sortOpen])
 
-  // ─── Sync q / page / sort into URL (shallow replace, no full navigation) ────
+  // ─── Sync page / sort into URL, preserve filter params written by header ────
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString())
 
@@ -134,6 +181,9 @@ export function BrowseClient({
       params.delete('sort')
     }
 
+    // Filter params (bhkType, furnishing, propertyType, minPrice, maxPrice)
+    // are written by header-search — we preserve them as-is, do not clear them here.
+
     const newSearch = params.toString()
     const currentSearch = searchParams.toString()
     if (newSearch !== currentSearch) {
@@ -141,10 +191,49 @@ export function BrowseClient({
     }
   }, [searchQuery, apiPage, sort, router, searchParams])
 
+  // ─── Stable filter key: serialize for identity comparison ──────────────────
+  // filters is derived from URL params (new object each render) so we must
+  // compare by value, not reference, to avoid infinite fetch loops.
+  const filtersKey = JSON.stringify(filters)
+
+  // ─── Persist active buyer prefs to sessionStorage for the detail page ────────
+  // Written whenever filters or search query change so the detail page can read
+  // 'sir_last_search_prefs' and show a match score without URL round-tripping.
+  useEffect(() => {
+    try {
+      const prefs = {
+        bhkType: filters.bhkType ?? null,
+        furnishing: filters.furnishing ?? null,
+        propertyType: filters.propertyType ?? null,
+        minPrice: filters.budget?.min ?? null,
+        maxPrice: filters.budget?.max ?? null,
+        // Parse city/locality from the free-text search query heuristically.
+        // The full searchQuery string is stored under 'searchQuery' for legacy
+        // computeMatchScore callers; city/locality are split on comma.
+        searchQuery: searchQuery || null,
+        city: cityName ?? (searchQuery ? searchQuery.split(',')[0]?.trim() || null : null),
+        locality: locality ?? (searchQuery ? (searchQuery.split(',')[1]?.trim() ?? null) : null),
+      }
+      const hasAny =
+        prefs.bhkType ||
+        prefs.furnishing ||
+        prefs.propertyType ||
+        prefs.minPrice != null ||
+        prefs.maxPrice != null ||
+        prefs.searchQuery
+      if (hasAny) {
+        sessionStorage.setItem('sir_last_search_prefs', JSON.stringify(prefs))
+      } else {
+        sessionStorage.removeItem('sir_last_search_prefs')
+      }
+    } catch {
+      // sessionStorage unavailable (SSR / private browsing) — silently skip
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey, searchQuery])
+
   // ─── Fetch from /api/listings whenever filters, sort, page, or query change ─
-  // When filters/sort/query change we always reset to page 1 inside this same
-  // effect to avoid a second render cycle that would fire a redundant request.
-  const prevFilterKey = useRef({ searchQuery, filters, sort })
+  const prevFilterKey = useRef({ searchQuery, filtersKey, sort })
   // Track whether we have already used the server-provided initial data for the
   // default (no-filter) view. The first render with no filters and default sort
   // should NOT trigger a fetch — the SSR data is already correct.
@@ -155,12 +244,12 @@ export function BrowseClient({
 
     const filterChanged =
       prevFilterKey.current.searchQuery !== searchQuery ||
-      prevFilterKey.current.filters !== filters ||
+      prevFilterKey.current.filtersKey !== filtersKey ||
       prevFilterKey.current.sort !== sort
 
     const pageToFetch = filterChanged ? 1 : apiPage
     if (filterChanged) {
-      prevFilterKey.current = { searchQuery, filters, sort }
+      prevFilterKey.current = { searchQuery, filtersKey, sort }
       setApiPage(1)
     }
 
@@ -169,7 +258,7 @@ export function BrowseClient({
       !filterChanged &&
       apiPage === initialPage &&
       !searchQuery &&
-      Object.keys(filters).length === 0 &&
+      filtersKey === '{}' &&
       sort === 'newest'
 
     if (hasUsedInitialData.current && isDefaultView) {
@@ -181,7 +270,8 @@ export function BrowseClient({
       setIsLoading(true)
       try {
         const params = new URLSearchParams()
-        params.set('sort', sort)
+        // best_match is client-side only — API always receives 'newest' in that case
+        params.set('sort', sort === 'best_match' ? 'newest' : sort)
         params.set('page', String(pageToFetch))
 
         if (searchQuery.trim()) params.set('city', searchQuery.trim())
@@ -231,32 +321,141 @@ export function BrowseClient({
     return () => {
       cancelled = true
     }
-  }, [searchQuery, filters, sort, apiPage, initialPage, retryCount])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, filtersKey, sort, apiPage, initialPage, retryCount])
 
   // ─── Active listings ──────────────────────────────────────────────────────
   const listings: MockListing[] = apiListings ?? []
   const totalPages = apiTotalPages
   const totalCount = apiTotal
 
+  // ─── Ephemeral match scores (client-side, not stored) ────────────────────
+  const hasActiveFilters = Object.keys(filters).length > 0 || searchQuery.trim().length > 0
+
+  const listingsWithScore: MockListing[] = listings.map((l) => ({
+    ...l,
+    matchScore: hasActiveFilters
+      ? computeMatchScore(l, {
+          bhkType: filters.bhkType ?? null,
+          furnishing: filters.furnishing ?? null,
+          propertyType: filters.propertyType
+            ? (PROPERTY_TYPE_MAP[filters.propertyType] ?? filters.propertyType)
+            : null,
+          minPrice: filters.budget?.min ?? null,
+          maxPrice: filters.budget?.max ?? null,
+          // Heuristic: treat the first comma-segment as city, second (if present) as locality.
+          city: searchQuery ? (searchQuery.split(',')[0]?.trim() ?? null) : null,
+          locality: searchQuery
+            ? (searchQuery.split(',')[1]?.trim() ?? searchQuery.split(',')[0]?.trim() ?? null)
+            : null,
+        })
+      : undefined,
+  }))
+
+  if (sort === 'best_match') {
+    listingsWithScore.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0))
+  }
+
+  const [aiInterpretation, setAiInterpretation] = useState<string | null>(null)
+
   const resetFilters = useCallback(() => {
-    setFilters({})
-    setFilterKey((k) => k + 1)
+    setAiInterpretation(null)
+    // Navigate to bare /properties — drops all filters, search query, and city params
+    // so the fetch fires fresh and returns all listings
+    router.replace('/properties', { scroll: false })
+  }, [router])
+
+  const applyAIFilters = useCallback(
+    (parsed: ParsedFilters, interpretation: string) => {
+      setAiInterpretation(interpretation)
+      // Push AI-parsed filters into URL params so the API fetch picks them up
+      const params = new URLSearchParams(searchParams.toString())
+      params.delete('city')
+      const q = searchParams.get('q')
+      if (q) params.set('q', q)
+      // BHK
+      if (parsed.bhkType) {
+        const v = BHK_MAP[parsed.bhkType]
+        if (v) params.set('bhkType', v)
+        else params.delete('bhkType')
+      } else {
+        params.delete('bhkType')
+      }
+      // Furnishing
+      if (parsed.furnishing) {
+        const v = FURNISHING_MAP[parsed.furnishing]
+        if (v) params.set('furnishing', v)
+        else params.delete('furnishing')
+      } else {
+        params.delete('furnishing')
+      }
+      // Property type
+      if (parsed.propertyType) {
+        const v = PROPERTY_TYPE_MAP[parsed.propertyType]
+        if (v) params.set('propertyType', v)
+        else params.delete('propertyType')
+      } else {
+        params.delete('propertyType')
+      }
+      // Budget
+      if (parsed.budget) {
+        if (parsed.budget.min != null) params.set('minPrice', String(parsed.budget.min))
+        else params.delete('minPrice')
+        if (parsed.budget.max != null) params.set('maxPrice', String(parsed.budget.max))
+        else params.delete('maxPrice')
+      } else {
+        params.delete('minPrice')
+        params.delete('maxPrice')
+      }
+      // City/locality from AI (carry them as `q` if present)
+      if (parsed.city && !q) params.set('q', parsed.city)
+      router.replace(`/properties${params.toString() ? `?${params.toString()}` : ''}`, {
+        scroll: false,
+      })
+    },
+    [router, searchParams],
+  )
+
+  // Pick up AI search that was triggered from the landing page hero
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem('sir_pending_ai_search')
+      if (pending) {
+        sessionStorage.removeItem('sir_pending_ai_search')
+        const { filters: f, interpretation } = JSON.parse(pending) as {
+          filters: ParsedFilters
+          interpretation: string
+        }
+        applyAIFilters(f, interpretation)
+      }
+    } catch {
+      // sessionStorage unavailable — silently skip
+    }
+    // Run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <div>
-      {/* ── Sticky filter strip ─────────────────────────────────────────────── */}
-      {/*
-        top-14 matches the header h-14 on mobile (sm:top-16 matches h-16 on sm+).
-        Search has moved to the header — this strip is filters-only.
-      */}
-      <div className="sticky top-14 z-40 border-b border-[var(--color-border)] bg-white sm:top-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="py-2.5">
-            <FilterBar key={filterKey} onFilterChange={setFilters} />
+      {/* ── AI interpretation banner (when active) ──────────────────────────── */}
+      {aiInterpretation && (
+        <div className="border-b border-violet-100 bg-violet-50">
+          <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2 sm:px-6">
+            <span className="text-xs text-violet-500">✦</span>
+            <span className="min-w-0 flex-1 truncate text-xs text-violet-700">
+              AI: {aiInterpretation}
+            </span>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="shrink-0 text-xs font-medium text-violet-600 underline-offset-2 hover:underline focus-visible:outline-none"
+              aria-label="Clear AI search"
+            >
+              Clear
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── Error banner ────────────────────────────────────────────────────── */}
       {fetchErrorBanner && (
@@ -281,7 +480,7 @@ export function BrowseClient({
       )}
 
       {/* ── Listings section ────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6">
         {/* Count + sort row */}
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-gray-500">
@@ -391,27 +590,37 @@ export function BrowseClient({
             </button>
           </div>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {listings.map((listing, idx) => (
-              <ListingCard
+          <div
+            className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 xl:grid-cols-4"
+            style={aiInterpretation ? { transition: 'opacity 0.4s ease' } : undefined}
+          >
+            {listingsWithScore.map((listing, idx) => (
+              <div
                 key={listing.id}
-                id={listing.id}
-                title={listing.title}
-                price={listing.price}
-                images={listing.images}
-                locality={listing.locality}
-                city={listing.city}
-                bhkType={listing.bhkType}
-                builtUpArea={listing.builtUpArea}
-                furnishing={listing.furnishing}
-                floor={listing.floor}
-                totalFloors={listing.totalFloors}
-                isVerified={listing.isVerified}
-                createdAt={listing.createdAt}
-                viewCount={listing.viewCount}
-                ageOfProperty={listing.ageOfProperty}
-                priorityImage={idx < 4}
-              />
+                className={aiInterpretation ? 'rounded-2xl border-l-2' : ''}
+                style={aiInterpretation ? { borderLeftColor: '#C7B8FF' } : undefined}
+              >
+                <ListingCard
+                  id={listing.id}
+                  title={listing.title}
+                  price={listing.price}
+                  images={listing.images}
+                  locality={listing.locality}
+                  city={listing.city}
+                  bhkType={listing.bhkType}
+                  builtUpArea={listing.builtUpArea}
+                  furnishing={listing.furnishing}
+                  floor={listing.floor}
+                  totalFloors={listing.totalFloors}
+                  isVerified={listing.isVerified}
+                  createdAt={listing.createdAt}
+                  viewCount={listing.viewCount}
+                  ageOfProperty={listing.ageOfProperty}
+                  matchScore={listing.matchScore}
+                  qualityScore={listing.qualityScore}
+                  priorityImage={idx < 4}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -446,6 +655,7 @@ export function BrowseClient({
         Floating "Post Property" FAB — mobile only (md:hidden).
         Positioned above the mobile bottom nav (bottom-24 = h-16 nav + 8px gap).
         Pill-shaped, not circular — carries both icon and short label.
+        Kept at bottom-24 on mobile so it sits above the AI bottom bar.
       */}
       <div className="animate-in fade-in zoom-in-95 fill-mode-both pointer-events-none fixed bottom-24 right-4 z-30 duration-200 [animation-delay:150ms] md:hidden">
         <Link

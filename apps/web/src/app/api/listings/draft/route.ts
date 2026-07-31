@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { computeQualityScore } from '@/lib/quality-score'
 import { FacingEnum, ParkingEnum } from '@/lib/validators'
 
 export async function GET(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('id', id)
       .eq('seller_id', user.id)
-      .in('status', ['DRAFT', 'REJECTED'])
+      .in('status', ['DRAFT', 'REJECTED', 'PENDING_REVIEW'])
       .single()
 
     if (error || !data) {
@@ -75,6 +76,7 @@ const draftSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
   currentStep: z.string().optional(),
+  negotiable: z.boolean().optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -135,7 +137,41 @@ export async function POST(request: NextRequest) {
       price: input.price ?? 0,
       title: input.title ?? '',
       description: input.description ?? '',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      negotiable: input.negotiable ?? false,
       status: 'DRAFT',
+    } as any
+
+    // Compute quality score for the current draft state (no history insert for drafts)
+    const qualityResult = computeQualityScore({
+      propertyType: record.property_type ?? 'APARTMENT',
+      imageUrls: record.image_urls,
+      description: record.description,
+      bhkType: record.bhk_type,
+      builtUpArea: record.built_up_area,
+      carpetArea: record.carpet_area,
+      floor: record.floor,
+      totalFloors: record.total_floors,
+      facing: record.facing,
+      furnishing: record.furnishing,
+      bathrooms: record.bathrooms,
+      balconies: record.balconies,
+      parking: record.parking,
+      ageOfProperty: record.age_of_property,
+      amenities: record.amenities,
+      price: record.price,
+      locality: record.locality,
+      city: record.city,
+      isVerified: false,
+      priceBenchmark: null, // Drafts skip benchmark lookup to keep autosave fast
+    })
+
+    const recordWithScore = {
+      ...record,
+      quality_score: qualityResult.score,
+      quality_breakdown:
+        qualityResult.breakdown as unknown as import('@/lib/supabase/database.types').Json,
+      quality_scored_at: new Date().toISOString(),
     }
 
     if (input.id) {
@@ -143,7 +179,7 @@ export async function POST(request: NextRequest) {
       // Exclude `status` from the update so we never downgrade ACTIVE → DRAFT on autosave.
       // Use service client so RLS doesn't block updates to non-DRAFT rows.
       const updateClient = createServiceClient() ?? supabase
-      const { status: _status, ...recordWithoutStatus } = record
+      const { status: _status, ...recordWithoutStatus } = recordWithScore
       const { data, error } = await updateClient
         .from('listings')
         .update(recordWithoutStatus)
@@ -165,8 +201,8 @@ export async function POST(request: NextRequest) {
     } else {
       // Create new draft — property_type required by DB; default to APARTMENT for partial drafts
       const insertRecord = {
-        ...record,
-        property_type: record.property_type ?? 'APARTMENT',
+        ...recordWithScore,
+        property_type: recordWithScore.property_type ?? 'APARTMENT',
       }
       const { data, error } = await supabase
         .from('listings')

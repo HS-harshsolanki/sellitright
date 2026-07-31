@@ -1,6 +1,16 @@
 'use client'
 
-import { Bed, Camera, ChevronLeft, ChevronRight, Heart, Maximize2, ShieldCheck } from 'lucide-react'
+import {
+  Bed,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Maximize2,
+  ShieldCheck,
+  Sparkles,
+  Target,
+} from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -28,6 +38,7 @@ function toggleFavorite(id: string): boolean {
 }
 
 import { formatPrice, formatBHK, formatArea } from '@/lib/format'
+import { matchScoreColor } from '@/lib/match-score'
 import { cn } from '@/lib/utils'
 
 interface ListingCardProps {
@@ -46,6 +57,8 @@ interface ListingCardProps {
   createdAt: string
   viewCount: number
   ageOfProperty?: number | null
+  matchScore?: number
+  qualityScore?: number
   priorityImage?: boolean
 }
 
@@ -71,6 +84,8 @@ export function ListingCard({
   builtUpArea,
   isVerified,
   createdAt,
+  matchScore,
+  qualityScore,
   priorityImage = false,
 }: ListingCardProps) {
   const [currentImage, setCurrentImage] = useState(0)
@@ -92,6 +107,8 @@ export function ListingCard({
 
   const days = daysAgo(createdAt)
   const recency = recencyText(days)
+
+  const showQualityBadge = qualityScore !== undefined && qualityScore > 0
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-all duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-xl">
@@ -179,6 +196,29 @@ export function ListingCard({
               Verified
             </span>
           )}
+
+          {/* AI Score badge — bottom-right, above gradient */}
+          {showQualityBadge && (
+            <span
+              className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-gray-900 shadow-sm backdrop-blur-sm"
+              aria-label={`AI quality score: ${qualityScore}`}
+            >
+              <Sparkles
+                className={cn(
+                  'h-3 w-3',
+                  qualityScore !== undefined && qualityScore >= 80
+                    ? 'text-emerald-500'
+                    : qualityScore !== undefined && qualityScore >= 60
+                      ? 'text-amber-500'
+                      : 'text-red-400',
+                )}
+                aria-hidden="true"
+              />
+              AI Score {qualityScore}
+            </span>
+          )}
+
+          {/* Match score chip moved to card body below the image — see content area */}
         </div>
 
         {/* ── Heart — top-right of image ──────────────────────────────────────── */}
@@ -227,6 +267,32 @@ export function ListingCard({
 
           {/* Divider — visual breathing room before price */}
           <div className="mb-2.5 mt-3 h-px bg-[var(--color-border)]" aria-hidden="true" />
+
+          {/* Match score chip — shown when buyer has active filters, placed above price */}
+          {matchScore !== undefined &&
+            (() => {
+              const color = matchScoreColor(matchScore)
+              return (
+                <div className="mb-2">
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold',
+                      color === 'emerald'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : color === 'blue'
+                          ? 'bg-blue-100 text-blue-800'
+                          : color === 'amber'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-gray-100 text-gray-600',
+                    )}
+                    aria-label={`Match score: ${matchScore}%`}
+                  >
+                    <Target className="h-3 w-3" aria-hidden="true" />
+                    {matchScore}% match
+                  </span>
+                </div>
+              )
+            })()}
 
           {/* Price — the decision-maker, must command the eye */}
           <p className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">

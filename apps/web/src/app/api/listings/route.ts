@@ -39,7 +39,7 @@ async function queryListings(params: ListingFilterInput): Promise<ListingsResult
   let query = admin
     .from('listings')
     .select(
-      'id, title, price, property_type, bhk_type, built_up_area, carpet_area, furnishing, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id',
+      'id, title, description, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, quality_score, quality_breakdown, created_at, seller_id, negotiable',
       { count: 'exact' },
     )
     .eq('status', 'ACTIVE')
@@ -58,22 +58,30 @@ async function queryListings(params: ListingFilterInput): Promise<ListingsResult
   if (minPrice !== undefined) query = query.gte('price', minPrice)
   if (maxPrice !== undefined) query = query.lte('price', maxPrice)
 
+  const isDefaultSort = !sort || sort === 'newest'
+
   if (sort === 'price_asc') query = query.order('price', { ascending: true })
   else if (sort === 'price_desc') query = query.order('price', { ascending: false })
   else if (sort === 'oldest') query = query.order('created_at', { ascending: true })
+  else if (sort === 'quality')
+    query = query
+      .order('quality_score', { ascending: false })
+      .order('created_at', { ascending: false })
   else query = query.order('created_at', { ascending: false })
 
   const from = (page - 1) * limit
   query = query.range(from, from + limit - 1)
 
-  const { data, error, count } = await query
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error, count } = await (query as any)
 
   if (error || !data) {
     console.error('[api/listings] Supabase query error:', error?.message ?? String(error))
     return { listings: [], total: 0, page, totalPages: 1 }
   }
 
-  const listings = data.map(mapSupabaseListingToMock)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listings = (data as any[]).map(mapSupabaseListingToMock)
   const total = count ?? listings.length
   const totalPages = Math.max(1, Math.ceil(total / limit))
   return { listings, total, page, totalPages }

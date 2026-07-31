@@ -85,6 +85,14 @@ interface SellFormState {
   /** True once listing has been submitted — stops autosave from firing */
   submitted: boolean
 
+  // AI generation state
+  aiGenerationCount: number
+  aiCooldownUntil: number
+  descriptionSource: 'none' | 'ai' | 'manual'
+  titleSource: 'none' | 'ai' | 'manual'
+  descriptionGeneratedFromHash: string | null
+  descriptionGenerationInFlight: boolean
+
   // Actions
   setStep: (step: SellStep) => void
   goToStep: (index: number) => void
@@ -98,6 +106,11 @@ interface SellFormState {
   setDraftId: (id: string) => void
   setSaveStatus: (status: SaveStatus) => void
   setSubmitted: (value: boolean) => void
+  setAiRateLimit: (count: number, cooldownUntil: number) => void
+  setDescriptionSource: (source: 'none' | 'ai' | 'manual') => void
+  setTitleSource: (source: 'none' | 'ai' | 'manual') => void
+  setDescriptionGeneratedFromHash: (hash: string | null) => void
+  setDescriptionGenerationInFlight: (inFlight: boolean) => void
   reset: () => void
   hydrateFromListing: (listing: MockListing) => void
 }
@@ -132,6 +145,31 @@ const DEFAULT_PRICING: PricingData = {
   description: '',
 }
 
+function deriveResumeStep(listing: MockListing): SellStep {
+  if (
+    listing.propertyType &&
+    listing.city &&
+    listing.locality &&
+    listing.bhkType &&
+    listing.builtUpArea &&
+    listing.furnishing &&
+    listing.price
+  )
+    return 'review'
+  if (
+    listing.propertyType &&
+    listing.city &&
+    listing.locality &&
+    listing.bhkType &&
+    listing.builtUpArea &&
+    listing.furnishing
+  )
+    return 'pricing'
+  if (listing.propertyType && listing.city && listing.locality) return 'details'
+  if (listing.propertyType) return 'location'
+  return 'property-type'
+}
+
 export const useSellFormStore = create<SellFormState>()(
   persist(
     (set, get) => ({
@@ -144,6 +182,12 @@ export const useSellFormStore = create<SellFormState>()(
       draftId: null,
       saveStatus: 'idle',
       submitted: false,
+      aiGenerationCount: 0,
+      aiCooldownUntil: 0,
+      descriptionSource: 'none' as const,
+      titleSource: 'none' as const,
+      descriptionGeneratedFromHash: null,
+      descriptionGenerationInFlight: false,
 
       setStep: (step) => set({ currentStep: step }),
 
@@ -186,6 +230,14 @@ export const useSellFormStore = create<SellFormState>()(
 
       setSubmitted: (value) => set({ submitted: value }),
 
+      setAiRateLimit: (count, cooldownUntil) =>
+        set({ aiGenerationCount: count, aiCooldownUntil: cooldownUntil }),
+      setDescriptionSource: (source) => set({ descriptionSource: source }),
+      setTitleSource: (source) => set({ titleSource: source }),
+      setDescriptionGeneratedFromHash: (hash) => set({ descriptionGeneratedFromHash: hash }),
+      setDescriptionGenerationInFlight: (inFlight) =>
+        set({ descriptionGenerationInFlight: inFlight }),
+
       reset: () =>
         set({
           currentStep: 'property-type',
@@ -197,11 +249,17 @@ export const useSellFormStore = create<SellFormState>()(
           draftId: null,
           saveStatus: 'idle',
           submitted: false,
+          aiGenerationCount: 0,
+          aiCooldownUntil: 0,
+          descriptionSource: 'none' as const,
+          titleSource: 'none' as const,
+          descriptionGeneratedFromHash: null,
+          descriptionGenerationInFlight: false,
         }),
 
       hydrateFromListing: (listing) =>
         set({
-          currentStep: 'property-type',
+          currentStep: deriveResumeStep(listing),
           draftId: listing.id,
           propertyType: (listing.propertyType as PropertyType) ?? null,
           location: {
@@ -230,14 +288,20 @@ export const useSellFormStore = create<SellFormState>()(
             price: listing.price.toLocaleString('en-IN'),
             title: listing.title,
             description: listing.description,
-            negotiable: false,
+            negotiable: listing.negotiable ?? false,
           },
           saveStatus: 'idle',
+          descriptionSource: 'manual',
+          titleSource: 'manual',
+          descriptionGenerationInFlight: false,
+          descriptionGeneratedFromHash: null,
         }),
     }),
     {
       name: 'sell-form-draft',
       // All fields are now serializable — photos are plain URL strings.
+      // descriptionSource, titleSource, descriptionGeneratedFromHash, descriptionGenerationInFlight
+      // are session-only and intentionally excluded from persistence.
       partialize: (state) => ({
         currentStep: state.currentStep,
         propertyType: state.propertyType,
@@ -247,6 +311,8 @@ export const useSellFormStore = create<SellFormState>()(
         pricing: state.pricing,
         draftId: state.draftId,
         submitted: state.submitted,
+        aiGenerationCount: state.aiGenerationCount,
+        aiCooldownUntil: state.aiCooldownUntil,
       }),
     },
   ),

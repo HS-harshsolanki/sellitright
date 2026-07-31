@@ -5,11 +5,12 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 
 import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
-import { Button } from '@/components/ui/button'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
 const GoogleIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+  <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-hidden="true">
     <path
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
       fill="#4285F4"
@@ -31,12 +32,19 @@ const GoogleIcon = () => (
 
 function Spinner() {
   return (
-    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg
+      className="h-4 w-4 shrink-0 animate-spin"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
   )
 }
+
+// ─── Page inner ───────────────────────────────────────────────────────────────
 
 function LoginPageInner() {
   const searchParams = useSearchParams()
@@ -69,24 +77,32 @@ function LoginPageInner() {
     }
   }
 
-  const callbackError = searchParams.get('error')
+  const callbackErrorCode = searchParams.get('error')
+  const callbackErrorDetail = searchParams.get('detail')
+  const callbackError = callbackErrorCode
+    ? callbackErrorDetail
+      ? `Sign-in failed: ${callbackErrorDetail}`
+      : 'Sign-in failed. Please try again.'
+    : null
   const showError = error || callbackError
 
   return (
     <>
+      {/* Logo + heading */}
       <div className="mb-8 text-center">
         <div className="flex justify-center">
           <ChapterNewLogo size="md" />
         </div>
-        <h1 className="mt-4 text-xl font-semibold text-[var(--color-foreground)]">Welcome back</h1>
-        <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Sign in to manage your listings
+        <h1 className="mt-6 text-2xl font-bold tracking-[-0.02em] text-[#1A1A1A]">Welcome back!</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[#6B6B6B]">
+          Sign in to manage your property listings and continue your journey.
         </p>
       </div>
 
+      {/* Error alert */}
       {showError && (
         <div
-          className="border-[var(--color-destructive)]/20 bg-[var(--color-destructive)]/5 mb-4 flex items-start gap-2 rounded-lg border px-4 py-3 text-sm text-[var(--color-destructive)]"
+          className="mb-5 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
           role="alert"
           aria-live="polite"
         >
@@ -102,44 +118,46 @@ function LoginPageInner() {
               clipRule="evenodd"
             />
           </svg>
-          <span>{error || callbackError || 'Sign-in failed. Please try again.'}</span>
+          <span>{error || callbackError}</span>
         </div>
       )}
 
-      <Button
+      {/* Google CTA — black */}
+      <button
         type="button"
-        variant="outline"
-        className="h-12 w-full gap-3 border-[var(--color-border)] text-sm font-medium shadow-sm"
         onClick={handleGoogleLogin}
         disabled={loading}
+        className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#1A1A1A] text-sm font-medium text-white transition-colors duration-150 hover:bg-[#333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A1A1A] focus-visible:ring-offset-2 active:bg-[#000] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? <Spinner /> : <GoogleIcon />}
         {loading ? 'Redirecting to Google…' : 'Continue with Google'}
-      </Button>
+      </button>
 
-      <p className="mt-6 text-center text-xs text-[var(--color-muted-foreground)]">
+      {/* Legal */}
+      <p className="mt-6 text-center text-xs leading-relaxed text-[#9B9B9B]">
         By continuing, you agree to our{' '}
         <Link
           href="/terms"
-          className="underline underline-offset-4 hover:text-[var(--color-foreground)]"
+          className="underline underline-offset-4 transition-colors duration-150 hover:text-[#1A1A1A]"
         >
-          Terms
+          Terms of Service
         </Link>{' '}
         and{' '}
         <Link
           href="/privacy"
-          className="underline underline-offset-4 hover:text-[var(--color-foreground)]"
+          className="underline underline-offset-4 transition-colors duration-150 hover:text-[#1A1A1A]"
         >
           Privacy Policy
         </Link>
         .
       </p>
 
-      <p className="mt-4 text-center text-sm text-[var(--color-muted-foreground)]">
+      {/* Create account link */}
+      <p className="mt-4 text-center text-sm text-[#6B6B6B]">
         Don&apos;t have an account?{' '}
         <Link
           href="/register"
-          className="font-medium text-[var(--color-primary)] underline-offset-4 hover:underline"
+          className="font-medium text-[#F86039] underline-offset-4 transition-colors duration-150 hover:underline"
         >
           Create one
         </Link>
@@ -147,6 +165,8 @@ function LoginPageInner() {
     </>
   )
 }
+
+// ─── Page export ──────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   return (

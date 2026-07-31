@@ -57,8 +57,8 @@ export async function verifyOtpWithWidget(
     return { valid: false, message: 'MSG91 not configured' }
   }
 
-  // Dev fallback — reqId starts with "dev-" in local mode; accept any 6-digit OTP
-  if (reqId.startsWith('dev-')) {
+  // Dev fallback — only in non-production; reqId starts with "dev-" in local mode
+  if (process.env.NODE_ENV !== 'production' && reqId.startsWith('dev-')) {
     return { valid: otp.length === 6 }
   }
 
@@ -85,5 +85,8 @@ export async function verifyOtpWithWidget(
     return { valid: false, message: data.message }
   }
 
-  return { valid: true }
+  return {
+    valid: data.type === 'success',
+    message: data.type !== 'success' ? (data.message ?? 'OTP verification failed.') : undefined,
+  }
 }
