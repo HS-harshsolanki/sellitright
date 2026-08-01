@@ -184,7 +184,7 @@ Multiple BHK types can be requested: "2 or 3 BHK" → ["2 BHK","3 BHK"].`
     try {
       message = await anthropic.messages.create(
         {
-          model: 'claude-haiku-4-5-WS-03A8',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 250,
           system,
           messages: [{ role: 'user', content: `Parse: "${query}"` }],
