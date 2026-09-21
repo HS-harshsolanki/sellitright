@@ -4,6 +4,7 @@ import { MapPin, Home, IndianRupee, ChevronDown, X, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
+
 import { BudgetSegment } from './segments/budget-segment'
 import { LocationSegment } from './segments/location-segment'
 import { WhatSegment } from './segments/what-segment'

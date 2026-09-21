@@ -1,7 +1,7 @@
-import type { Metadata } from 'next'
-import type { ReactNode } from 'react'
-import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 export const metadata: Metadata = {
   title: 'ChapterNew — Sign in',

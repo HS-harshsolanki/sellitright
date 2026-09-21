@@ -1,8 +1,7 @@
-import React from 'react'
-
 import { ArrowRight } from 'lucide-react'
 import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
+import React from 'react'
 
 import { OAuthCallbackRedirect } from '@/components/auth/oauth-callback-redirect'
 import { HeroSearch } from '@/components/browse/hero-search'

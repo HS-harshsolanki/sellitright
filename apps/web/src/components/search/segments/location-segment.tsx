@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { filterLocalities, getLocalitiesForCity } from '@/lib/localities'
 import { cn } from '@/lib/utils'
+
 import { SUPPORTED_CITIES } from '../smart-search-types'
 
 interface LocationSegmentProps {

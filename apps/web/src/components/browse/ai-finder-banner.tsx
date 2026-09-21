@@ -4,8 +4,9 @@ import { Loader2, Sparkle, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 
 import type { AISearchFilters } from '@/app/api/listings/ai-search/route'
-import type { ParsedFilters } from './ai-finder-button'
 import { cn } from '@/lib/utils'
+
+import type { ParsedFilters } from './ai-finder-button'
 
 const CHIPS = ['2BHK under ₹1Cr', 'Furnished near metro', '3BHK in Pune']
 

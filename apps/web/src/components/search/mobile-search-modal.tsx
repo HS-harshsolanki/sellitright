@@ -1,10 +1,11 @@
 'use client'
 
 import { ChevronDown, Loader2, Search, Sparkles, X } from 'lucide-react'
-import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { cn } from '@/lib/utils'
+
 import { BudgetSegment } from './segments/budget-segment'
 import { LocationSegment } from './segments/location-segment'
 import { WhatSegment } from './segments/what-segment'

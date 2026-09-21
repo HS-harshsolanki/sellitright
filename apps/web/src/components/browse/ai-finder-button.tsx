@@ -3,8 +3,8 @@
 import { Sparkles, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { ActiveFilters } from '@/components/search/filter-bar'
 import type { AISearchFilters } from '@/app/api/listings/ai-search/route'
+import type { ActiveFilters } from '@/components/search/filter-bar'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 

@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { ChevronDown, Sparkle } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, Sparkle } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useState } from 'react'
+
 import { QualityScorePanel } from '@/components/listing/quality-score-panel'
 import type { QualityBreakdown, ImprovementAction } from '@/lib/quality-score'
+import { cn } from '@/lib/utils'
 
 interface OwnerQualityWidgetProps {
   listingId: string

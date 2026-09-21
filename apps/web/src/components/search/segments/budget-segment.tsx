@@ -3,6 +3,7 @@
 import { IndianRupee } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+
 import { BUDGET_PRESETS, type BudgetRange } from '../smart-search-types'
 
 interface BudgetSegmentProps {
