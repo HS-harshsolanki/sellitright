@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
       locality: validated.locality,
       state: validated.state,
       pincode: validated.pincode,
+      society_name: validated.societyName ?? null,
       latitude: validated.latitude ?? null,
       longitude: validated.longitude ?? null,
       amenities: validated.amenities,

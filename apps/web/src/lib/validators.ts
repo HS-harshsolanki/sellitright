@@ -61,6 +61,7 @@ export const listingCreateSchema = z.object({
   locality: z.string().min(2).max(100),
   state: z.string().min(2).max(100),
   pincode: z.string().regex(/^\d{6}$/, 'Pincode must be exactly 6 digits'),
+  societyName: z.string().max(200).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   amenities: z.array(z.string()).default([]),

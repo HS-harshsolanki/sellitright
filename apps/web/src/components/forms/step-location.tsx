@@ -1,6 +1,7 @@
 'use client'
 
-import { AlertCircle, MapPin } from 'lucide-react'
+import { AlertCircle, Crosshair, Loader2, MapPin } from 'lucide-react'
+import { useState } from 'react'
 
 import { LocalityCombobox } from '@/components/forms/locality-combobox'
 import { getLocalitiesForCity, type LocalityOption } from '@/lib/localities'
@@ -35,8 +36,12 @@ interface StepLocationProps {
   showErrors?: boolean
 }
 
+type GpsStatus = 'idle' | 'loading' | 'success' | 'error'
+
 export function StepLocation({ showErrors = false }: StepLocationProps) {
   const { location, setLocation } = useSellFormStore()
+  const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle')
+  const [gpsError, setGpsError] = useState<string | null>(null)
 
   const cityMissing = showErrors && !location.city
   const localityMissing = showErrors && !location.locality.trim()
@@ -58,6 +63,26 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
       pincode: option.pincode ?? '',
       ...(option.city && !location.city ? { city: option.city } : {}),
     })
+  }
+
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      setGpsError('Your browser does not support GPS location.')
+      return
+    }
+    setGpsStatus('loading')
+    setGpsError(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
+        setGpsStatus('success')
+      },
+      () => {
+        setGpsError('Could not detect location. Please allow location access and try again.')
+        setGpsStatus('error')
+      },
+      { timeout: 10000 },
+    )
   }
 
   const localities = getLocalitiesForCity(location.city)
@@ -222,6 +247,60 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
               Enter a valid 6-digit pincode.
             </p>
           )}
+        </div>
+
+        {/* Society / Building name */}
+        <div className="space-y-1.5">
+          <label htmlFor="societyName" className={labelClass}>
+            Society / Building name
+          </label>
+          <input
+            id="societyName"
+            type="text"
+            placeholder="e.g. Prestige Lakeside Habitat, DLF Phase 3…"
+            value={location.societyName}
+            onChange={(e) => setLocation({ societyName: e.target.value })}
+            className={cn(inputBase, 'border-border focus:border-primary')}
+          />
+          <p className="text-muted-foreground text-xs">
+            Helps buyers find your listing on the map.
+          </p>
+        </div>
+
+        {/* GPS pin */}
+        <div className="space-y-1.5">
+          <span className={labelClass}>Precise location (for map)</span>
+          <button
+            type="button"
+            onClick={handleDetectLocation}
+            disabled={gpsStatus === 'loading'}
+            className={cn(
+              'focus:ring-primary/20 flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2',
+              gpsStatus === 'success'
+                ? 'border-green-400 bg-green-50 text-green-700'
+                : 'border-border text-foreground hover:bg-muted bg-white',
+            )}
+          >
+            {gpsStatus === 'loading' ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Crosshair className="h-4 w-4" aria-hidden="true" />
+            )}
+            {gpsStatus === 'success' && location.latitude !== null
+              ? `Pinned: ${location.latitude.toFixed(4)}, ${location.longitude?.toFixed(4)}`
+              : gpsStatus === 'loading'
+                ? 'Detecting…'
+                : 'Auto-detect my location'}
+          </button>
+          {gpsError && (
+            <p role="alert" className="flex items-center gap-1 text-xs text-amber-600">
+              <AlertCircle className="h-3 w-3 shrink-0" />
+              {gpsError}
+            </p>
+          )}
+          <p className="text-muted-foreground text-xs">
+            Optional — pins your property exactly on the map.
+          </p>
         </div>
       </div>
     </div>

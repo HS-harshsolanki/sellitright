@@ -64,6 +64,7 @@ export interface MockListing {
   pincode: string
   latitude: number | null
   longitude: number | null
+  societyName?: string | null
   amenities: string[]
   status: ListingStatus
   rejectionReason: string | null

@@ -1,6 +1,7 @@
 'use client'
 
-import { ChevronDown, Plus } from 'lucide-react'
+import { ChevronDown, LayoutGrid, Map, Plus } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -10,6 +11,16 @@ import { type ParsedFilters } from '@/components/browse/ai-finder-button'
 import { computeMatchScore } from '@/lib/match-score'
 import type { MockListing } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
+
+const PropertyMapView = dynamic(
+  () => import('@/components/map/property-map-view').then((m) => m.PropertyMapView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full w-full animate-pulse rounded-2xl bg-[var(--color-muted)]" />
+    ),
+  },
+)
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -117,6 +128,8 @@ export function BrowseClient({
   )
   const [sortOpen, setSortOpen] = useState(false)
   const sortRef = useRef<HTMLDivElement>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
+  const [searchOnMove, setSearchOnMove] = useState(false)
 
   // ─── API fetch state ──────────────────────────────────────────────────────
   // Seed with server-rendered data on first render to eliminate the blank grid flash.
@@ -481,7 +494,7 @@ export function BrowseClient({
 
       {/* ── Listings section ────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6">
-        {/* Count + sort row */}
+        {/* Count + sort + view-toggle row */}
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-gray-500">
             <span className="font-medium text-gray-800">
@@ -490,50 +503,93 @@ export function BrowseClient({
             {searchQuery && <span> for &ldquo;{searchQuery}&rdquo;</span>}
           </p>
 
-          {/* Sort dropdown */}
-          <div className="relative" ref={sortRef}>
-            <button
-              type="button"
-              onClick={() => setSortOpen((o) => !o)}
-              className="flex items-center gap-1 rounded text-sm font-medium text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-              aria-haspopup="listbox"
-              aria-expanded={sortOpen}
-            >
-              {SORT_LABELS[sort]}
-              <ChevronDown
-                className={`h-3.5 w-3.5 text-gray-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`}
-              />
-            </button>
-
-            {sortOpen && (
-              <ul
-                role="listbox"
-                aria-label="Sort options"
-                className="absolute right-0 z-10 mt-2 min-w-[200px] rounded-xl border border-[var(--color-border)] bg-white py-1 shadow-lg"
+          <div className="flex items-center gap-3">
+            {/* List / Map toggle */}
+            <div className="flex rounded-lg border border-[var(--color-border)] bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                aria-pressed={viewMode === 'list'}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
-                {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
-                  <li key={key} role="option" aria-selected={sort === key}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSort(key)
-                        setSortOpen(false)
-                      }}
-                      className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 ${
-                        sort === key ? 'font-semibold text-gray-900' : 'text-gray-600'
-                      }`}
-                    >
-                      {SORT_LABELS[key]}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+                <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
+                List
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('map')}
+                aria-pressed={viewMode === 'map'}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === 'map'
+                    ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Map className="h-3.5 w-3.5" aria-hidden="true" />
+                Map
+              </button>
+            </div>
+
+            {/* Sort dropdown */}
+            <div className="relative" ref={sortRef}>
+              <button
+                type="button"
+                onClick={() => setSortOpen((o) => !o)}
+                className="flex items-center gap-1 rounded text-sm font-medium text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+                aria-haspopup="listbox"
+                aria-expanded={sortOpen}
+              >
+                {SORT_LABELS[sort]}
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-gray-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {sortOpen && (
+                <ul
+                  role="listbox"
+                  aria-label="Sort options"
+                  className="absolute right-0 z-10 mt-2 min-w-[200px] rounded-xl border border-[var(--color-border)] bg-white py-1 shadow-lg"
+                >
+                  {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
+                    <li key={key} role="option" aria-selected={sort === key}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSort(key)
+                          setSortOpen(false)
+                        }}
+                        className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 ${
+                          sort === key ? 'font-semibold text-gray-900' : 'text-gray-600'
+                        }`}
+                      >
+                        {SORT_LABELS[key]}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Loading state */}
-        {isLoading ? (
+        {/* Map view */}
+        {viewMode === 'map' && (
+          <div className="mt-4 h-[calc(100vh-220px)] min-h-[500px]">
+            <PropertyMapView
+              listings={listingsWithScore}
+              searchOnMove={searchOnMove}
+              onSearchOnMoveToggle={setSearchOnMove}
+            />
+          </div>
+        )}
+
+        {/* Loading state (list mode only) */}
+        {viewMode === 'list' && isLoading && (
           <div className="mt-16 flex justify-center">
             <svg
               className="h-8 w-8 animate-spin text-[var(--color-primary)]"
@@ -557,7 +613,8 @@ export function BrowseClient({
               />
             </svg>
           </div>
-        ) : listings.length === 0 ? (
+        )}
+        {viewMode === 'list' && !isLoading && listings.length === 0 && (
           /* Empty state */
           <div className="mt-16 flex flex-col items-center text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
@@ -589,7 +646,8 @@ export function BrowseClient({
               Clear all filters
             </button>
           </div>
-        ) : (
+        )}
+        {viewMode === 'list' && !isLoading && listings.length > 0 && (
           <div
             className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 xl:grid-cols-4"
             style={aiInterpretation ? { transition: 'opacity 0.4s ease' } : undefined}
