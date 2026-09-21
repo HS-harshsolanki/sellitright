@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { ListingCard } from '@/components/listing/listing-card'
 import { type ParsedFilters } from '@/components/browse/ai-finder-button'
+import { ListingCard } from '@/components/listing/listing-card'
 import { computeMatchScore } from '@/lib/match-score'
 import type { MockListing } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
@@ -286,6 +286,7 @@ export function BrowseClient({
         // best_match is client-side only — API always receives 'newest' in that case
         params.set('sort', sort === 'best_match' ? 'newest' : sort)
         params.set('page', String(pageToFetch))
+        if (viewMode === 'map') params.set('limit', '250')
 
         if (searchQuery.trim()) params.set('city', searchQuery.trim())
 
@@ -335,7 +336,7 @@ export function BrowseClient({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, filtersKey, sort, apiPage, initialPage, retryCount])
+  }, [searchQuery, filtersKey, sort, apiPage, initialPage, retryCount, viewMode])
 
   // ─── Active listings ──────────────────────────────────────────────────────
   const listings: MockListing[] = apiListings ?? []

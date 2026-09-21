@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
-import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { computeQualityScore } from '@/lib/quality-score'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { listingCreateSchema } from '@/lib/validators'
 
 // Accept all listingCreateSchema fields + optional draftId for upsert

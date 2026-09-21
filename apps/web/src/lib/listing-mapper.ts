@@ -1,5 +1,5 @@
-import { computeQualityScore } from '@/lib/quality-score'
 import type { MockListing } from '@/lib/mock-data'
+import { computeQualityScore } from '@/lib/quality-score'
 import type { Database } from '@/lib/supabase/database.types'
 
 export type SupabaseListingRow = Database['public']['Tables']['listings']['Row']

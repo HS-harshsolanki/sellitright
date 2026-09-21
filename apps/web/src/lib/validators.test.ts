@@ -103,8 +103,8 @@ describe('listingFilterSchema', () => {
     if (result.success) expect(result.data.page).toBe(2)
   })
 
-  it('should reject limit above 50', () => {
-    const result = listingFilterSchema.safeParse({ limit: 100 })
+  it('should reject limit above 300', () => {
+    const result = listingFilterSchema.safeParse({ limit: 301 })
     expect(result.success).toBe(false)
   })
 })

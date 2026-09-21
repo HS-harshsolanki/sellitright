@@ -2,27 +2,35 @@
 
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-import { X } from 'lucide-react'
+import {
+  Bath,
+  BedDouble,
+  Building2,
+  Car,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  X,
+  Zap,
+} from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Map, {
   Layer,
   NavigationControl,
-  Popup,
   Source,
   type LayerProps,
   type MapRef,
   type ViewState,
 } from 'react-map-gl/mapbox'
 
-import { formatPrice } from '@/lib/format'
+import { formatBHK, formatFurnishing, formatParking, formatPrice } from '@/lib/format'
 import type { MockListing } from '@/lib/mock-data'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
-
 const INDIA_CENTER = { longitude: 78.9629, latitude: 20.5937, zoom: 5 }
 
-// Cluster source + layers use Mapbox built-in clustering for performance
 const clusterLayer: LayerProps = {
   id: 'clusters',
   type: 'circle',
@@ -81,6 +89,28 @@ interface PricePin {
   y: number
 }
 
+function PriceSqft({ price, area }: { price: number; area: number }) {
+  const perSqft = Math.round(price / area)
+  return (
+    <span className="text-xs text-[var(--color-muted-foreground)]">
+      ₹{Math.round(perSqft / 1000)}k/sqft
+    </span>
+  )
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  const color =
+    score >= 75 ? 'bg-emerald-500' : score >= 60 ? 'bg-amber-500' : 'bg-[var(--color-muted)]'
+  return (
+    <span
+      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${color}`}
+    >
+      <Zap className="h-2.5 w-2.5" />
+      {score}
+    </span>
+  )
+}
+
 export function PropertyMapView({
   listings,
   onBoundsChange,
@@ -90,29 +120,22 @@ export function PropertyMapView({
   const mapRef = useRef<MapRef>(null)
   const [viewState, setViewState] = useState<Partial<ViewState>>(INDIA_CENTER)
   const [selectedListing, setSelectedListing] = useState<MockListing | null>(null)
+  const [selectedIdx, setSelectedIdx] = useState<number>(0)
   const [pricePins, setPricePins] = useState<PricePin[]>([])
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [visibleListings, setVisibleListings] = useState<MockListing[]>([])
 
-  // Build GeoJSON from listings that have coordinates
   const geojson = {
     type: 'FeatureCollection' as const,
     features: listings
       .filter((l) => l.latitude !== null && l.longitude !== null)
       .map((l) => ({
         type: 'Feature' as const,
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [l.longitude!, l.latitude!],
-        },
-        properties: {
-          id: l.id,
-          price: l.price,
-          title: l.title,
-        },
+        geometry: { type: 'Point' as const, coordinates: [l.longitude!, l.latitude!] },
+        properties: { id: l.id, price: l.price, title: l.title },
       })),
   }
 
-  // Reproject price pins to screen coordinates on render
   const updatePricePins = useCallback(() => {
     const map = mapRef.current?.getMap()
     if (!map || !mapLoaded) return
@@ -123,13 +146,26 @@ export function PropertyMapView({
       return
     }
 
+    const bounds = map.getBounds()
+    if (!bounds) return
+
     const visible: PricePin[] = []
+    const visibleList: MockListing[] = []
     for (const listing of listings) {
       if (listing.latitude === null || listing.longitude === null) continue
+      if (
+        listing.longitude < bounds.getWest() ||
+        listing.longitude > bounds.getEast() ||
+        listing.latitude < bounds.getSouth() ||
+        listing.latitude > bounds.getNorth()
+      )
+        continue
       const pt = map.project([listing.longitude, listing.latitude])
       visible.push({ listing, x: pt.x, y: pt.y })
+      visibleList.push(listing)
     }
     setPricePins(visible)
+    setVisibleListings(visibleList)
   }, [listings, mapLoaded])
 
   useEffect(() => {
@@ -151,6 +187,25 @@ export function PropertyMapView({
     })
   }, [searchOnMove, onBoundsChange, updatePricePins])
 
+  const selectListing = useCallback(
+    (listing: MockListing) => {
+      setSelectedListing(listing)
+      const idx = visibleListings.findIndex((l) => l.id === listing.id)
+      setSelectedIdx(idx >= 0 ? idx : 0)
+    },
+    [visibleListings],
+  )
+
+  const navigateListing = useCallback(
+    (dir: 1 | -1) => {
+      if (!visibleListings.length) return
+      const next = (selectedIdx + dir + visibleListings.length) % visibleListings.length
+      setSelectedIdx(next)
+      setSelectedListing(visibleListings[next] ?? null)
+    },
+    [selectedIdx, visibleListings],
+  )
+
   const handleMapClick = useCallback(
     (e: { features?: Array<{ properties: { id?: string; cluster_id?: number } }> }) => {
       const features = e.features ?? []
@@ -162,7 +217,6 @@ export function PropertyMapView({
       const feature = features[0]
       if (!feature?.properties) return
 
-      // Cluster click — zoom in
       if (feature.properties.cluster_id !== undefined) {
         const map = mapRef.current?.getMap()
         if (!map) return
@@ -177,15 +231,13 @@ export function PropertyMapView({
         return
       }
 
-      // Single listing click
       const id = feature.properties.id
       const listing = listings.find((l) => l.id === id)
-      if (listing) setSelectedListing(listing)
+      if (listing) selectListing(listing)
     },
-    [listings],
+    [listings, selectListing],
   )
 
-  // Auto-fit map to listings with coordinates
   useEffect(() => {
     if (!mapLoaded || !listings.length) return
     const withCoords = listings.filter((l) => l.latitude !== null && l.longitude !== null)
@@ -209,6 +261,12 @@ export function PropertyMapView({
       </div>
     )
   }
+
+  const heroImage = selectedListing?.images?.[0]?.url ?? null
+  const pricePerSqft =
+    selectedListing && selectedListing.builtUpArea > 0
+      ? Math.round(selectedListing.price / selectedListing.builtUpArea)
+      : null
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl">
@@ -239,48 +297,50 @@ export function PropertyMapView({
           <Layer {...unclusteredPointLayer} />
         </Source>
 
-        {/* Price pins — HTML overlay, only at zoom ≥ 10 */}
-        {pricePins.map(({ listing, x, y }) => (
-          <div
-            key={listing.id}
-            onClick={() => setSelectedListing(listing)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && setSelectedListing(listing)}
-            aria-label={`${listing.title} — ${formatPrice(listing.price)}`}
-            className="absolute -translate-x-1/2 -translate-y-full cursor-pointer"
-            style={{ left: x, top: y, pointerEvents: 'auto' }}
-          >
-            <span
-              className={`flex items-center gap-0.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold shadow-md transition-all duration-150 ${
-                selectedListing?.id === listing.id
-                  ? 'scale-110 bg-[var(--color-primary)] text-white'
-                  : 'bg-white text-[var(--color-foreground)] hover:bg-[var(--color-primary)] hover:text-white'
-              }`}
+        {/* Price pins — HTML overlay at zoom ≥ 10 */}
+        {pricePins.map(({ listing, x, y }) => {
+          const isSelected = selectedListing?.id === listing.id
+          return (
+            <div
+              key={listing.id}
+              onClick={() => selectListing(listing)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && selectListing(listing)}
+              aria-label={`${listing.title} — ${formatPrice(listing.price)}`}
+              className="absolute cursor-pointer"
+              style={{
+                left: x,
+                top: y,
+                transform: 'translate(-50%, -100%)',
+                zIndex: isSelected ? 20 : 10,
+                pointerEvents: 'auto',
+              }}
             >
-              {formatPrice(listing.price)}
-            </span>
-            <span
-              className={`mx-auto block h-2 w-0.5 ${selectedListing?.id === listing.id ? 'bg-[var(--color-primary)]' : 'bg-gray-700'}`}
-              aria-hidden="true"
-            />
-          </div>
-        ))}
-
-        {/* Popup for selected listing — coordinates */}
-        {selectedListing && selectedListing.latitude !== null && (
-          <Popup
-            longitude={selectedListing.longitude!}
-            latitude={selectedListing.latitude!}
-            anchor="bottom"
-            offset={[0, -8] as [number, number]}
-            closeButton={false}
-            closeOnClick={false}
-            style={{ padding: 0 }}
-          >
-            <div className="w-56" />
-          </Popup>
-        )}
+              {/* Pill */}
+              <div
+                className={`flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold shadow-md transition-all duration-150 ${
+                  isSelected
+                    ? 'scale-110 bg-[var(--color-primary)] text-white shadow-lg'
+                    : 'bg-white text-[var(--color-foreground)] hover:bg-[var(--color-primary)] hover:text-white hover:shadow-lg'
+                }`}
+              >
+                {formatPrice(listing.price)}
+              </div>
+              {/* Triangle pointer */}
+              <div
+                className="mx-auto"
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: '5px solid transparent',
+                  borderRight: '5px solid transparent',
+                  borderTop: isSelected ? '6px solid var(--color-primary)' : '6px solid white',
+                }}
+              />
+            </div>
+          )
+        })}
       </Map>
 
       {/* Search-as-I-move toggle */}
@@ -304,52 +364,197 @@ export function PropertyMapView({
         </div>
       )}
 
-      {/* Side panel for selected listing */}
+      {/* Rich side panel */}
       {selectedListing && (
-        <div className="absolute bottom-4 left-4 right-4 z-10 rounded-2xl bg-white p-4 shadow-2xl sm:left-auto sm:right-4 sm:w-80">
-          <button
-            type="button"
-            onClick={() => setSelectedListing(null)}
-            aria-label="Close"
-            className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)]"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+        <div className="absolute bottom-3 right-3 z-20 flex w-[320px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+          {/* Prev/Next nav + close */}
+          <div className="flex items-center justify-between px-3 pb-1 pt-2.5">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => navigateListing(-1)}
+                disabled={visibleListings.length <= 1}
+                aria-label="Previous listing"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)] disabled:opacity-30"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="min-w-[52px] text-center text-[11px] font-medium text-[var(--color-muted-foreground)]">
+                {visibleListings.length > 0
+                  ? `${selectedIdx + 1} of ${visibleListings.length}`
+                  : '1 of 1'}
+              </span>
+              <button
+                type="button"
+                onClick={() => navigateListing(1)}
+                disabled={visibleListings.length <= 1}
+                aria-label="Next listing"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)] disabled:opacity-30"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
 
-          <div className="pr-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+            <button
+              type="button"
+              onClick={() => setSelectedListing(null)}
+              aria-label="Close"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)]"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Photo / gradient hero */}
+          <div className="relative mx-3 h-40 overflow-hidden rounded-xl">
+            {heroImage ? (
+              <Image
+                src={heroImage}
+                alt={selectedListing.title}
+                fill
+                className="object-cover"
+                sizes="320px"
+                unoptimized
+              />
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-indigo-100 via-violet-50 to-purple-100" />
+            )}
+
+            {/* Score + verified badges on photo */}
+            <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+              {selectedListing.qualityScore !== undefined && selectedListing.qualityScore > 0 && (
+                <ScoreBadge score={selectedListing.qualityScore} />
+              )}
+              {selectedListing.isVerified && (
+                <span className="flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                  <Star className="h-2.5 w-2.5" />
+                  Verified
+                </span>
+              )}
+            </div>
+
+            {/* Image count */}
+            {selectedListing.images.length > 1 && (
+              <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
+                {selectedListing.images.length} photos
+              </span>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="px-3 pb-3 pt-2.5">
+            {/* Location */}
+            <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
               {selectedListing.locality}, {selectedListing.city}
             </p>
-            <p className="mt-0.5 line-clamp-2 text-sm font-semibold text-[var(--color-foreground)]">
+
+            {/* Price row */}
+            <div className="mt-0.5 flex items-baseline gap-2">
+              <p className="text-2xl font-bold text-[var(--color-foreground)]">
+                {formatPrice(selectedListing.price)}
+              </p>
+              {pricePerSqft && (
+                <PriceSqft price={selectedListing.price} area={selectedListing.builtUpArea} />
+              )}
+            </div>
+
+            {/* Title */}
+            <p className="mt-0.5 line-clamp-1 text-sm font-semibold text-[var(--color-foreground)]">
               {selectedListing.title}
             </p>
-            <p className="mt-1 text-xl font-bold text-[var(--color-foreground)]">
-              {formatPrice(selectedListing.price)}
-            </p>
 
+            {/* Key specs grid */}
+            <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+              {/* BHK */}
+              <div className="flex flex-col items-center rounded-lg bg-[var(--color-muted)] px-2 py-1.5">
+                <BedDouble className="mb-0.5 h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
+                <span className="text-[11px] font-semibold text-[var(--color-foreground)]">
+                  {selectedListing.bhkType ? formatBHK(selectedListing.bhkType) : '—'}
+                </span>
+              </div>
+
+              {/* Area */}
+              <div className="flex flex-col items-center rounded-lg bg-[var(--color-muted)] px-2 py-1.5">
+                <Building2 className="mb-0.5 h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
+                <span className="text-[11px] font-semibold text-[var(--color-foreground)]">
+                  {selectedListing.builtUpArea.toLocaleString('en-IN')} ft²
+                </span>
+              </div>
+
+              {/* Floor */}
+              <div className="flex flex-col items-center rounded-lg bg-[var(--color-muted)] px-2 py-1.5">
+                <span className="mb-0.5 text-[10px] font-bold text-[var(--color-muted-foreground)]">
+                  FL
+                </span>
+                <span className="text-[11px] font-semibold text-[var(--color-foreground)]">
+                  {selectedListing.floor !== null
+                    ? `${selectedListing.floor}${selectedListing.totalFloors ? `/${selectedListing.totalFloors}` : ''}`
+                    : '—'}
+                </span>
+              </div>
+
+              {/* Bathrooms */}
+              <div className="flex flex-col items-center rounded-lg bg-[var(--color-muted)] px-2 py-1.5">
+                <Bath className="mb-0.5 h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
+                <span className="text-[11px] font-semibold text-[var(--color-foreground)]">
+                  {selectedListing.bathrooms} Bath
+                </span>
+              </div>
+
+              {/* Furnishing */}
+              <div className="flex flex-col items-center rounded-lg bg-[var(--color-muted)] px-2 py-1.5">
+                <span className="mb-0.5 text-[10px] font-bold text-[var(--color-muted-foreground)]">
+                  FRN
+                </span>
+                <span className="text-[11px] font-semibold text-[var(--color-foreground)]">
+                  {selectedListing.furnishing
+                    ? formatFurnishing(selectedListing.furnishing).split(' ')[0]
+                    : '—'}
+                </span>
+              </div>
+
+              {/* Parking */}
+              <div className="flex flex-col items-center rounded-lg bg-[var(--color-muted)] px-2 py-1.5">
+                <Car className="mb-0.5 h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
+                <span className="text-[11px] font-semibold text-[var(--color-foreground)]">
+                  {selectedListing.parking ? formatParking(selectedListing.parking) : '—'}
+                </span>
+              </div>
+            </div>
+
+            {/* Amenities */}
+            {selectedListing.amenities.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {selectedListing.amenities.slice(0, 4).map((a) => (
+                  <span
+                    key={a}
+                    className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-muted-foreground)]"
+                  >
+                    {a}
+                  </span>
+                ))}
+                {selectedListing.amenities.length > 4 && (
+                  <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-muted-foreground)]">
+                    +{selectedListing.amenities.length - 4} more
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Society name */}
             {selectedListing.societyName && (
-              <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+              <p className="mt-1.5 flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
+                <Building2 className="h-3 w-3 shrink-0" />
                 {selectedListing.societyName}
               </p>
             )}
 
-            <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-[var(--color-muted-foreground)]">
-              <span className="rounded-full bg-[var(--color-muted)] px-2 py-0.5">
-                {selectedListing.bhkType?.replace(/_/g, ' ')}
-              </span>
-              <span className="rounded-full bg-[var(--color-muted)] px-2 py-0.5">
-                {selectedListing.builtUpArea} sq ft
-              </span>
-              <span className="rounded-full bg-[var(--color-muted)] px-2 py-0.5 capitalize">
-                {selectedListing.furnishing?.toLowerCase().replace(/_/g, ' ')}
-              </span>
-            </div>
-
+            {/* CTA */}
             <Link
               href={`/listing/${selectedListing.id}`}
-              className="mt-3 block rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
             >
-              View details
+              View full listing
             </Link>
           </div>
         </div>
