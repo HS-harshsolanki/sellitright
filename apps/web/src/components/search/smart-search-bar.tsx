@@ -97,7 +97,8 @@ function Segment({
         onClick={onToggle}
         data-open={open ? '' : undefined}
         className={cn(
-          'flex w-full items-center gap-2 px-3 py-2.5 text-left transition-[background-color,box-shadow,color] duration-150',
+          'flex w-full items-center gap-2 text-left transition-[background-color,box-shadow,color] duration-150',
+          active ? 'py-2.5 pl-3 pr-8' : 'px-3 py-2.5',
           roundingClass,
           open ? 'bg-gray-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]' : 'hover:bg-gray-100',
         )}
@@ -135,19 +136,7 @@ function Segment({
             {active ? value : `Add ${label.toLowerCase()}`}
           </p>
         </div>
-        {active ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onClear()
-            }}
-            aria-label={`Clear ${label}`}
-            className="shrink-0 rounded-full p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        ) : (
+        {!active && (
           <ChevronDown
             className={cn(
               'h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform',
@@ -156,6 +145,21 @@ function Segment({
           />
         )}
       </button>
+
+      {/* Clear button is a SIBLING of the toggle button — never nested inside it */}
+      {active && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onClear()
+          }}
+          aria-label={`Clear ${label}`}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
 
       {open && (
         <div
