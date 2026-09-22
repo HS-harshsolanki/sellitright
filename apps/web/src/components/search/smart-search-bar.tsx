@@ -428,6 +428,10 @@ export function SmartSearchBar({ defaultValues = {}, onSearch, className }: Smar
                 aiFilledFields={state.aiFilledFields}
                 onCityChange={(city) => patch({ city, localities: [] })}
                 onLocalitiesChange={(localities) => patch({ localities })}
+                onNearMe={(city, nearLocalities) => {
+                  setOpenSegment(null)
+                  onSearch({ ...state, city, localities: nearLocalities })
+                }}
               />
               <PopoverFooter onClear={clearAll} onSearch={handleSearch} />
             </div>
