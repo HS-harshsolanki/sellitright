@@ -38,6 +38,9 @@ function loadEnvLocal() {
 loadEnvTest()
 loadEnvLocal()
 
+const PORT = process.env.PORT ?? '3000'
+const BASE_URL = `http://localhost:${PORT}`
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -46,7 +49,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -55,8 +58,8 @@ export default defineConfig({
     { name: 'Mobile Safari', use: { ...devices['iPhone 13'] } },
   ],
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
+    command: `PORT=${PORT} pnpm dev`,
+    url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
