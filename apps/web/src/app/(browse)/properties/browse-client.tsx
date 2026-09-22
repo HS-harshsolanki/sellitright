@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, LayoutGrid, Map, Plus } from 'lucide-react'
+import { ChevronDown, LayoutGrid, Loader2, Map, Navigation, Plus } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { type ParsedFilters } from '@/components/browse/ai-finder-button'
 import { ListingCard } from '@/components/listing/listing-card'
+import { useNearMe } from '@/hooks/use-near-me'
 import { computeMatchScore } from '@/lib/match-score'
 import type { MockListing } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
@@ -406,6 +407,37 @@ export function BrowseClient({
 
   const [aiInterpretation, setAiInterpretation] = useState<string | null>(null)
 
+  // ─── Near me ──────────────────────────────────────────────────────────────
+  const handleNearMeSuccess = useCallback(
+    ({ city, locality }: { city: string; locality: string | null }) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('city_name', city)
+      params.set('q', locality ? `${locality}, ${city}` : city)
+
+      // Collision: if same city already active, ADD locality rather than replace
+      if (cityName && cityName === city && locality) {
+        const existing = localities.filter(Boolean)
+        const merged = existing.includes(locality) ? existing : [...existing, locality]
+        params.set('locality', merged.join(','))
+      } else {
+        if (locality) {
+          params.set('locality', locality)
+        } else {
+          params.delete('locality')
+        }
+      }
+
+      router.push(`/properties?${params.toString()}`)
+    },
+    [searchParams, router, cityName, localities],
+  )
+
+  const {
+    state: nearMeState,
+    error: nearMeError,
+    trigger: triggerNearMe,
+  } = useNearMe(handleNearMeSuccess)
+
   const resetFilters = useCallback(() => {
     setAiInterpretation(null)
     // Navigate to bare /properties — drops all filters, search query, and city params
@@ -531,12 +563,38 @@ export function BrowseClient({
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6">
         {/* Count + sort + view-toggle row */}
         <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">
-            <span className="font-medium text-gray-800">
-              {isLoading ? '…' : `${totalCount} ${totalCount === 1 ? 'property' : 'properties'}`}
-            </span>
-            {displayQuery && <span> for &ldquo;{displayQuery}&rdquo;</span>}
-          </p>
+          <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <p className="text-sm text-gray-500">
+              <span className="font-medium text-gray-800">
+                {isLoading ? '…' : `${totalCount} ${totalCount === 1 ? 'property' : 'properties'}`}
+              </span>
+              {displayQuery && <span> for &ldquo;{displayQuery}&rdquo;</span>}
+            </p>
+
+            {/* Near me pill — always visible, no need to open WHERE first */}
+            <button
+              type="button"
+              onClick={triggerNearMe}
+              disabled={nearMeState === 'loading'}
+              className={`flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                nearMeState === 'loading'
+                  ? 'cursor-not-allowed border-gray-200 text-gray-400'
+                  : 'border-[var(--color-border)] text-gray-500 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+              }`}
+            >
+              {nearMeState === 'loading' ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Navigation className="h-3 w-3" />
+              )}
+              {nearMeState === 'loading' ? 'Locating…' : 'Near me'}
+            </button>
+
+            {/* Inline error below the pill */}
+            {nearMeState === 'error' && nearMeError && (
+              <p className="text-xs text-red-500">{nearMeError}</p>
+            )}
+          </div>
 
           <div className="flex items-center gap-3">
             {/* Map / List toggle — Map first (returning users land here via localStorage) */}
@@ -719,8 +777,8 @@ export function BrowseClient({
           </div>
         )}
 
-        {/* Pagination — only shown when using real API data and there are multiple pages */}
-        {!isLoading && totalPages > 1 && (
+        {/* Pagination — list view only; map already fetches up to 250 pins at once */}
+        {viewMode === 'list' && !isLoading && totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
               type="button"

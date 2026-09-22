@@ -299,7 +299,7 @@ export function PropertyMapView({
         onMoveEnd={handleMoveEnd}
         onLoad={() => setMapLoaded(true)}
         mapboxAccessToken={MAPBOX_TOKEN}
-        mapStyle="mapbox://styles/mapbox/light-v11"
+        mapStyle="mapbox://styles/mapbox/streets-v12"
         interactiveLayerIds={['clusters', 'unclustered-point']}
         onClick={handleMapClick as unknown as (e: unknown) => void}
         style={{ width: '100%', height: '100%' }}

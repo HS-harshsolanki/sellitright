@@ -154,8 +154,15 @@ export function LocationSegment({
             setGeoState('error')
             return
           }
-          const nearLocalities = locality ? [locality] : []
-          onCityChange(detectedCity)
+          // Same city already selected → add the detected locality (additive)
+          // Different city → replace city + localities
+          let nearLocalities: string[]
+          if (city && city === detectedCity && locality) {
+            nearLocalities = localities.includes(locality) ? localities : [...localities, locality]
+          } else {
+            nearLocalities = locality ? [locality] : []
+            onCityChange(detectedCity)
+          }
           onLocalitiesChange(nearLocalities)
           onNearMe?.(detectedCity, nearLocalities)
           setGeoState('idle')
