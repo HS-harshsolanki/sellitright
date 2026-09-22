@@ -1,15 +1,27 @@
 'use client'
 
-import { ChevronDown, Plus } from 'lucide-react'
+import { ChevronDown, LayoutGrid, Loader2, Map, Navigation, Plus } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { ListingCard } from '@/components/listing/listing-card'
 import { type ParsedFilters } from '@/components/browse/ai-finder-button'
+import { ListingCard } from '@/components/listing/listing-card'
+import { useNearMe } from '@/hooks/use-near-me'
 import { computeMatchScore } from '@/lib/match-score'
 import type { MockListing } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
+
+const PropertyMapView = dynamic(
+  () => import('@/components/map/property-map-view').then((m) => m.PropertyMapView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full w-full animate-pulse rounded-2xl bg-[var(--color-muted)]" />
+    ),
+  },
+)
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -106,9 +118,21 @@ export function BrowseClient({
   const router = useRouter()
   // Read both `q` (canonical), `city` (legacy grid links), or construct from SmartSearch params
   const cityName = searchParams.get('city_name')
-  const locality = searchParams.get('locality')
-  const smartQuery = cityName ? [locality, cityName].filter(Boolean).join(', ') : null
+  // locality param is comma-separated (e.g. "Baner,Koregaon Park")
+  const localityParam = searchParams.get('locality')
+  const localities = localityParam
+    ? localityParam
+        .split(',')
+        .map((l) => l.trim())
+        .filter(Boolean)
+    : []
+  const localityDisplay = localities.join(', ')
+  const smartQuery = cityName ? [localityDisplay, cityName].filter(Boolean).join(', ') : null
   const searchQuery = smartQuery ?? searchParams.get('q') ?? searchParams.get('city') ?? ''
+  // Display label — show neighbourhood when present even if searchQuery only carries city
+  const displayQuery = localityDisplay
+    ? `${localityDisplay}${(cityName ?? searchParams.get('city')) ? `, ${cityName ?? searchParams.get('city')}` : ''}`
+    : searchQuery
 
   // Filters are driven by URL params (written by header-search's FilterPanel)
   const filters = filtersFromParams(searchParams)
@@ -117,6 +141,20 @@ export function BrowseClient({
   )
   const [sortOpen, setSortOpen] = useState(false)
   const sortRef = useRef<HTMLDivElement>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
+    if (typeof window === 'undefined') return 'list'
+    return (localStorage.getItem('chapternew_view_mode') as 'list' | 'map') ?? 'list'
+  })
+  const [searchOnMove, setSearchOnMove] = useState(false)
+
+  const handleViewModeChange = (mode: 'list' | 'map') => {
+    setViewMode(mode)
+    try {
+      localStorage.setItem('chapternew_view_mode', mode)
+    } catch {
+      // localStorage unavailable (private browsing, etc.)
+    }
+  }
 
   // ─── API fetch state ──────────────────────────────────────────────────────
   // Seed with server-rendered data on first render to eliminate the blank grid flash.
@@ -212,7 +250,10 @@ export function BrowseClient({
         // computeMatchScore callers; city/locality are split on comma.
         searchQuery: searchQuery || null,
         city: cityName ?? (searchQuery ? searchQuery.split(',')[0]?.trim() || null : null),
-        locality: locality ?? (searchQuery ? (searchQuery.split(',')[1]?.trim() ?? null) : null),
+        locality:
+          localityDisplay ||
+          (searchQuery ? (searchQuery.split(',')[1]?.trim() ?? null) : null) ||
+          null,
       }
       const hasAny =
         prefs.bhkType ||
@@ -233,7 +274,8 @@ export function BrowseClient({
   }, [filtersKey, searchQuery])
 
   // ─── Fetch from /api/listings whenever filters, sort, page, or query change ─
-  const prevFilterKey = useRef({ searchQuery, filtersKey, sort })
+  const localityKey = localities.join(',')
+  const prevFilterKey = useRef({ searchQuery, filtersKey, sort, localityKey })
   // Track whether we have already used the server-provided initial data for the
   // default (no-filter) view. The first render with no filters and default sort
   // should NOT trigger a fetch — the SSR data is already correct.
@@ -245,11 +287,12 @@ export function BrowseClient({
     const filterChanged =
       prevFilterKey.current.searchQuery !== searchQuery ||
       prevFilterKey.current.filtersKey !== filtersKey ||
-      prevFilterKey.current.sort !== sort
+      prevFilterKey.current.sort !== sort ||
+      prevFilterKey.current.localityKey !== localityKey
 
     const pageToFetch = filterChanged ? 1 : apiPage
     if (filterChanged) {
-      prevFilterKey.current = { searchQuery, filtersKey, sort }
+      prevFilterKey.current = { searchQuery, filtersKey, sort, localityKey }
       setApiPage(1)
     }
 
@@ -273,8 +316,14 @@ export function BrowseClient({
         // best_match is client-side only — API always receives 'newest' in that case
         params.set('sort', sort === 'best_match' ? 'newest' : sort)
         params.set('page', String(pageToFetch))
+        if (viewMode === 'map') params.set('limit', '250')
 
-        if (searchQuery.trim()) params.set('city', searchQuery.trim())
+        // When city_name param is present (SmartSearch), use it directly so the
+        // textSearch receives "Pune" not "Baner, Pune" (the combined display string).
+        const cityForApi = cityName ?? searchQuery
+        if (cityForApi.trim()) params.set('city', cityForApi.trim())
+        // Forward localities comma-separated — API OR-filters by ilike
+        if (localities.length > 0) params.set('locality', localities.join(','))
 
         if (filters.bhkType) {
           const mapped = BHK_MAP[filters.bhkType]
@@ -322,7 +371,7 @@ export function BrowseClient({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, filtersKey, sort, apiPage, initialPage, retryCount])
+  }, [searchQuery, localityKey, filtersKey, sort, apiPage, initialPage, retryCount, viewMode])
 
   // ─── Active listings ──────────────────────────────────────────────────────
   const listings: MockListing[] = apiListings ?? []
@@ -357,6 +406,37 @@ export function BrowseClient({
   }
 
   const [aiInterpretation, setAiInterpretation] = useState<string | null>(null)
+
+  // ─── Near me ──────────────────────────────────────────────────────────────
+  const handleNearMeSuccess = useCallback(
+    ({ city, locality }: { city: string; locality: string | null }) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('city_name', city)
+      params.set('q', locality ? `${locality}, ${city}` : city)
+
+      // Collision: if same city already active, ADD locality rather than replace
+      if (cityName && cityName === city && locality) {
+        const existing = localities.filter(Boolean)
+        const merged = existing.includes(locality) ? existing : [...existing, locality]
+        params.set('locality', merged.join(','))
+      } else {
+        if (locality) {
+          params.set('locality', locality)
+        } else {
+          params.delete('locality')
+        }
+      }
+
+      router.push(`/properties?${params.toString()}`)
+    },
+    [searchParams, router, cityName, localities],
+  )
+
+  const {
+    state: nearMeState,
+    error: nearMeError,
+    trigger: triggerNearMe,
+  } = useNearMe(handleNearMeSuccess)
 
   const resetFilters = useCallback(() => {
     setAiInterpretation(null)
@@ -481,59 +561,129 @@ export function BrowseClient({
 
       {/* ── Listings section ────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6">
-        {/* Count + sort row */}
+        {/* Count + sort + view-toggle row */}
         <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">
-            <span className="font-medium text-gray-800">
-              {isLoading ? '…' : `${totalCount} ${totalCount === 1 ? 'property' : 'properties'}`}
-            </span>
-            {searchQuery && <span> for &ldquo;{searchQuery}&rdquo;</span>}
-          </p>
+          <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <p className="text-sm text-gray-500">
+              <span className="font-medium text-gray-800">
+                {isLoading ? '…' : `${totalCount} ${totalCount === 1 ? 'property' : 'properties'}`}
+              </span>
+              {displayQuery && <span> for &ldquo;{displayQuery}&rdquo;</span>}
+            </p>
 
-          {/* Sort dropdown */}
-          <div className="relative" ref={sortRef}>
+            {/* Near me pill — always visible, no need to open WHERE first */}
             <button
               type="button"
-              onClick={() => setSortOpen((o) => !o)}
-              className="flex items-center gap-1 rounded text-sm font-medium text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-              aria-haspopup="listbox"
-              aria-expanded={sortOpen}
+              onClick={triggerNearMe}
+              disabled={nearMeState === 'loading'}
+              className={`flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                nearMeState === 'loading'
+                  ? 'cursor-not-allowed border-gray-200 text-gray-400'
+                  : 'border-[var(--color-border)] text-gray-500 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+              }`}
             >
-              {SORT_LABELS[sort]}
-              <ChevronDown
-                className={`h-3.5 w-3.5 text-gray-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`}
-              />
+              {nearMeState === 'loading' ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Navigation className="h-3 w-3" />
+              )}
+              {nearMeState === 'loading' ? 'Locating…' : 'Near me'}
             </button>
 
-            {sortOpen && (
-              <ul
-                role="listbox"
-                aria-label="Sort options"
-                className="absolute right-0 z-10 mt-2 min-w-[200px] rounded-xl border border-[var(--color-border)] bg-white py-1 shadow-lg"
-              >
-                {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
-                  <li key={key} role="option" aria-selected={sort === key}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSort(key)
-                        setSortOpen(false)
-                      }}
-                      className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 ${
-                        sort === key ? 'font-semibold text-gray-900' : 'text-gray-600'
-                      }`}
-                    >
-                      {SORT_LABELS[key]}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+            {/* Inline error below the pill */}
+            {nearMeState === 'error' && nearMeError && (
+              <p className="text-xs text-red-500">{nearMeError}</p>
             )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Map / List toggle — Map first (returning users land here via localStorage) */}
+            <div className="flex rounded-lg border border-[var(--color-border)] bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('map')}
+                aria-pressed={viewMode === 'map'}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === 'map'
+                    ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Map className="h-3.5 w-3.5" aria-hidden="true" />
+                Map
+              </button>
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('list')}
+                aria-pressed={viewMode === 'list'}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
+                List
+              </button>
+            </div>
+
+            {/* Sort dropdown */}
+            <div className="relative" ref={sortRef}>
+              <button
+                type="button"
+                onClick={() => setSortOpen((o) => !o)}
+                className="flex items-center gap-1 rounded text-sm font-medium text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+                aria-haspopup="listbox"
+                aria-expanded={sortOpen}
+              >
+                {SORT_LABELS[sort]}
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-gray-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {sortOpen && (
+                <ul
+                  role="listbox"
+                  aria-label="Sort options"
+                  className="absolute right-0 z-10 mt-2 min-w-[200px] rounded-xl border border-[var(--color-border)] bg-white py-1 shadow-lg"
+                >
+                  {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
+                    <li key={key} role="option" aria-selected={sort === key}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSort(key)
+                          setSortOpen(false)
+                        }}
+                        className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 ${
+                          sort === key ? 'font-semibold text-gray-900' : 'text-gray-600'
+                        }`}
+                      >
+                        {SORT_LABELS[key]}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Loading state */}
-        {isLoading ? (
+        {/* Map view — full width */}
+        {viewMode === 'map' && (
+          <div className="mt-4 h-[calc(100vh-220px)] min-h-[500px]">
+            <PropertyMapView
+              listings={listingsWithScore}
+              searchOnMove={searchOnMove}
+              onSearchOnMoveToggle={setSearchOnMove}
+              activeBhkFilter={filters.bhkType ?? null}
+            />
+          </div>
+        )}
+
+        {/* Loading state (list mode only) */}
+        {viewMode === 'list' && isLoading && (
           <div className="mt-16 flex justify-center">
             <svg
               className="h-8 w-8 animate-spin text-[var(--color-primary)]"
@@ -557,8 +707,10 @@ export function BrowseClient({
               />
             </svg>
           </div>
-        ) : listings.length === 0 ? (
-          /* Empty state */
+        )}
+
+        {/* Empty state */}
+        {viewMode === 'list' && !isLoading && listings.length === 0 && (
           <div className="mt-16 flex flex-col items-center text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
               <svg
@@ -589,7 +741,10 @@ export function BrowseClient({
               Clear all filters
             </button>
           </div>
-        ) : (
+        )}
+
+        {/* Listing grid */}
+        {viewMode === 'list' && !isLoading && listings.length > 0 && (
           <div
             className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 xl:grid-cols-4"
             style={aiInterpretation ? { transition: 'opacity 0.4s ease' } : undefined}
@@ -625,8 +780,8 @@ export function BrowseClient({
           </div>
         )}
 
-        {/* Pagination — only shown when using real API data and there are multiple pages */}
-        {!isLoading && totalPages > 1 && (
+        {/* Pagination — list view only */}
+        {viewMode === 'list' && !isLoading && totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
               type="button"

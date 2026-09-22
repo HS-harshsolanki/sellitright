@@ -1,10 +1,11 @@
 'use client'
 
 import { ChevronDown, Loader2, Search, Sparkles, X } from 'lucide-react'
-import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { cn } from '@/lib/utils'
+
 import { BudgetSegment } from './segments/budget-segment'
 import { LocationSegment } from './segments/location-segment'
 import { WhatSegment } from './segments/what-segment'
@@ -21,9 +22,10 @@ import {
 
 // ── Label helpers ─────────────────────────────────────────────────────────────
 
-function whereLabel(city: string | null, locality: string | null): string {
-  if (locality && city) return `${locality}, ${city}`
-  return city ?? locality ?? ''
+function whereLabel(city: string | null, localities: string[]): string {
+  if (localities.length > 0 && city) return `${localities.join(', ')}, ${city}`
+  if (localities.length > 0) return localities.join(', ')
+  return city ?? ''
 }
 
 function whatLabel(
@@ -296,7 +298,7 @@ function SheetInner({
       setState((prev) => ({
         ...prev,
         city: data.city ?? prev.city,
-        locality: data.locality ?? prev.locality,
+        localities: data.localities.length > 0 ? data.localities : prev.localities,
         bhkTypes: data.bhkTypes.length > 0 ? data.bhkTypes : prev.bhkTypes,
         propertyType: data.propertyType ?? prev.propertyType,
         budget: matchBudgetPreset(data.budgetMin, data.budgetMax) ?? prev.budget,
@@ -310,7 +312,7 @@ function SheetInner({
     }
   }
 
-  const whereActive = !!(state.city || state.locality)
+  const whereActive = !!(state.city || state.localities.length > 0)
   const whatActive = state.bhkTypes.length > 0 || !!state.propertyType || !!state.furnishing
   const budgetActive = !!state.budget
 
@@ -400,7 +402,7 @@ function SheetInner({
 
           <AccordionRow
             label="Where"
-            valueLabel={whereLabel(state.city, state.locality)}
+            valueLabel={whereLabel(state.city, state.localities)}
             placeholder="Search city or area"
             isOpen={openSection === 'where'}
             hasValue={whereActive}
@@ -408,10 +410,10 @@ function SheetInner({
           >
             <LocationSegment
               city={state.city}
-              locality={state.locality}
+              localities={state.localities}
               aiFilledFields={state.aiFilledFields}
-              onCityChange={(city) => patch({ city, locality: null })}
-              onLocalityChange={(locality) => patch({ locality })}
+              onCityChange={(city) => patch({ city, localities: [] })}
+              onLocalitiesChange={(localities) => patch({ localities })}
               inlineResults
             />
           </AccordionRow>

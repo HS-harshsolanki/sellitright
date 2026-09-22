@@ -39,7 +39,7 @@ async function queryListings(params: ListingFilterInput): Promise<ListingsResult
   let query = admin
     .from('listings')
     .select(
-      'id, title, description, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, quality_score, quality_breakdown, created_at, seller_id, negotiable',
+      'id, title, description, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, latitude, longitude, image_urls, status, is_verified, view_count, quality_score, quality_breakdown, created_at, seller_id, negotiable',
       { count: 'exact' },
     )
     .eq('status', 'ACTIVE')
@@ -49,8 +49,16 @@ async function queryListings(params: ListingFilterInput): Promise<ListingsResult
     if (safeCity) query = query.ilike('city', `%${safeCity}%`)
   }
   if (locality) {
-    const safeLocality = locality.replace(/[%_,()\\.]/g, '')
-    if (safeLocality) query = query.ilike('locality', `%${safeLocality}%`)
+    // locality may be comma-separated for multi-select (e.g. "Baner,Koregaon Park")
+    const parts = locality
+      .split(',')
+      .map((l) => l.trim().replace(/[%_()\\.]/g, ''))
+      .filter(Boolean)
+    if (parts.length === 1) {
+      query = query.ilike('locality', `%${parts[0]}%`)
+    } else if (parts.length > 1) {
+      query = query.or(parts.map((p) => `locality.ilike.%${p}%`).join(','))
+    }
   }
   if (bhkType) query = query.eq('bhk_type', bhkType)
   if (furnishing) query = query.eq('furnishing', furnishing)

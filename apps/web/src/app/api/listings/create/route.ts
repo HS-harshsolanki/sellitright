@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
-import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { computeQualityScore } from '@/lib/quality-score'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { listingCreateSchema } from '@/lib/validators'
 
 // Accept all listingCreateSchema fields + optional draftId for upsert
@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
       locality: validated.locality,
       state: validated.state,
       pincode: validated.pincode,
+      society_name: validated.societyName ?? null,
       latitude: validated.latitude ?? null,
       longitude: validated.longitude ?? null,
       amenities: validated.amenities,

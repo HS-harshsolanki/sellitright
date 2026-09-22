@@ -32,8 +32,8 @@ import {
 import { WarningBadge } from '@/components/ui/warning-badge'
 import type { ChatMessage, DisplayMessage } from '@/lib/chat-types'
 import { buildLoadViolationWarning, isPhoneWarning } from '@/lib/chat-types'
-import { containsPhoneNumber, containsPhoneNumberInWindow } from '@/lib/phone-filter'
 import { MessagingContext } from '@/lib/messaging-context'
+import { containsPhoneNumber, containsPhoneNumberInWindow } from '@/lib/phone-filter'
 import { useAuth } from '@/lib/supabase/auth-context'
 import { cn } from '@/lib/utils'
 

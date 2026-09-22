@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
-import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { computeQualityScore } from '@/lib/quality-score'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { FacingEnum, ParkingEnum } from '@/lib/validators'
 
 export async function GET(request: NextRequest) {

@@ -23,6 +23,9 @@ export interface LocationData {
   locality: string
   address: string
   pincode: string
+  societyName: string
+  latitude: number | null
+  longitude: number | null
 }
 
 export interface DetailsData {
@@ -121,6 +124,9 @@ const DEFAULT_LOCATION: LocationData = {
   locality: '',
   address: '',
   pincode: '',
+  societyName: '',
+  latitude: null,
+  longitude: null,
 }
 
 const DEFAULT_DETAILS: DetailsData = {
@@ -268,6 +274,9 @@ export const useSellFormStore = create<SellFormState>()(
             locality: listing.locality,
             address: listing.address,
             pincode: listing.pincode,
+            societyName: (listing as unknown as { societyName?: string }).societyName ?? '',
+            latitude: listing.latitude ?? null,
+            longitude: listing.longitude ?? null,
           },
           details: {
             bhkType: listing.bhkType,

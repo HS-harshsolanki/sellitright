@@ -61,6 +61,7 @@ export const listingCreateSchema = z.object({
   locality: z.string().min(2).max(100),
   state: z.string().min(2).max(100),
   pincode: z.string().regex(/^\d{6}$/, 'Pincode must be exactly 6 digits'),
+  societyName: z.string().max(200).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   amenities: z.array(z.string()).default([]),
@@ -88,7 +89,7 @@ export const listingFilterSchema = z.object({
   minPrice: z.coerce.number().int().nonnegative().optional(),
   maxPrice: z.coerce.number().int().positive().optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(12),
+  limit: z.coerce.number().int().min(1).max(300).default(12),
   sort: z.enum(sortValues).default('newest'),
 })
 

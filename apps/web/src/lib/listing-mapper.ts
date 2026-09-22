@@ -1,5 +1,5 @@
-import { computeQualityScore } from '@/lib/quality-score'
 import type { MockListing } from '@/lib/mock-data'
+import { computeQualityScore } from '@/lib/quality-score'
 import type { Database } from '@/lib/supabase/database.types'
 
 export type SupabaseListingRow = Database['public']['Tables']['listings']['Row']
@@ -71,6 +71,7 @@ export function mapSupabaseListingToMock(
     pincode: row.pincode ?? '',
     latitude: row.latitude ?? null,
     longitude: row.longitude ?? null,
+    societyName: (row as unknown as { society_name?: string | null }).society_name ?? null,
     amenities: Array.isArray(row.amenities) ? (row.amenities as string[]) : [],
     status: row.status as MockListing['status'],
     rejectionReason: (row.rejection_reason as string | null) ?? null,

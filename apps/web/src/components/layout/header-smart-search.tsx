@@ -56,10 +56,12 @@ function buildURL(state: SmartSearchState, currentParams: URLSearchParams): stri
   if (sort) p.set('sort', sort)
 
   // city / locality written as `q` param (keep compat with browse-client)
-  const loc = [state.locality, state.city].filter(Boolean).join(', ')
+  const localityPart = state.localities.join(', ')
+  const loc = [localityPart, state.city].filter(Boolean).join(', ')
   if (loc) p.set('q', loc)
   if (state.city) p.set('city_name', state.city)
-  if (state.locality) p.set('locality', state.locality)
+  // Localities stored comma-separated in a single `locality` param
+  if (state.localities.length > 0) p.set('locality', state.localities.join(','))
 
   // Multiple BHK: use repeated bhkType params so browse-client can getAll('bhkType')
   if (state.bhkTypes.length > 0) {
@@ -94,8 +96,14 @@ function defaultsFromParams(params: URLSearchParams): Partial<SmartSearchState> 
   const cityName = params.get('city_name')
   if (cityName) d.city = cityName
 
-  const locality = params.get('locality')
-  if (locality) d.locality = locality
+  const localityParam = params.get('locality')
+  if (localityParam) {
+    const parsed = localityParam
+      .split(',')
+      .map((l) => l.trim())
+      .filter(Boolean)
+    if (parsed.length > 0) d.localities = parsed
+  }
 
   const bhkRaws = params.getAll('bhkType')
   if (bhkRaws.length > 0) {
@@ -162,7 +170,8 @@ function MobileTriggerInner() {
 
   // Build a short summary of active filters to show in the trigger
   const active = [
-    defaults.city ?? defaults.locality ?? null,
+    defaults.city ??
+      (defaults.localities && defaults.localities.length > 0 ? defaults.localities[0] : null),
     defaults.bhkTypes && defaults.bhkTypes.length > 0 ? defaults.bhkTypes[0] : null,
     defaults.budget?.label ?? null,
   ]
