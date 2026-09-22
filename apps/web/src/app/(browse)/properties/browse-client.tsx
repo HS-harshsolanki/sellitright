@@ -128,8 +128,20 @@ export function BrowseClient({
   )
   const [sortOpen, setSortOpen] = useState(false)
   const sortRef = useRef<HTMLDivElement>(null)
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
+    if (typeof window === 'undefined') return 'list'
+    return (localStorage.getItem('chapternew_view_mode') as 'list' | 'map') ?? 'list'
+  })
   const [searchOnMove, setSearchOnMove] = useState(false)
+
+  const handleViewModeChange = (mode: 'list' | 'map') => {
+    setViewMode(mode)
+    try {
+      localStorage.setItem('chapternew_view_mode', mode)
+    } catch {
+      // localStorage unavailable (private browsing, etc.)
+    }
+  }
 
   // ─── API fetch state ──────────────────────────────────────────────────────
   // Seed with server-rendered data on first render to eliminate the blank grid flash.
@@ -505,24 +517,11 @@ export function BrowseClient({
           </p>
 
           <div className="flex items-center gap-3">
-            {/* List / Map toggle */}
+            {/* Map / List toggle — Map first (returning users land here via localStorage) */}
             <div className="flex rounded-lg border border-[var(--color-border)] bg-white p-0.5">
               <button
                 type="button"
-                onClick={() => setViewMode('list')}
-                aria-pressed={viewMode === 'list'}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
-                List
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('map')}
+                onClick={() => handleViewModeChange('map')}
                 aria-pressed={viewMode === 'map'}
                 className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                   viewMode === 'map'
@@ -532,6 +531,19 @@ export function BrowseClient({
               >
                 <Map className="h-3.5 w-3.5" aria-hidden="true" />
                 Map
+              </button>
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('list')}
+                aria-pressed={viewMode === 'list'}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
+                List
               </button>
             </div>
 
@@ -585,6 +597,7 @@ export function BrowseClient({
               listings={listingsWithScore}
               searchOnMove={searchOnMove}
               onSearchOnMoveToggle={setSearchOnMove}
+              activeBhkFilter={filters.bhkType ?? null}
             />
           </div>
         )}

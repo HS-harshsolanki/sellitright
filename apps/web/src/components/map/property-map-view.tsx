@@ -9,6 +9,8 @@ import {
   Car,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Sofa,
   Star,
   X,
   Zap,
@@ -81,6 +83,7 @@ interface Props {
   onBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void
   searchOnMove?: boolean
   onSearchOnMoveToggle?: (value: boolean) => void
+  activeBhkFilter?: string | null
 }
 
 interface PricePin {
@@ -96,6 +99,22 @@ function PriceSqft({ price, area }: { price: number; area: number }) {
       ₹{Math.round(perSqft / 1000)}k/sqft
     </span>
   )
+}
+
+function postedRecently(createdAt: string): string | null {
+  const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24))
+  if (days === 0) return 'Posted today'
+  if (days === 1) return 'Posted yesterday'
+  if (days <= 6) return `Posted ${days} days ago`
+  return null
+}
+
+function formatAge(ageOfProperty: number | null): string | null {
+  if (ageOfProperty === null) return null
+  if (ageOfProperty === 0) return 'New construction'
+  if (ageOfProperty === 1) return '1 yr old'
+  if (ageOfProperty < 10) return `${ageOfProperty} yr old`
+  return '10+ yr old'
 }
 
 function ScoreBadge({ score }: { score: number }) {
@@ -116,6 +135,7 @@ export function PropertyMapView({
   onBoundsChange,
   searchOnMove = false,
   onSearchOnMoveToggle,
+  activeBhkFilter = null,
 }: Props) {
   const mapRef = useRef<MapRef>(null)
   const [viewState, setViewState] = useState<Partial<ViewState>>(INDIA_CENTER)
@@ -267,6 +287,8 @@ export function PropertyMapView({
     selectedListing && selectedListing.builtUpArea > 0
       ? Math.round(selectedListing.price / selectedListing.builtUpArea)
       : null
+  const recency = selectedListing ? postedRecently(selectedListing.createdAt) : null
+  const ageLabel = selectedListing ? formatAge(selectedListing.ageOfProperty) : null
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl">
@@ -319,13 +341,20 @@ export function PropertyMapView({
             >
               {/* Pill */}
               <div
-                className={`flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold shadow-md transition-all duration-150 ${
+                className={`flex flex-col items-center whitespace-nowrap rounded-full px-2.5 py-1 shadow-md transition-all duration-150 ${
                   isSelected
                     ? 'scale-110 bg-[var(--color-primary)] text-white shadow-lg'
                     : 'bg-white text-[var(--color-foreground)] hover:bg-[var(--color-primary)] hover:text-white hover:shadow-lg'
                 }`}
               >
-                {formatPrice(listing.price)}
+                <span className="text-[11px] font-bold leading-tight">
+                  {formatPrice(listing.price)}
+                </span>
+                {!activeBhkFilter && listing.bhkType && (
+                  <span className="text-[9px] font-medium leading-tight opacity-70">
+                    {formatBHK(listing.bhkType)}
+                  </span>
+                )}
               </div>
               {/* Triangle pointer */}
               <div
@@ -443,10 +472,18 @@ export function PropertyMapView({
 
           {/* Content */}
           <div className="px-3 pb-3 pt-2.5">
-            {/* Location */}
-            <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
-              {selectedListing.locality}, {selectedListing.city}
-            </p>
+            {/* Location + recency */}
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                {selectedListing.locality}, {selectedListing.city}
+              </p>
+              {recency && (
+                <span className="flex shrink-0 items-center gap-1 text-[10px] font-medium text-emerald-600">
+                  <Clock className="h-2.5 w-2.5" />
+                  {recency}
+                </span>
+              )}
+            </div>
 
             {/* Price row */}
             <div className="mt-0.5 flex items-baseline gap-2">
@@ -503,9 +540,7 @@ export function PropertyMapView({
 
               {/* Furnishing */}
               <div className="flex flex-col items-center rounded-lg bg-[var(--color-muted)] px-2 py-1.5">
-                <span className="mb-0.5 text-[10px] font-bold text-[var(--color-muted-foreground)]">
-                  FRN
-                </span>
+                <Sofa className="mb-0.5 h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
                 <span className="text-[11px] font-semibold text-[var(--color-foreground)]">
                   {selectedListing.furnishing
                     ? formatFurnishing(selectedListing.furnishing).split(' ')[0]
@@ -541,12 +576,23 @@ export function PropertyMapView({
               </div>
             )}
 
-            {/* Society name */}
-            {selectedListing.societyName && (
-              <p className="mt-1.5 flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
-                <Building2 className="h-3 w-3 shrink-0" />
-                {selectedListing.societyName}
-              </p>
+            {/* Society name + age of property */}
+            {(selectedListing.societyName || ageLabel) && (
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                {selectedListing.societyName ? (
+                  <p className="flex items-center gap-1 text-xs text-[var(--color-muted-foreground)]">
+                    <Building2 className="h-3 w-3 shrink-0" />
+                    {selectedListing.societyName}
+                  </p>
+                ) : (
+                  <span />
+                )}
+                {ageLabel && (
+                  <span className="shrink-0 text-[10px] font-medium text-[var(--color-muted-foreground)]">
+                    {ageLabel}
+                  </span>
+                )}
+              </div>
             )}
 
             {/* CTA */}
