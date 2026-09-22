@@ -26,7 +26,7 @@ export const FURNISHING_OPTIONS: Furnishing[] = ['Furnished', 'Semi-Furnished', 
 // The canonical state object for a SmartSearchBar session.
 export interface SmartSearchState {
   city: string | null
-  locality: string | null
+  localities: string[]
   bhkTypes: BHKType[]
   propertyType: PropertyType | null
   furnishing: Furnishing | null
@@ -39,7 +39,7 @@ export interface SmartSearchState {
 
 export const EMPTY_SMART_SEARCH_STATE: SmartSearchState = {
   city: null,
-  locality: null,
+  localities: [],
   bhkTypes: [],
   propertyType: null,
   furnishing: null,
@@ -53,7 +53,7 @@ export type SmartSearchSegment = 'where' | 'what' | 'budget' | 'ai'
 // Response from the /api/search/ai-parse route
 export interface AiParseResponse {
   city: string | null
-  locality: string | null
+  localities: string[]
   bhkTypes: BHKType[]
   propertyType: PropertyType | null
   budgetMin: number | null

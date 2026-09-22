@@ -117,12 +117,20 @@ export function BrowseClient({
   const router = useRouter()
   // Read both `q` (canonical), `city` (legacy grid links), or construct from SmartSearch params
   const cityName = searchParams.get('city_name')
-  const locality = searchParams.get('locality')
-  const smartQuery = cityName ? [locality, cityName].filter(Boolean).join(', ') : null
+  // locality param is comma-separated (e.g. "Baner,Koregaon Park")
+  const localityParam = searchParams.get('locality')
+  const localities = localityParam
+    ? localityParam
+        .split(',')
+        .map((l) => l.trim())
+        .filter(Boolean)
+    : []
+  const localityDisplay = localities.join(', ')
+  const smartQuery = cityName ? [localityDisplay, cityName].filter(Boolean).join(', ') : null
   const searchQuery = smartQuery ?? searchParams.get('q') ?? searchParams.get('city') ?? ''
   // Display label — show neighbourhood when present even if searchQuery only carries city
-  const displayQuery = locality
-    ? `${locality}${(cityName ?? searchParams.get('city')) ? `, ${cityName ?? searchParams.get('city')}` : ''}`
+  const displayQuery = localityDisplay
+    ? `${localityDisplay}${(cityName ?? searchParams.get('city')) ? `, ${cityName ?? searchParams.get('city')}` : ''}`
     : searchQuery
 
   // Filters are driven by URL params (written by header-search's FilterPanel)
@@ -241,7 +249,10 @@ export function BrowseClient({
         // computeMatchScore callers; city/locality are split on comma.
         searchQuery: searchQuery || null,
         city: cityName ?? (searchQuery ? searchQuery.split(',')[0]?.trim() || null : null),
-        locality: locality ?? (searchQuery ? (searchQuery.split(',')[1]?.trim() ?? null) : null),
+        locality:
+          localityDisplay ||
+          (searchQuery ? (searchQuery.split(',')[1]?.trim() ?? null) : null) ||
+          null,
       }
       const hasAny =
         prefs.bhkType ||
@@ -262,7 +273,8 @@ export function BrowseClient({
   }, [filtersKey, searchQuery])
 
   // ─── Fetch from /api/listings whenever filters, sort, page, or query change ─
-  const prevFilterKey = useRef({ searchQuery, filtersKey, sort, locality: locality ?? '' })
+  const localityKey = localities.join(',')
+  const prevFilterKey = useRef({ searchQuery, filtersKey, sort, localityKey })
   // Track whether we have already used the server-provided initial data for the
   // default (no-filter) view. The first render with no filters and default sort
   // should NOT trigger a fetch — the SSR data is already correct.
@@ -275,11 +287,11 @@ export function BrowseClient({
       prevFilterKey.current.searchQuery !== searchQuery ||
       prevFilterKey.current.filtersKey !== filtersKey ||
       prevFilterKey.current.sort !== sort ||
-      prevFilterKey.current.locality !== (locality ?? '')
+      prevFilterKey.current.localityKey !== localityKey
 
     const pageToFetch = filterChanged ? 1 : apiPage
     if (filterChanged) {
-      prevFilterKey.current = { searchQuery, filtersKey, sort, locality: locality ?? '' }
+      prevFilterKey.current = { searchQuery, filtersKey, sort, localityKey }
       setApiPage(1)
     }
 
@@ -305,9 +317,12 @@ export function BrowseClient({
         params.set('page', String(pageToFetch))
         if (viewMode === 'map') params.set('limit', '250')
 
-        if (searchQuery.trim()) params.set('city', searchQuery.trim())
-        // Forward locality separately — API filters by ilike on the locality column
-        if (locality?.trim()) params.set('locality', locality.trim())
+        // When city_name param is present (SmartSearch), use it directly so the
+        // textSearch receives "Pune" not "Baner, Pune" (the combined display string).
+        const cityForApi = cityName ?? searchQuery
+        if (cityForApi.trim()) params.set('city', cityForApi.trim())
+        // Forward localities comma-separated — API OR-filters by ilike
+        if (localities.length > 0) params.set('locality', localities.join(','))
 
         if (filters.bhkType) {
           const mapped = BHK_MAP[filters.bhkType]
@@ -355,7 +370,7 @@ export function BrowseClient({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, locality, filtersKey, sort, apiPage, initialPage, retryCount, viewMode])
+  }, [searchQuery, localityKey, filtersKey, sort, apiPage, initialPage, retryCount, viewMode])
 
   // ─── Active listings ──────────────────────────────────────────────────────
   const listings: MockListing[] = apiListings ?? []

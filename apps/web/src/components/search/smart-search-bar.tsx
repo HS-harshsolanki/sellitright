@@ -25,9 +25,10 @@ function budgetLabel(budget: BudgetRange | null): string {
   return budget?.label ?? ''
 }
 
-function whereLabel(city: string | null, locality: string | null): string {
-  if (locality && city) return `${locality}, ${city}`
-  return city ?? locality ?? ''
+function whereLabel(city: string | null, localities: string[]): string {
+  if (localities.length > 0 && city) return `${localities.join(', ')}, ${city}`
+  if (localities.length > 0) return localities.join(', ')
+  return city ?? ''
 }
 
 function whatLabel(
@@ -350,7 +351,7 @@ export function SmartSearchBar({ defaultValues = {}, onSearch, className }: Smar
       setState((prev) => ({
         ...prev,
         city: data.city ?? prev.city,
-        locality: data.locality ?? prev.locality,
+        localities: data.localities.length > 0 ? data.localities : prev.localities,
         bhkTypes: data.bhkTypes.length > 0 ? data.bhkTypes : prev.bhkTypes,
         propertyType: data.propertyType ?? prev.propertyType,
         budget: matchBudgetPreset(data.budgetMin, data.budgetMax) ?? prev.budget,
@@ -369,7 +370,7 @@ export function SmartSearchBar({ defaultValues = {}, onSearch, className }: Smar
     onSearch(state)
   }
 
-  const whereActive = !!(state.city || state.locality)
+  const whereActive = !!(state.city || state.localities.length > 0)
   const whatActive = state.bhkTypes.length > 0 || !!state.propertyType || !!state.furnishing
   const budgetActive = !!state.budget
   const isAnythingSet = whereActive || whatActive || budgetActive
@@ -407,22 +408,26 @@ export function SmartSearchBar({ defaultValues = {}, onSearch, className }: Smar
           segKey="where"
           icon={<MapPin className="h-3.5 w-3.5" />}
           label="Where"
-          value={whereLabel(state.city, state.locality)}
+          value={whereLabel(state.city, state.localities)}
           active={whereActive}
           open={openSegment === 'where'}
           aiFilledFields={state.aiFilledFields}
           onToggle={() => toggleSegment('where')}
-          onClear={() => patch({ city: null, locality: null })}
+          onClear={() => {
+            const cleared = { ...state, city: null, localities: [] }
+            setState(cleared)
+            onSearch(cleared)
+          }}
           roundingClass="rounded-l-full"
           popoverAlign="left"
           popover={
             <div className="w-96 p-5">
               <LocationSegment
                 city={state.city}
-                locality={state.locality}
+                localities={state.localities}
                 aiFilledFields={state.aiFilledFields}
-                onCityChange={(city) => patch({ city, locality: null })}
-                onLocalityChange={(locality) => patch({ locality })}
+                onCityChange={(city) => patch({ city, localities: [] })}
+                onLocalitiesChange={(localities) => patch({ localities })}
               />
               <PopoverFooter onClear={clearAll} onSearch={handleSearch} />
             </div>

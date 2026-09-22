@@ -1,6 +1,6 @@
 'use client'
 
-import { MapPin, Search } from 'lucide-react'
+import { MapPin, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { filterLocalities, getLocalitiesForCity } from '@/lib/localities'
@@ -10,10 +10,10 @@ import { SUPPORTED_CITIES } from '../smart-search-types'
 
 interface LocationSegmentProps {
   city: string | null
-  locality: string | null
+  localities: string[]
   aiFilledFields: boolean
   onCityChange: (city: string | null) => void
-  onLocalityChange: (locality: string | null) => void
+  onLocalitiesChange: (localities: string[]) => void
   /** Render autocomplete results as a static block instead of position:absolute
    *  — required inside containers with overflow:hidden (e.g. accordion) */
   inlineResults?: boolean
@@ -21,25 +21,45 @@ interface LocationSegmentProps {
 
 export function LocationSegment({
   city,
-  locality,
+  localities,
   aiFilledFields,
   onCityChange,
-  onLocalityChange,
+  onLocalitiesChange,
   inlineResults = false,
 }: LocationSegmentProps) {
-  const [localityQuery, setLocalityQuery] = useState(locality ?? '')
+  const [localityQuery, setLocalityQuery] = useState('')
   const [cityQuery, setCityQuery] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Sync external locality into local query state
+  // Clear query when city changes
   useEffect(() => {
-    setLocalityQuery(locality ?? '')
-  }, [locality])
+    setLocalityQuery('')
+    setShowSuggestions(false)
+  }, [city])
 
-  const localities = city ? filterLocalities(getLocalitiesForCity(city), localityQuery) : []
+  const allLocalities = city ? getLocalitiesForCity(city) : []
+  // Filter out already-selected localities from suggestions
+  const suggestions = filterLocalities(
+    allLocalities.filter((l) => !localities.includes(l.name)),
+    localityQuery,
+  )
   const filteredCities = SUPPORTED_CITIES.filter((c) =>
     c.toLowerCase().includes(cityQuery.toLowerCase()),
   )
+
+  function addLocality(name: string) {
+    if (!localities.includes(name)) {
+      onLocalitiesChange([...localities, name])
+    }
+    setLocalityQuery('')
+    setShowSuggestions(false)
+    inputRef.current?.focus()
+  }
+
+  function removeLocality(name: string) {
+    onLocalitiesChange(localities.filter((l) => l !== name))
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -82,8 +102,7 @@ export function LocationSegment({
               type="button"
               onClick={() => {
                 onCityChange(city === c ? null : c)
-                onLocalityChange(null)
-                setLocalityQuery('')
+                onLocalitiesChange([])
                 setCityQuery('')
               }}
               className={cn(
@@ -108,6 +127,28 @@ export function LocationSegment({
         <div className="h-px flex-1 bg-[var(--color-border)]" />
       </div>
 
+      {/* ── Selected locality chips ──────────────────────────────── */}
+      {localities.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {localities.map((loc) => (
+            <span
+              key={loc}
+              className="bg-[var(--color-primary)]/8 flex items-center gap-1 rounded-full border border-[var(--color-primary)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-primary)]"
+            >
+              {loc}
+              <button
+                type="button"
+                onClick={() => removeLocality(loc)}
+                aria-label={`Remove ${loc}`}
+                className="ml-0.5 rounded-full hover:text-red-500"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* ── Locality typeahead — always shown, disabled until city picked ── */}
       <div className={inlineResults ? undefined : 'relative'}>
         <input
@@ -117,27 +158,32 @@ export function LocationSegment({
           onChange={(e) => {
             if (!city) return
             setLocalityQuery(e.target.value)
-            if (!e.target.value.trim()) onLocalityChange(null)
+            setShowSuggestions(true)
           }}
           onKeyDown={(e) => {
             if (!city) return
             if (e.key === 'Escape') {
               setLocalityQuery('')
-              onLocalityChange(null)
+              setShowSuggestions(false)
             }
-            if (e.key === 'Enter' && localities[0]) {
-              onLocalityChange(localities[0].name)
-              setLocalityQuery(localities[0].name)
+            if (e.key === 'Enter' && suggestions[0]) {
+              addLocality(suggestions[0].name)
             }
           }}
-          placeholder={city ? `Search ${city} localities…` : 'Select a city first'}
+          placeholder={
+            city
+              ? localities.length > 0
+                ? `Add more areas in ${city}…`
+                : `Search ${city} localities…`
+              : 'Select a city first'
+          }
           disabled={!city}
           className={cn(
             'w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs placeholder:text-gray-400 focus:border-[var(--color-primary)] focus:outline-none',
             city ? 'bg-white text-gray-800' : 'cursor-not-allowed bg-gray-50 text-gray-400',
           )}
         />
-        {localityQuery.trim() && localities.length > 0 && (
+        {showSuggestions && localityQuery.trim() && suggestions.length > 0 && (
           <ul
             className={cn(
               'max-h-48 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-white',
@@ -146,14 +192,11 @@ export function LocationSegment({
                 : 'absolute left-0 right-0 top-[calc(100%+4px)] z-[60] shadow-xl',
             )}
           >
-            {localities.slice(0, 8).map((loc) => (
+            {suggestions.slice(0, 8).map((loc) => (
               <li key={loc.name}>
                 <button
                   type="button"
-                  onClick={() => {
-                    onLocalityChange(loc.name)
-                    setLocalityQuery(loc.name)
-                  }}
+                  onClick={() => addLocality(loc.name)}
                   className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
                 >
                   {loc.name}
@@ -165,10 +208,8 @@ export function LocationSegment({
       </div>
 
       {/* ── Summary ──────────────────────────────────────────────── */}
-      {city && (
-        <p className="text-xs text-[var(--color-muted-foreground)]">
-          {locality ? `${locality}, ${city}` : city}
-        </p>
+      {city && localities.length === 0 && (
+        <p className="text-xs text-[var(--color-muted-foreground)]">{city}</p>
       )}
     </div>
   )

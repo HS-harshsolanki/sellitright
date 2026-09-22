@@ -104,7 +104,10 @@ function fastParse(query: string): Partial<AiParseResponse> {
   if (result.city) {
     const cityLower = result.city.toLowerCase().replace(/\s+/g, '\\s+')
     const locMatch = q.match(new RegExp(`\\bin\\s+([a-z\\s]+?),?\\s*(?:${cityLower})`))
-    if (locMatch?.[1]) result.locality = locMatch[1].trim().replace(/\b\w/g, (c) => c.toUpperCase())
+    const loc = locMatch?.[1]?.trim().replace(/\b\w/g, (c) => c.toUpperCase())
+    result.localities = loc ? [loc] : []
+  } else {
+    result.localities = []
   }
 
   return result
@@ -150,7 +153,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json<AiParseResponse>({
         city: fast.city ?? null,
-        locality: fast.locality ?? null,
+        localities: fast.localities ?? [],
         bhkTypes: fast.bhkTypes ?? [],
         propertyType: fast.propertyType ?? null,
         budgetMin: fast.budgetMin ?? null,
@@ -222,8 +225,10 @@ Multiple BHK types can be requested: "2 or 3 BHK" → ["2 BHK","3 BHK"].`
 
       return NextResponse.json<AiParseResponse>({
         city: typeof parsed.city === 'string' ? parsed.city.trim() : (fast.city ?? null),
-        locality:
-          typeof parsed.locality === 'string' ? parsed.locality.trim() : (fast.locality ?? null),
+        localities:
+          typeof parsed.locality === 'string' && parsed.locality.trim()
+            ? [parsed.locality.trim()]
+            : (fast.localities ?? []),
         bhkTypes: bhkTypes.length > 0 ? bhkTypes : (fast.bhkTypes ?? []),
         propertyType: propertyType ?? fast.propertyType ?? null,
         budgetMin:
@@ -235,7 +240,7 @@ Multiple BHK types can be requested: "2 or 3 BHK" → ["2 BHK","3 BHK"].`
     } catch {
       return NextResponse.json<AiParseResponse>({
         city: fast.city ?? null,
-        locality: fast.locality ?? null,
+        localities: fast.localities ?? [],
         bhkTypes: fast.bhkTypes ?? [],
         propertyType: fast.propertyType ?? null,
         budgetMin: fast.budgetMin ?? null,

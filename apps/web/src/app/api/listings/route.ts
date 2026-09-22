@@ -49,8 +49,16 @@ async function queryListings(params: ListingFilterInput): Promise<ListingsResult
     if (safeCity) query = query.ilike('city', `%${safeCity}%`)
   }
   if (locality) {
-    const safeLocality = locality.replace(/[%_,()\\.]/g, '')
-    if (safeLocality) query = query.ilike('locality', `%${safeLocality}%`)
+    // locality may be comma-separated for multi-select (e.g. "Baner,Koregaon Park")
+    const parts = locality
+      .split(',')
+      .map((l) => l.trim().replace(/[%_()\\.]/g, ''))
+      .filter(Boolean)
+    if (parts.length === 1) {
+      query = query.ilike('locality', `%${parts[0]}%`)
+    } else if (parts.length > 1) {
+      query = query.or(parts.map((p) => `locality.ilike.%${p}%`).join(','))
+    }
   }
   if (bhkType) query = query.eq('bhk_type', bhkType)
   if (furnishing) query = query.eq('furnishing', furnishing)
