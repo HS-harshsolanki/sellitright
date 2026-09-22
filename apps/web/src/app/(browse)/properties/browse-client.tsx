@@ -120,6 +120,10 @@ export function BrowseClient({
   const locality = searchParams.get('locality')
   const smartQuery = cityName ? [locality, cityName].filter(Boolean).join(', ') : null
   const searchQuery = smartQuery ?? searchParams.get('q') ?? searchParams.get('city') ?? ''
+  // Display label — show neighbourhood when present even if searchQuery only carries city
+  const displayQuery = locality
+    ? `${locality}${(cityName ?? searchParams.get('city')) ? `, ${cityName ?? searchParams.get('city')}` : ''}`
+    : searchQuery
 
   // Filters are driven by URL params (written by header-search's FilterPanel)
   const filters = filtersFromParams(searchParams)
@@ -258,7 +262,7 @@ export function BrowseClient({
   }, [filtersKey, searchQuery])
 
   // ─── Fetch from /api/listings whenever filters, sort, page, or query change ─
-  const prevFilterKey = useRef({ searchQuery, filtersKey, sort })
+  const prevFilterKey = useRef({ searchQuery, filtersKey, sort, locality: locality ?? '' })
   // Track whether we have already used the server-provided initial data for the
   // default (no-filter) view. The first render with no filters and default sort
   // should NOT trigger a fetch — the SSR data is already correct.
@@ -270,11 +274,12 @@ export function BrowseClient({
     const filterChanged =
       prevFilterKey.current.searchQuery !== searchQuery ||
       prevFilterKey.current.filtersKey !== filtersKey ||
-      prevFilterKey.current.sort !== sort
+      prevFilterKey.current.sort !== sort ||
+      prevFilterKey.current.locality !== (locality ?? '')
 
     const pageToFetch = filterChanged ? 1 : apiPage
     if (filterChanged) {
-      prevFilterKey.current = { searchQuery, filtersKey, sort }
+      prevFilterKey.current = { searchQuery, filtersKey, sort, locality: locality ?? '' }
       setApiPage(1)
     }
 
@@ -301,6 +306,8 @@ export function BrowseClient({
         if (viewMode === 'map') params.set('limit', '250')
 
         if (searchQuery.trim()) params.set('city', searchQuery.trim())
+        // Forward locality separately — API filters by ilike on the locality column
+        if (locality?.trim()) params.set('locality', locality.trim())
 
         if (filters.bhkType) {
           const mapped = BHK_MAP[filters.bhkType]
@@ -348,7 +355,7 @@ export function BrowseClient({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, filtersKey, sort, apiPage, initialPage, retryCount, viewMode])
+  }, [searchQuery, locality, filtersKey, sort, apiPage, initialPage, retryCount, viewMode])
 
   // ─── Active listings ──────────────────────────────────────────────────────
   const listings: MockListing[] = apiListings ?? []
@@ -513,7 +520,7 @@ export function BrowseClient({
             <span className="font-medium text-gray-800">
               {isLoading ? '…' : `${totalCount} ${totalCount === 1 ? 'property' : 'properties'}`}
             </span>
-            {searchQuery && <span> for &ldquo;{searchQuery}&rdquo;</span>}
+            {displayQuery && <span> for &ldquo;{displayQuery}&rdquo;</span>}
           </p>
 
           <div className="flex items-center gap-3">
