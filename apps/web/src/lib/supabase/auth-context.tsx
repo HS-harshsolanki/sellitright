@@ -33,31 +33,23 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
     const supabase = createClient()
 
-    // Use refreshSession instead of getSession so the very first user value
-    // reflects the latest server-side metadata (e.g. phone_verified: true).
-    // getSession() returns the stale cached JWT which may not have phone_verified
-    // set, causing the phone-verification banner to flash on every profile load
-    // for users who have already verified their phone number.
-    // refreshSession gets a fresh JWT from the server so phone_verified and
-    // other metadata changes are reflected immediately. Falls back to getSession
-    // when there is no active session (logged-out users).
+    // getSession() reads the existing session from the cookie — no network call,
+    // no risk of triggering a false SIGNED_OUT event on slow mobile connections.
+    // The middleware calls supabase.auth.getUser() on every request, which already
+    // refreshes the access token server-side before the page loads, so a
+    // client-side refreshSession() on mount is redundant.
+    // The old refreshSession() was causing a mobile login loop: when the network
+    // request failed, Supabase internally called _removeSession() which emitted
+    // SIGNED_OUT via onAuthStateChange, redirecting the user to /login even
+    // though their session was valid.
     const initAuth = async () => {
       const {
         data: { session },
         error,
-      } = await supabase.auth.refreshSession()
-      if (error) {
-        const {
-          data: { session: fallback },
-          error: e,
-        } = await supabase.auth.getSession()
-        if (e) setAuthError(e)
-        setSession(fallback)
-        setUser(fallback?.user ?? null)
-      } else {
-        setSession(session)
-        setUser(session?.user ?? null)
-      }
+      } = await supabase.auth.getSession()
+      if (error) setAuthError(error)
+      setSession(session)
+      setUser(session?.user ?? null)
       setLoading(false)
     }
     void initAuth()
