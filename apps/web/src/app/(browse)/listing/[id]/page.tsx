@@ -21,6 +21,7 @@ import { cache } from 'react'
 import { ContactSeller } from '@/components/listing/contact-seller'
 import { ExpandableDescription } from '@/components/listing/expandable-description'
 import { ListingGallery } from '@/components/listing/listing-gallery'
+import { ListingLocationMap } from '@/components/listing/listing-location-map'
 import { MatchScoreWidget } from '@/components/listing/match-score-widget'
 import { MobileBottomBar } from '@/components/listing/mobile-bottom-bar'
 import { OwnerQualityWidget } from '@/components/listing/owner-quality-widget'
@@ -45,7 +46,7 @@ const getListingData = cache(async (id: string) => {
   const { data, error } = await supabase
     .from('listings')
     .select(
-      'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description, quality_score, quality_breakdown, quality_scored_at',
+      'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description, quality_score, quality_breakdown, quality_scored_at, latitude, longitude',
     )
     .eq('id', id)
     .single()
@@ -589,6 +590,14 @@ export default async function ListingPage({ params }: ListingPageProps) {
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 {listing.address}, {listing.locality}, {listing.city} — {listing.pincode}
               </address>
+
+              {listing.latitude != null && listing.longitude != null && (
+                <ListingLocationMap
+                  lat={listing.latitude}
+                  lng={listing.longitude}
+                  title={listing.title}
+                />
+              )}
             </section>
 
             {/* Contact card — mobile inline (below location) */}

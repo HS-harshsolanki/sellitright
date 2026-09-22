@@ -670,7 +670,7 @@ export function BrowseClient({
           </div>
         </div>
 
-        {/* Map view */}
+        {/* Map view — full width */}
         {viewMode === 'map' && (
           <div className="mt-4 h-[calc(100vh-220px)] min-h-[500px]">
             <PropertyMapView
@@ -682,123 +682,148 @@ export function BrowseClient({
           </div>
         )}
 
-        {/* Loading state (list mode only) */}
-        {viewMode === 'list' && isLoading && (
-          <div className="mt-16 flex justify-center">
-            <svg
-              className="h-8 w-8 animate-spin text-[var(--color-primary)]"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              aria-label="Loading listings"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-          </div>
-        )}
-        {viewMode === 'list' && !isLoading && listings.length === 0 && (
-          /* Empty state */
-          <div className="mt-16 flex flex-col items-center text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+        {/* List view — desktop: split layout with sticky map sidebar */}
+        {viewMode === 'list' && (
+          <div className="mt-4 lg:flex lg:items-start lg:gap-6">
+            {/* Left: listing grid */}
+            <div className="min-w-0 flex-1">
+              {isLoading && (
+                <div className="mt-16 flex justify-center">
+                  <svg
+                    className="h-8 w-8 animate-spin text-[var(--color-primary)]"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-label="Loading listings"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                </div>
+              )}
+
+              {!isLoading && listings.length === 0 && (
+                <div className="mt-16 flex flex-col items-center text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-7 w-7 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="mt-4 text-base font-semibold text-gray-900">
+                    No properties found
+                  </h2>
+                  <p className="mt-1 max-w-sm text-sm text-gray-500">
+                    Try adjusting your search or filters to find what you&apos;re looking for.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="mt-4 rounded text-sm font-medium text-[var(--color-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+                  >
+                    Clear all filters
+                  </button>
+                </div>
+              )}
+
+              {!isLoading && listings.length > 0 && (
+                <div
+                  className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2 lg:gap-6 xl:grid-cols-3"
+                  style={aiInterpretation ? { transition: 'opacity 0.4s ease' } : undefined}
+                >
+                  {listingsWithScore.map((listing, idx) => (
+                    <div
+                      key={listing.id}
+                      className={aiInterpretation ? 'rounded-2xl border-l-2' : ''}
+                      style={aiInterpretation ? { borderLeftColor: '#C7B8FF' } : undefined}
+                    >
+                      <ListingCard
+                        id={listing.id}
+                        title={listing.title}
+                        price={listing.price}
+                        images={listing.images}
+                        locality={listing.locality}
+                        city={listing.city}
+                        bhkType={listing.bhkType}
+                        builtUpArea={listing.builtUpArea}
+                        furnishing={listing.furnishing}
+                        floor={listing.floor}
+                        totalFloors={listing.totalFloors}
+                        isVerified={listing.isVerified}
+                        createdAt={listing.createdAt}
+                        viewCount={listing.viewCount}
+                        ageOfProperty={listing.ageOfProperty}
+                        matchScore={listing.matchScore}
+                        qualityScore={listing.qualityScore}
+                        priorityImage={idx < 4}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {!isLoading && totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setApiPage((p) => Math.max(1, p - 1))}
+                    disabled={apiPage <= 1}
+                    className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-500">
+                    Page {apiPage} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setApiPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={apiPage >= totalPages}
+                    className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
-            <h2 className="mt-4 text-base font-semibold text-gray-900">No properties found</h2>
-            <p className="mt-1 max-w-sm text-sm text-gray-500">
-              Try adjusting your search or filters to find what you&apos;re looking for.
-            </p>
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="mt-4 rounded text-sm font-medium text-[var(--color-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-            >
-              Clear all filters
-            </button>
-          </div>
-        )}
-        {viewMode === 'list' && !isLoading && listings.length > 0 && (
-          <div
-            className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 xl:grid-cols-4"
-            style={aiInterpretation ? { transition: 'opacity 0.4s ease' } : undefined}
-          >
-            {listingsWithScore.map((listing, idx) => (
+
+            {/* Right: sticky map sidebar — desktop only */}
+            <div className="hidden lg:block lg:w-[400px] lg:shrink-0">
               <div
-                key={listing.id}
-                className={aiInterpretation ? 'rounded-2xl border-l-2' : ''}
-                style={aiInterpretation ? { borderLeftColor: '#C7B8FF' } : undefined}
+                className="sticky top-[76px] overflow-hidden rounded-2xl"
+                style={{ height: 'calc(100vh - 92px)' }}
               >
-                <ListingCard
-                  id={listing.id}
-                  title={listing.title}
-                  price={listing.price}
-                  images={listing.images}
-                  locality={listing.locality}
-                  city={listing.city}
-                  bhkType={listing.bhkType}
-                  builtUpArea={listing.builtUpArea}
-                  furnishing={listing.furnishing}
-                  floor={listing.floor}
-                  totalFloors={listing.totalFloors}
-                  isVerified={listing.isVerified}
-                  createdAt={listing.createdAt}
-                  viewCount={listing.viewCount}
-                  ageOfProperty={listing.ageOfProperty}
-                  matchScore={listing.matchScore}
-                  qualityScore={listing.qualityScore}
-                  priorityImage={idx < 4}
+                <PropertyMapView
+                  listings={listingsWithScore}
+                  searchOnMove={searchOnMove}
+                  onSearchOnMoveToggle={setSearchOnMove}
+                  activeBhkFilter={filters.bhkType ?? null}
                 />
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Pagination — list view only; map already fetches up to 250 pins at once */}
-        {viewMode === 'list' && !isLoading && totalPages > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setApiPage((p) => Math.max(1, p - 1))}
-              disabled={apiPage <= 1}
-              className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-gray-500">
-              Page {apiPage} of {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => setApiPage((p) => Math.min(totalPages, p + 1))}
-              disabled={apiPage >= totalPages}
-              className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
+            </div>
           </div>
         )}
       </section>
