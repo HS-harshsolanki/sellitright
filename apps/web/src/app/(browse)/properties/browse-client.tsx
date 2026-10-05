@@ -142,8 +142,8 @@ export function BrowseClient({
   const [sortOpen, setSortOpen] = useState(false)
   const sortRef = useRef<HTMLDivElement>(null)
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
-    if (typeof window === 'undefined') return 'list'
-    return (localStorage.getItem('chapternew_view_mode') as 'list' | 'map') ?? 'list'
+    if (typeof window === 'undefined') return 'map'
+    return (localStorage.getItem('chapternew_view_mode') as 'list' | 'map') ?? 'map'
   })
   const [searchOnMove, setSearchOnMove] = useState(false)
 
