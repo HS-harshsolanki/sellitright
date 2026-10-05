@@ -30,6 +30,7 @@ export type Database = {
           society_name: string | null
           latitude: number | null
           longitude: number | null
+          negotiable: boolean
           amenities: string[]
           image_urls: string[]
           status: string
@@ -69,6 +70,7 @@ export type Database = {
           society_name?: string | null
           latitude?: number | null
           longitude?: number | null
+          negotiable?: boolean
           amenities?: string[]
           image_urls?: string[]
           status?: string
@@ -108,6 +110,7 @@ export type Database = {
           society_name?: string | null
           latitude?: number | null
           longitude?: number | null
+          negotiable?: boolean
           amenities?: string[]
           image_urls?: string[]
           status?: string
