@@ -275,6 +275,16 @@ export function LocalityCombobox({
             dropUp ? 'bottom-full mb-1' : 'top-full mt-1',
           )}
         >
+          {/* Overflow hint — pinned at top so it's always visible */}
+          {totalMatches > 8 && (
+            <li
+              role="presentation"
+              className="text-muted-foreground border-border border-b px-4 py-1.5 text-xs"
+            >
+              Showing 8 of {totalMatches} — type more to narrow down
+            </li>
+          )}
+
           {/* No curated matches message */}
           {suggestions.length === 0 && showEscapeHatch && (
             <li role="presentation" className="text-muted-foreground px-4 py-2 text-xs italic">
@@ -311,16 +321,6 @@ export function LocalityCombobox({
             )
           })}
 
-          {/* Overflow hint */}
-          {totalMatches > 8 && (
-            <li
-              role="presentation"
-              className="text-muted-foreground border-border border-t px-4 py-1.5 text-xs"
-            >
-              Showing 8 of {totalMatches} — type more to narrow down
-            </li>
-          )}
-
           {/* Escape hatch — keyboard reachable via ArrowDown */}
           {showEscapeHatch && (
             <li
@@ -347,8 +347,8 @@ export function LocalityCombobox({
         </ul>
       )}
 
-      {/* Helper shown when dropdown is closed and no value is committed */}
-      {!isOpen && !value && !disabled && (
+      {/* Helper shown whenever no value is committed — visible during typing too */}
+      {!value && !disabled && (
         <p className="text-muted-foreground mt-1 text-xs">
           Can&apos;t find your area? Just type it and press Enter.
         </p>

@@ -150,6 +150,9 @@ export function MapLocationPicker({
           style={{ width: '100%', height: '100%' }}
           cursor={isDragging ? 'grabbing' : 'crosshair'}
           onClick={handleMapClick}
+          scrollZoom={false}
+          touchPitch={false}
+          dragRotate={false}
         >
           {hasPinned && (
             <Marker
@@ -174,7 +177,7 @@ export function MapLocationPicker({
         {!hasPinned && (
           <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
             <span className="rounded-full bg-black/60 px-3 py-1 text-xs text-white backdrop-blur-sm">
-              Tap map to place your pin
+              Optional — tap to pin your exact location
             </span>
           </div>
         )}
@@ -187,7 +190,7 @@ export function MapLocationPicker({
           onClick={handleDetectGps}
           disabled={gpsStatus === 'loading'}
           className={cn(
-            'focus:ring-primary/20 flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2',
+            'focus:ring-primary/20 flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2',
             'border-border text-foreground hover:bg-muted bg-white',
           )}
         >
@@ -203,7 +206,7 @@ export function MapLocationPicker({
           <button
             type="button"
             onClick={onLocationClear}
-            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground focus:ring-primary/20 flex items-center gap-1.5 rounded-lg border px-3 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground focus:ring-primary/20 flex items-center gap-1.5 rounded-lg border px-3 py-3 text-sm transition-colors focus:outline-none focus:ring-2"
             title="Remove pin"
           >
             <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
@@ -214,14 +217,19 @@ export function MapLocationPicker({
 
       {/* Coordinate display */}
       {hasPinned && (
-        <p className="text-muted-foreground flex items-center gap-1 text-xs">
-          <MapPin className="text-primary h-3 w-3 shrink-0" aria-hidden="true" />
-          Pinned:{' '}
-          <span className="text-foreground font-medium">
-            {latitude!.toFixed(5)}, {longitude!.toFixed(5)}
-          </span>
-          <span className="ml-1 text-green-600">&#10003; Location set</span>
-        </p>
+        <>
+          <p className="text-muted-foreground flex items-center gap-1 text-xs">
+            <MapPin className="text-primary h-3 w-3 shrink-0" aria-hidden="true" />
+            Pinned:{' '}
+            <span className="text-foreground font-medium">
+              {latitude!.toFixed(5)}, {longitude!.toFixed(5)}
+            </span>
+            <span className="ml-1 text-green-600">&#10003; Location set</span>
+          </p>
+          <p className="text-muted-foreground text-xs">
+            Buyers will see this pin location — drag it to a nearby entrance for privacy.
+          </p>
+        </>
       )}
 
       {gpsError && (

@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertCircle, MapPin } from 'lucide-react'
+import { AlertCircle, ChevronDown, MapPin } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useCallback, useState } from 'react'
 
@@ -73,9 +73,16 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
         ...(option.city && !location.city ? { city: option.city } : {}),
       })
 
+      // Custom locality (no pincode in our list) — scroll user to the pincode field
+      if (!option.pincode) {
+        setTimeout(() => {
+          document
+            .getElementById('pincode')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 150)
+      }
+
       // Auto-geocode the locality to give the map picker a sensible starting center.
-      // If lat/lng are already explicitly set (by user drag or GPS), don't overwrite them —
-      // just update the suggested center so the map can pan there.
       const query = buildLocationQuery({
         locality: option.name,
         city: option.city ?? location.city,
@@ -84,7 +91,6 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
         void geocodePlace(query).then((result) => {
           if (!result) return
           setSuggestedCenter(result)
-          // Only auto-set lat/lng if the user hasn't already placed a pin
           if (location.latitude === null || location.longitude === null) {
             setLocation({ latitude: result.lat, longitude: result.lng })
           }
@@ -94,6 +100,32 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
     [location.city, location.latitude, location.longitude, setLocation],
   )
 
+  // Re-geocode with society name for a more precise map center
+  const handleSocietyBlur = useCallback(() => {
+    if (!location.societyName?.trim() || !location.locality || !location.city) return
+    const query = buildLocationQuery({
+      societyName: location.societyName,
+      locality: location.locality,
+      city: location.city,
+    })
+    if (query) {
+      void geocodePlace(query).then((result) => {
+        if (!result) return
+        setSuggestedCenter(result)
+        if (location.latitude === null || location.longitude === null) {
+          setLocation({ latitude: result.lat, longitude: result.lng })
+        }
+      })
+    }
+  }, [
+    location.societyName,
+    location.locality,
+    location.city,
+    location.latitude,
+    location.longitude,
+    setLocation,
+  ])
+
   const localities = getLocalitiesForCity(location.city)
 
   const selectedLocality = localities.find((l) => l.name === location.locality)
@@ -101,7 +133,7 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
   const localityHasAutofill =
     location.locality.trim() !== '' && !!selectedLocality && !!location.pincode
 
-  const showMap = !!location.city
+  const showMap = !!location.city && !!location.locality.trim()
 
   return (
     <div className="space-y-6">
@@ -120,42 +152,41 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           <label htmlFor="city" className={labelClass}>
             City <span className="text-destructive">*</span>
           </label>
-          <select
-            id="city"
-            value={location.city}
-            onChange={(e) => handleCityChange(e.target.value)}
-            aria-invalid={cityMissing ? 'true' : undefined}
-            className={cn(
-              inputBase,
-              'cursor-pointer appearance-none',
-              cityMissing
-                ? 'border-destructive focus:border-destructive'
-                : 'border-border focus:border-primary',
-            )}
-          >
-            <option value="" disabled>
-              Select your city
-            </option>
-            {CITIES.map((city) => (
-              <option key={city.value} value={city.value}>
-                {city.label}
+          <div className="relative">
+            <select
+              id="city"
+              value={location.city}
+              onChange={(e) => handleCityChange(e.target.value)}
+              aria-invalid={cityMissing ? 'true' : undefined}
+              className={cn(
+                inputBase,
+                'cursor-pointer appearance-none pr-10',
+                cityMissing
+                  ? 'border-destructive focus:border-destructive'
+                  : 'border-border focus:border-primary',
+              )}
+            >
+              <option value="" disabled>
+                Select your city
               </option>
-            ))}
-          </select>
+              {CITIES.map((city) => (
+                <option key={city.value} value={city.value}>
+                  {city.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              className="text-muted-foreground pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2"
+              aria-hidden
+            />
+          </div>
+          {location.state && <p className="text-muted-foreground text-xs">{location.state}</p>}
           {cityMissing && (
             <p role="alert" className="text-destructive text-xs">
               Please select a city.
             </p>
           )}
         </div>
-
-        {/* State (auto-filled) */}
-        {location.state && (
-          <div className="bg-muted flex items-center gap-2 rounded-lg px-4 py-3">
-            <span className="text-muted-foreground text-sm">State:</span>
-            <span className="text-foreground text-sm font-medium">{location.state}</span>
-          </div>
-        )}
 
         {/* Locality */}
         <div className="space-y-1.5">
@@ -198,6 +229,25 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           )}
         </div>
 
+        {/* Society / Building name — moved before address so it can refine geocoding */}
+        <div className="space-y-1.5">
+          <label htmlFor="societyName" className={labelClass}>
+            Society / Building name
+          </label>
+          <input
+            id="societyName"
+            type="text"
+            placeholder="e.g. Prestige Lakeside Habitat, DLF Phase 3…"
+            value={location.societyName}
+            onChange={(e) => setLocation({ societyName: e.target.value })}
+            onBlur={handleSocietyBlur}
+            className={cn(inputBase, 'border-border focus:border-primary')}
+          />
+          <p className="text-muted-foreground text-xs">
+            This is what buyers search for — your building or complex name, not the flat number.
+          </p>
+        </div>
+
         {/* Full address */}
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
@@ -211,7 +261,7 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           <textarea
             id="address"
             rows={3}
-            placeholder="Building name, street, landmark…"
+            placeholder="Flat/door number, floor, landmark…"
             value={location.address}
             onChange={(e) => setLocation({ address: e.target.value })}
             className={cn(inputBase, 'border-border focus:border-primary resize-none')}
@@ -255,24 +305,6 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
               Enter a valid 6-digit pincode.
             </p>
           )}
-        </div>
-
-        {/* Society / Building name */}
-        <div className="space-y-1.5">
-          <label htmlFor="societyName" className={labelClass}>
-            Society / Building name
-          </label>
-          <input
-            id="societyName"
-            type="text"
-            placeholder="e.g. Prestige Lakeside Habitat, DLF Phase 3…"
-            value={location.societyName}
-            onChange={(e) => setLocation({ societyName: e.target.value })}
-            className={cn(inputBase, 'border-border focus:border-primary')}
-          />
-          <p className="text-muted-foreground text-xs">
-            Helps buyers find your listing on the map.
-          </p>
         </div>
 
         {/* Map location picker — shown once a city is selected */}
