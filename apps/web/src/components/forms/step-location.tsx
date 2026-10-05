@@ -1,12 +1,20 @@
 'use client'
 
-import { AlertCircle, Crosshair, Loader2, MapPin } from 'lucide-react'
-import { useState } from 'react'
+import { AlertCircle, ChevronDown, MapPin } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { useCallback, useState } from 'react'
 
 import { LocalityCombobox } from '@/components/forms/locality-combobox'
+import { buildLocationQuery, geocodePlace, type GeocodeResult } from '@/lib/geocoding'
 import { getLocalitiesForCity, type LocalityOption } from '@/lib/localities'
 import { cn } from '@/lib/utils'
 import { useSellFormStore } from '@/stores/sell-form.store'
+
+// Dynamically imported — keeps mapbox-gl out of the initial bundle
+const MapLocationPicker = dynamic(
+  () => import('@/components/forms/map-location-picker').then((m) => m.MapLocationPicker),
+  { ssr: false },
+)
 
 interface CityOption {
   label: string
@@ -36,12 +44,11 @@ interface StepLocationProps {
   showErrors?: boolean
 }
 
-type GpsStatus = 'idle' | 'loading' | 'success' | 'error'
-
 export function StepLocation({ showErrors = false }: StepLocationProps) {
   const { location, setLocation } = useSellFormStore()
-  const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle')
-  const [gpsError, setGpsError] = useState<string | null>(null)
+  // Suggested map center from geocoding the locality — separate from the pinned lat/lng
+  // so the map pans to the right area without forcing a pin until the user taps/drags.
+  const [suggestedCenter, setSuggestedCenter] = useState<GeocodeResult | null>(null)
 
   const cityMissing = showErrors && !location.city
   const localityMissing = showErrors && !location.locality.trim()
@@ -50,48 +57,83 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
   const handleCityChange = (value: string) => {
     const cityOption = CITIES.find((c) => c.value === value)
     setLocation({ city: value, state: cityOption?.state ?? '', locality: '', pincode: '' })
+    setSuggestedCenter(null)
   }
 
-  const handleLocalitySelect = (option: LocalityOption | null) => {
-    if (!option) {
-      setLocation({ locality: '' })
-      return
-    }
-    // Always write pincode — clears stale value when locality has no pincode
-    setLocation({
-      locality: option.name,
-      pincode: option.pincode ?? '',
-      ...(option.city && !location.city ? { city: option.city } : {}),
+  const handleLocalitySelect = useCallback(
+    (option: LocalityOption | null) => {
+      if (!option) {
+        setLocation({ locality: '' })
+        setSuggestedCenter(null)
+        return
+      }
+      setLocation({
+        locality: option.name,
+        pincode: option.pincode ?? '',
+        ...(option.city && !location.city ? { city: option.city } : {}),
+      })
+
+      // Custom locality (no pincode in our list) — scroll user to the pincode field
+      if (!option.pincode) {
+        setTimeout(() => {
+          document
+            .getElementById('pincode')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 150)
+      }
+
+      // Auto-geocode the locality to give the map picker a sensible starting center.
+      const query = buildLocationQuery({
+        locality: option.name,
+        city: option.city ?? location.city,
+      })
+      if (query) {
+        void geocodePlace(query).then((result) => {
+          if (!result) return
+          setSuggestedCenter(result)
+          if (location.latitude === null || location.longitude === null) {
+            setLocation({ latitude: result.lat, longitude: result.lng })
+          }
+        })
+      }
+    },
+    [location.city, location.latitude, location.longitude, setLocation],
+  )
+
+  // Re-geocode with society name for a more precise map center
+  const handleSocietyBlur = useCallback(() => {
+    if (!location.societyName?.trim() || !location.locality || !location.city) return
+    const query = buildLocationQuery({
+      societyName: location.societyName,
+      locality: location.locality,
+      city: location.city,
     })
-  }
-
-  const handleDetectLocation = () => {
-    if (!navigator.geolocation) {
-      setGpsError('Your browser does not support GPS location.')
-      return
+    if (query) {
+      void geocodePlace(query).then((result) => {
+        if (!result) return
+        setSuggestedCenter(result)
+        if (location.latitude === null || location.longitude === null) {
+          setLocation({ latitude: result.lat, longitude: result.lng })
+        }
+      })
     }
-    setGpsStatus('loading')
-    setGpsError(null)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
-        setGpsStatus('success')
-      },
-      () => {
-        setGpsError('Could not detect location. Please allow location access and try again.')
-        setGpsStatus('error')
-      },
-      { timeout: 10000 },
-    )
-  }
+  }, [
+    location.societyName,
+    location.locality,
+    location.city,
+    location.latitude,
+    location.longitude,
+    setLocation,
+  ])
 
   const localities = getLocalitiesForCity(location.city)
 
-  // Determine if selected locality is curated (has a pincode from the list)
   const selectedLocality = localities.find((l) => l.name === location.locality)
   const localityIsCustom = location.locality.trim() !== '' && !selectedLocality
   const localityHasAutofill =
     location.locality.trim() !== '' && !!selectedLocality && !!location.pincode
+
+  const showMap = !!location.city && !!location.locality.trim()
 
   return (
     <div className="space-y-6">
@@ -110,42 +152,41 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           <label htmlFor="city" className={labelClass}>
             City <span className="text-destructive">*</span>
           </label>
-          <select
-            id="city"
-            value={location.city}
-            onChange={(e) => handleCityChange(e.target.value)}
-            aria-invalid={cityMissing ? 'true' : undefined}
-            className={cn(
-              inputBase,
-              'cursor-pointer appearance-none',
-              cityMissing
-                ? 'border-destructive focus:border-destructive'
-                : 'border-border focus:border-primary',
-            )}
-          >
-            <option value="" disabled>
-              Select your city
-            </option>
-            {CITIES.map((city) => (
-              <option key={city.value} value={city.value}>
-                {city.label}
+          <div className="relative">
+            <select
+              id="city"
+              value={location.city}
+              onChange={(e) => handleCityChange(e.target.value)}
+              aria-invalid={cityMissing ? 'true' : undefined}
+              className={cn(
+                inputBase,
+                'cursor-pointer appearance-none pr-10',
+                cityMissing
+                  ? 'border-destructive focus:border-destructive'
+                  : 'border-border focus:border-primary',
+              )}
+            >
+              <option value="" disabled>
+                Select your city
               </option>
-            ))}
-          </select>
+              {CITIES.map((city) => (
+                <option key={city.value} value={city.value}>
+                  {city.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              className="text-muted-foreground pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2"
+              aria-hidden
+            />
+          </div>
+          {location.state && <p className="text-muted-foreground text-xs">{location.state}</p>}
           {cityMissing && (
             <p role="alert" className="text-destructive text-xs">
               Please select a city.
             </p>
           )}
         </div>
-
-        {/* State (auto-filled) */}
-        {location.state && (
-          <div className="bg-muted flex items-center gap-2 rounded-lg px-4 py-3">
-            <span className="text-muted-foreground text-sm">State:</span>
-            <span className="text-foreground text-sm font-medium">{location.state}</span>
-          </div>
-        )}
 
         {/* Locality */}
         <div className="space-y-1.5">
@@ -172,7 +213,6 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             </p>
           )}
 
-          {/* Pincode auto-filled */}
           {localityHasAutofill && (
             <p className="text-muted-foreground flex items-center gap-1 text-xs">
               <MapPin className="h-3 w-3" />
@@ -181,13 +221,31 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             </p>
           )}
 
-          {/* Custom locality — prompt user to enter pincode manually */}
           {localityIsCustom && (
             <p className="flex items-center gap-1 text-xs text-amber-600">
               <AlertCircle className="h-3 w-3 shrink-0" />
               This area isn&apos;t in our list — please enter the pincode below.
             </p>
           )}
+        </div>
+
+        {/* Society / Building name — moved before address so it can refine geocoding */}
+        <div className="space-y-1.5">
+          <label htmlFor="societyName" className={labelClass}>
+            Society / Building name
+          </label>
+          <input
+            id="societyName"
+            type="text"
+            placeholder="e.g. Prestige Lakeside Habitat, DLF Phase 3…"
+            value={location.societyName}
+            onChange={(e) => setLocation({ societyName: e.target.value })}
+            onBlur={handleSocietyBlur}
+            className={cn(inputBase, 'border-border focus:border-primary')}
+          />
+          <p className="text-muted-foreground text-xs">
+            This is what buyers search for — your building or complex name, not the flat number.
+          </p>
         </div>
 
         {/* Full address */}
@@ -203,7 +261,7 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           <textarea
             id="address"
             rows={3}
-            placeholder="Building name, street, landmark…"
+            placeholder="Flat/door number, floor, landmark…"
             value={location.address}
             onChange={(e) => setLocation({ address: e.target.value })}
             className={cn(inputBase, 'border-border focus:border-primary resize-none')}
@@ -249,59 +307,24 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           )}
         </div>
 
-        {/* Society / Building name */}
-        <div className="space-y-1.5">
-          <label htmlFor="societyName" className={labelClass}>
-            Society / Building name
-          </label>
-          <input
-            id="societyName"
-            type="text"
-            placeholder="e.g. Prestige Lakeside Habitat, DLF Phase 3…"
-            value={location.societyName}
-            onChange={(e) => setLocation({ societyName: e.target.value })}
-            className={cn(inputBase, 'border-border focus:border-primary')}
-          />
-          <p className="text-muted-foreground text-xs">
-            Helps buyers find your listing on the map.
-          </p>
-        </div>
-
-        {/* GPS pin */}
-        <div className="space-y-1.5">
-          <span className={labelClass}>Precise location (for map)</span>
-          <button
-            type="button"
-            onClick={handleDetectLocation}
-            disabled={gpsStatus === 'loading'}
-            className={cn(
-              'focus:ring-primary/20 flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2',
-              gpsStatus === 'success'
-                ? 'border-green-400 bg-green-50 text-green-700'
-                : 'border-border text-foreground hover:bg-muted bg-white',
-            )}
-          >
-            {gpsStatus === 'loading' ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <Crosshair className="h-4 w-4" aria-hidden="true" />
-            )}
-            {gpsStatus === 'success' && location.latitude !== null
-              ? `Pinned: ${location.latitude.toFixed(4)}, ${location.longitude?.toFixed(4)}`
-              : gpsStatus === 'loading'
-                ? 'Detecting…'
-                : 'Auto-detect my location'}
-          </button>
-          {gpsError && (
-            <p role="alert" className="flex items-center gap-1 text-xs text-amber-600">
-              <AlertCircle className="h-3 w-3 shrink-0" />
-              {gpsError}
+        {/* Map location picker — shown once a city is selected */}
+        {showMap && (
+          <div className="space-y-1.5">
+            <span className={labelClass}>Pin location on map</span>
+            <p className="text-muted-foreground text-xs">
+              Tap the map or drag the pin to mark your property exactly.
             </p>
-          )}
-          <p className="text-muted-foreground text-xs">
-            Optional — pins your property exactly on the map.
-          </p>
-        </div>
+            <MapLocationPicker
+              latitude={location.latitude}
+              longitude={location.longitude}
+              suggestedCenter={
+                suggestedCenter ? { lat: suggestedCenter.lat, lng: suggestedCenter.lng } : null
+              }
+              onLocationChange={(lat, lng) => setLocation({ latitude: lat, longitude: lng })}
+              onLocationClear={() => setLocation({ latitude: null, longitude: null })}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

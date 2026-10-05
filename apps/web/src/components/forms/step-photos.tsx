@@ -550,7 +550,7 @@ export function StepPhotos() {
       {photos.length === 0 && uploadStates.length === 0 && (
         <div className="border-border bg-muted/30 flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed py-12 text-center">
           <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
-            <X className="text-muted-foreground h-5 w-5" />
+            <ImageIcon className="text-muted-foreground h-5 w-5" />
           </div>
           <div>
             <p className="text-foreground text-sm font-medium">No photos yet</p>

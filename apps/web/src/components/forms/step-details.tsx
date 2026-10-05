@@ -93,7 +93,7 @@ function Counter({ label, value, min = 0, max = 20, onChange }: CounterProps) {
           disabled={value <= min}
           aria-label={`Decrease ${label}`}
           className={cn(
-            'border-border flex h-9 w-9 items-center justify-center rounded-full border',
+            'border-border flex h-11 w-11 items-center justify-center rounded-full border',
             'hover:border-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30',
           )}
         >
@@ -106,7 +106,7 @@ function Counter({ label, value, min = 0, max = 20, onChange }: CounterProps) {
           disabled={value >= max}
           aria-label={`Increase ${label}`}
           className={cn(
-            'border-border flex h-9 w-9 items-center justify-center rounded-full border',
+            'border-border flex h-11 w-11 items-center justify-center rounded-full border',
             'hover:border-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30',
           )}
         >
@@ -160,10 +160,10 @@ export function StepDetails({ showErrors = false }: StepDetailsProps) {
     <div className="space-y-8">
       <div className="space-y-1">
         <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-          Tell us about your home.
+          Details about your home.
         </h2>
         <p className="text-muted-foreground">
-          Add details to help buyers understand your property better.
+          Specifics help buyers find you — the more you fill in, the better.
         </p>
       </div>
 

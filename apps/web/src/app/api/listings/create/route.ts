@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 
+import { buildLocationQuery, geocodePlace } from '@/lib/geocoding'
 import { computeQualityScore } from '@/lib/quality-score'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { listingCreateSchema } from '@/lib/validators'
@@ -72,6 +73,25 @@ export async function POST(request: NextRequest) {
     const raw: unknown = await request.json()
     const { draftId, ...validated } = bodySchema.parse(raw)
 
+    // Server-side geocoding fallback: if the seller never placed a map pin, geocode
+    // from society + locality + city so every published listing has coordinates.
+    let lat = validated.latitude ?? null
+    let lng = validated.longitude ?? null
+    if (lat === null || lng === null) {
+      const query = buildLocationQuery({
+        societyName: validated.societyName,
+        locality: validated.locality,
+        city: validated.city,
+      })
+      if (query) {
+        const geo = await geocodePlace(query).catch(() => null)
+        if (geo) {
+          lat = geo.lat
+          lng = geo.lng
+        }
+      }
+    }
+
     const record = {
       seller_id: user.id,
       title: validated.title,
@@ -95,8 +115,8 @@ export async function POST(request: NextRequest) {
       state: validated.state,
       pincode: validated.pincode,
       society_name: validated.societyName ?? null,
-      latitude: validated.latitude ?? null,
-      longitude: validated.longitude ?? null,
+      latitude: lat,
+      longitude: lng,
       amenities: validated.amenities,
       image_urls: validated.imageUrls,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -256,10 +256,11 @@ export function StepPricing({ showErrors = false }: StepPricingProps) {
 
       <div className="space-y-1">
         <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
-          Optional — Listing Details
+          Listing Title &amp; Description
         </p>
         <p className="text-muted-foreground text-xs">
-          A custom title and description help your listing stand out in search.
+          Listings with a title and description get more buyer enquiries — AI can write these for
+          you.
         </p>
       </div>
 
