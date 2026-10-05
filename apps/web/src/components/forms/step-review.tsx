@@ -425,8 +425,28 @@ export function StepReview({ draftId, hasPhone = true, onPhoneVerified }: StepRe
           <ReviewRow label="State" value={location.state} />
           <ReviewRow label="Locality" value={location.locality} />
           <ReviewRow label="Pincode" value={location.pincode} />
+          {location.societyName && (
+            <ReviewRow label="Society / Building" value={location.societyName} />
+          )}
           {location.address && <ReviewRow label="Address" value={location.address} />}
         </div>
+        {location.latitude !== null && location.longitude !== null && (
+          <div className="flex items-center gap-1.5 pt-1 text-xs text-green-700">
+            <svg
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className="h-3.5 w-3.5 shrink-0"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M13.707 5.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L6 11.586l6.293-6.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Map pin set — buyers will see your approximate location
+          </div>
+        )}
       </section>
 
       {/* Photos */}
