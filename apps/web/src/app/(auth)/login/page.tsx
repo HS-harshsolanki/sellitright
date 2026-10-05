@@ -1,11 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 
 import { ChapterNewLogo } from '@/components/layout/chapternew-logo'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+
+const IS_DEV = process.env.NODE_ENV === 'development'
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -48,10 +50,33 @@ function Spinner() {
 
 function LoginPageInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const next = searchParams.get('next') ?? '/properties'
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Dev-only email/password state
+  const [devEmail, setDevEmail] = useState('')
+  const [devPassword, setDevPassword] = useState('')
+  const [devExpanded, setDevExpanded] = useState(false)
+
+  async function handleDevLogin(e: React.FormEvent) {
+    e.preventDefault()
+    if (!isSupabaseConfigured()) return
+    setLoading(true)
+    setError('')
+    const { error: signInError } = await createClient().auth.signInWithPassword({
+      email: devEmail,
+      password: devPassword,
+    })
+    if (signInError) {
+      setError(signInError.message)
+      setLoading(false)
+    } else {
+      router.push(next)
+    }
+  }
 
   async function handleGoogleLogin() {
     if (!isSupabaseConfigured()) {
@@ -132,6 +157,50 @@ function LoginPageInner() {
         {loading ? <Spinner /> : <GoogleIcon />}
         {loading ? 'Redirecting to Google…' : 'Continue with Google'}
       </button>
+
+      {/* Dev-only email/password login — never rendered in production */}
+      {IS_DEV && (
+        <div className="mt-4 rounded-xl border border-dashed border-amber-300 bg-amber-50">
+          <button
+            type="button"
+            onClick={() => setDevExpanded((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-2.5 text-left text-xs font-semibold text-amber-700"
+          >
+            <span>⚠ Dev login (local only)</span>
+            <span>{devExpanded ? '▲' : '▼'}</span>
+          </button>
+          {devExpanded && (
+            <form
+              onSubmit={(e) => void handleDevLogin(e)}
+              className="flex flex-col gap-2 px-4 pb-4"
+            >
+              <input
+                type="email"
+                placeholder="Email"
+                value={devEmail}
+                onChange={(e) => setDevEmail(e.target.value)}
+                required
+                className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={devPassword}
+                onChange={(e) => setDevPassword(e.target.value)}
+                required
+                className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-lg bg-amber-500 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+              >
+                {loading ? 'Signing in…' : 'Sign in with email'}
+              </button>
+            </form>
+          )}
+        </div>
+      )}
 
       {/* Legal */}
       <p className="mt-6 text-center text-xs leading-relaxed text-[#9B9B9B]">
