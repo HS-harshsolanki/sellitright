@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       body.locationBias = {
         circle: {
           center: { latitude: lat, longitude: lng },
-          radius: 60000, // 60km radius around the selected city centre
+          radius: 50000, // 50km — Google Places API (New) hard limit is 50,000m
         },
       }
     }
@@ -55,8 +55,9 @@ export async function GET(request: NextRequest) {
     })
 
     if (!res.ok) {
-      console.error('[api/places/autocomplete] Google error:', res.status, await res.text())
-      return NextResponse.json({ suggestions: [] })
+      const errorBody = await res.text()
+      console.error('[api/places/autocomplete] Google error:', res.status, errorBody)
+      return NextResponse.json({ suggestions: [], _debug: res.status })
     }
 
     const data = (await res.json()) as {
