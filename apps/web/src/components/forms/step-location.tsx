@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { useCallback, useState } from 'react'
 
 import { LocalityCombobox } from '@/components/forms/locality-combobox'
+import { SocietyAutocomplete } from '@/components/forms/society-autocomplete'
 import { buildLocationQuery, geocodePlace, type GeocodeResult } from '@/lib/geocoding'
 import { getLocalitiesForCity, type LocalityOption } from '@/lib/localities'
 import { cn } from '@/lib/utils'
@@ -32,6 +33,18 @@ const CITIES: CityOption[] = [
   { label: 'Kolkata', value: 'Kolkata', state: 'West Bengal' },
   { label: 'Ahmedabad', value: 'Ahmedabad', state: 'Gujarat' },
 ]
+
+// Approximate city centres used as locationBias for society autocomplete
+const CITY_CENTRES: Record<string, { lat: number; lng: number }> = {
+  Mumbai: { lat: 19.076, lng: 72.8777 },
+  Pune: { lat: 18.5204, lng: 73.8567 },
+  Bengaluru: { lat: 12.9716, lng: 77.5946 },
+  'Delhi NCR': { lat: 28.7041, lng: 77.1025 },
+  Hyderabad: { lat: 17.385, lng: 78.4867 },
+  Chennai: { lat: 13.0827, lng: 80.2707 },
+  Kolkata: { lat: 22.5726, lng: 88.3639 },
+  Ahmedabad: { lat: 23.0225, lng: 72.5714 },
+}
 
 const inputBase = cn(
   'w-full rounded-lg border bg-white px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground',
@@ -100,31 +113,15 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
     [location.city, location.latitude, location.longitude, setLocation],
   )
 
-  // Re-geocode with society name for a more precise map center
-  const handleSocietyBlur = useCallback(() => {
-    if (!location.societyName?.trim() || !location.locality || !location.city) return
-    const query = buildLocationQuery({
-      societyName: location.societyName,
-      locality: location.locality,
-      city: location.city,
-    })
-    if (query) {
-      void geocodePlace(query).then((result) => {
-        if (!result) return
-        setSuggestedCenter(result)
-        if (location.latitude === null || location.longitude === null) {
-          setLocation({ latitude: result.lat, longitude: result.lng })
-        }
-      })
-    }
-  }, [
-    location.societyName,
-    location.locality,
-    location.city,
-    location.latitude,
-    location.longitude,
-    setLocation,
-  ])
+  // Called when user selects a society from the Google Places autocomplete dropdown.
+  // Updates store with the verified name + precise coordinates from Place Details.
+  const handleSocietyPlaceSelect = useCallback(
+    ({ placeName, lat, lng }: { placeName: string; lat: number; lng: number }) => {
+      setLocation({ societyName: placeName, latitude: lat, longitude: lng })
+      setSuggestedCenter({ lat, lng })
+    },
+    [setLocation],
+  )
 
   const localities = getLocalitiesForCity(location.city)
 
@@ -229,23 +226,17 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           )}
         </div>
 
-        {/* Society / Building name — moved before address so it can refine geocoding */}
+        {/* Society / Building name — Google Places autocomplete for precise geocoding */}
         <div className="space-y-1.5">
           <label htmlFor="societyName" className={labelClass}>
             Society / Building name
           </label>
-          <input
-            id="societyName"
-            type="text"
-            placeholder="e.g. Prestige Lakeside Habitat, DLF Phase 3…"
+          <SocietyAutocomplete
             value={location.societyName}
-            onChange={(e) => setLocation({ societyName: e.target.value })}
-            onBlur={handleSocietyBlur}
-            className={cn(inputBase, 'border-border focus:border-primary')}
+            onChange={(val) => setLocation({ societyName: val })}
+            onPlaceSelect={handleSocietyPlaceSelect}
+            locationBias={location.city ? (CITY_CENTRES[location.city] ?? null) : null}
           />
-          <p className="text-muted-foreground text-xs">
-            This is what buyers search for — your building or complex name, not the flat number.
-          </p>
         </div>
 
         {/* Full address */}

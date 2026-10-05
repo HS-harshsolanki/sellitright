@@ -33,6 +33,14 @@ import type { MockListing } from '@/lib/mock-data'
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
 const INDIA_CENTER = { longitude: 78.9629, latitude: 20.5937, zoom: 5 }
 
+function deriveInitialCenter(listings: MockListing[]): Partial<ViewState> {
+  const pts = listings.filter((l) => l.latitude !== null && l.longitude !== null)
+  if (!pts.length) return INDIA_CENTER
+  const lng = pts.reduce((s, l) => s + l.longitude!, 0) / pts.length
+  const lat = pts.reduce((s, l) => s + l.latitude!, 0) / pts.length
+  return { longitude: lng, latitude: lat, zoom: 12 }
+}
+
 const clusterLayer: LayerProps = {
   id: 'clusters',
   type: 'circle',
@@ -138,7 +146,9 @@ export function PropertyMapView({
   activeBhkFilter = null,
 }: Props) {
   const mapRef = useRef<MapRef>(null)
-  const [viewState, setViewState] = useState<Partial<ViewState>>(INDIA_CENTER)
+  const [viewState, setViewState] = useState<Partial<ViewState>>(() =>
+    deriveInitialCenter(listings),
+  )
   const [selectedListing, setSelectedListing] = useState<MockListing | null>(null)
   const [selectedIdx, setSelectedIdx] = useState<number>(0)
   const [pricePins, setPricePins] = useState<PricePin[]>([])
