@@ -93,7 +93,7 @@ function Counter({ label, value, min = 0, max = 20, onChange }: CounterProps) {
           disabled={value <= min}
           aria-label={`Decrease ${label}`}
           className={cn(
-            'border-border flex h-9 w-9 items-center justify-center rounded-full border',
+            'border-border flex h-11 w-11 items-center justify-center rounded-full border',
             'hover:border-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30',
           )}
         >
@@ -106,7 +106,7 @@ function Counter({ label, value, min = 0, max = 20, onChange }: CounterProps) {
           disabled={value >= max}
           aria-label={`Increase ${label}`}
           className={cn(
-            'border-border flex h-9 w-9 items-center justify-center rounded-full border',
+            'border-border flex h-11 w-11 items-center justify-center rounded-full border',
             'hover:border-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30',
           )}
         >
