@@ -63,6 +63,9 @@ const draftSchema = z.object({
   locality: z.string().optional(),
   state: z.string().optional(),
   pincode: z.string().optional(),
+  societyName: z.string().max(200).optional(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
   amenities: z.array(z.string()).optional(),
   imageUrls: z
     .array(
@@ -132,6 +135,9 @@ export async function POST(request: NextRequest) {
       locality: input.locality ?? '',
       state: input.state ?? null,
       pincode: input.pincode ?? null,
+      society_name: input.societyName ?? null,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
       amenities: input.amenities ?? [],
       image_urls: input.imageUrls ?? [],
       price: input.price ?? 0,

@@ -1,12 +1,20 @@
 'use client'
 
-import { AlertCircle, Crosshair, Loader2, MapPin } from 'lucide-react'
-import { useState } from 'react'
+import { AlertCircle, MapPin } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { useCallback, useState } from 'react'
 
 import { LocalityCombobox } from '@/components/forms/locality-combobox'
+import { buildLocationQuery, geocodePlace, type GeocodeResult } from '@/lib/geocoding'
 import { getLocalitiesForCity, type LocalityOption } from '@/lib/localities'
 import { cn } from '@/lib/utils'
 import { useSellFormStore } from '@/stores/sell-form.store'
+
+// Dynamically imported — keeps mapbox-gl out of the initial bundle
+const MapLocationPicker = dynamic(
+  () => import('@/components/forms/map-location-picker').then((m) => m.MapLocationPicker),
+  { ssr: false },
+)
 
 interface CityOption {
   label: string
@@ -36,12 +44,11 @@ interface StepLocationProps {
   showErrors?: boolean
 }
 
-type GpsStatus = 'idle' | 'loading' | 'success' | 'error'
-
 export function StepLocation({ showErrors = false }: StepLocationProps) {
   const { location, setLocation } = useSellFormStore()
-  const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle')
-  const [gpsError, setGpsError] = useState<string | null>(null)
+  // Suggested map center from geocoding the locality — separate from the pinned lat/lng
+  // so the map pans to the right area without forcing a pin until the user taps/drags.
+  const [suggestedCenter, setSuggestedCenter] = useState<GeocodeResult | null>(null)
 
   const cityMissing = showErrors && !location.city
   const localityMissing = showErrors && !location.locality.trim()
@@ -50,48 +57,51 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
   const handleCityChange = (value: string) => {
     const cityOption = CITIES.find((c) => c.value === value)
     setLocation({ city: value, state: cityOption?.state ?? '', locality: '', pincode: '' })
+    setSuggestedCenter(null)
   }
 
-  const handleLocalitySelect = (option: LocalityOption | null) => {
-    if (!option) {
-      setLocation({ locality: '' })
-      return
-    }
-    // Always write pincode — clears stale value when locality has no pincode
-    setLocation({
-      locality: option.name,
-      pincode: option.pincode ?? '',
-      ...(option.city && !location.city ? { city: option.city } : {}),
-    })
-  }
+  const handleLocalitySelect = useCallback(
+    (option: LocalityOption | null) => {
+      if (!option) {
+        setLocation({ locality: '' })
+        setSuggestedCenter(null)
+        return
+      }
+      setLocation({
+        locality: option.name,
+        pincode: option.pincode ?? '',
+        ...(option.city && !location.city ? { city: option.city } : {}),
+      })
 
-  const handleDetectLocation = () => {
-    if (!navigator.geolocation) {
-      setGpsError('Your browser does not support GPS location.')
-      return
-    }
-    setGpsStatus('loading')
-    setGpsError(null)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
-        setGpsStatus('success')
-      },
-      () => {
-        setGpsError('Could not detect location. Please allow location access and try again.')
-        setGpsStatus('error')
-      },
-      { timeout: 10000 },
-    )
-  }
+      // Auto-geocode the locality to give the map picker a sensible starting center.
+      // If lat/lng are already explicitly set (by user drag or GPS), don't overwrite them —
+      // just update the suggested center so the map can pan there.
+      const query = buildLocationQuery({
+        locality: option.name,
+        city: option.city ?? location.city,
+      })
+      if (query) {
+        void geocodePlace(query).then((result) => {
+          if (!result) return
+          setSuggestedCenter(result)
+          // Only auto-set lat/lng if the user hasn't already placed a pin
+          if (location.latitude === null || location.longitude === null) {
+            setLocation({ latitude: result.lat, longitude: result.lng })
+          }
+        })
+      }
+    },
+    [location.city, location.latitude, location.longitude, setLocation],
+  )
 
   const localities = getLocalitiesForCity(location.city)
 
-  // Determine if selected locality is curated (has a pincode from the list)
   const selectedLocality = localities.find((l) => l.name === location.locality)
   const localityIsCustom = location.locality.trim() !== '' && !selectedLocality
   const localityHasAutofill =
     location.locality.trim() !== '' && !!selectedLocality && !!location.pincode
+
+  const showMap = !!location.city
 
   return (
     <div className="space-y-6">
@@ -172,7 +182,6 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             </p>
           )}
 
-          {/* Pincode auto-filled */}
           {localityHasAutofill && (
             <p className="text-muted-foreground flex items-center gap-1 text-xs">
               <MapPin className="h-3 w-3" />
@@ -181,7 +190,6 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
             </p>
           )}
 
-          {/* Custom locality — prompt user to enter pincode manually */}
           {localityIsCustom && (
             <p className="flex items-center gap-1 text-xs text-amber-600">
               <AlertCircle className="h-3 w-3 shrink-0" />
@@ -267,41 +275,24 @@ export function StepLocation({ showErrors = false }: StepLocationProps) {
           </p>
         </div>
 
-        {/* GPS pin */}
-        <div className="space-y-1.5">
-          <span className={labelClass}>Precise location (for map)</span>
-          <button
-            type="button"
-            onClick={handleDetectLocation}
-            disabled={gpsStatus === 'loading'}
-            className={cn(
-              'focus:ring-primary/20 flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2',
-              gpsStatus === 'success'
-                ? 'border-green-400 bg-green-50 text-green-700'
-                : 'border-border text-foreground hover:bg-muted bg-white',
-            )}
-          >
-            {gpsStatus === 'loading' ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <Crosshair className="h-4 w-4" aria-hidden="true" />
-            )}
-            {gpsStatus === 'success' && location.latitude !== null
-              ? `Pinned: ${location.latitude.toFixed(4)}, ${location.longitude?.toFixed(4)}`
-              : gpsStatus === 'loading'
-                ? 'Detecting…'
-                : 'Auto-detect my location'}
-          </button>
-          {gpsError && (
-            <p role="alert" className="flex items-center gap-1 text-xs text-amber-600">
-              <AlertCircle className="h-3 w-3 shrink-0" />
-              {gpsError}
+        {/* Map location picker — shown once a city is selected */}
+        {showMap && (
+          <div className="space-y-1.5">
+            <span className={labelClass}>Pin location on map</span>
+            <p className="text-muted-foreground text-xs">
+              Tap the map or drag the pin to mark your property exactly.
             </p>
-          )}
-          <p className="text-muted-foreground text-xs">
-            Optional — pins your property exactly on the map.
-          </p>
-        </div>
+            <MapLocationPicker
+              latitude={location.latitude}
+              longitude={location.longitude}
+              suggestedCenter={
+                suggestedCenter ? { lat: suggestedCenter.lat, lng: suggestedCenter.lng } : null
+              }
+              onLocationChange={(lat, lng) => setLocation({ latitude: lat, longitude: lng })}
+              onLocationClear={() => setLocation({ latitude: null, longitude: null })}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

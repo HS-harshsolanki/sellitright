@@ -27,6 +27,7 @@ export type Database = {
           locality: string
           state: string | null
           pincode: string | null
+          society_name: string | null
           latitude: number | null
           longitude: number | null
           amenities: string[]
@@ -65,6 +66,7 @@ export type Database = {
           locality: string
           state?: string | null
           pincode?: string | null
+          society_name?: string | null
           latitude?: number | null
           longitude?: number | null
           amenities?: string[]
@@ -103,6 +105,7 @@ export type Database = {
           locality?: string
           state?: string | null
           pincode?: string | null
+          society_name?: string | null
           latitude?: number | null
           longitude?: number | null
           amenities?: string[]
