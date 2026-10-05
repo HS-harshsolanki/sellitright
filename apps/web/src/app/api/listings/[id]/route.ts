@@ -129,7 +129,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const LISTING_COLS =
-      'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, image_urls, status, is_verified, view_count, created_at, seller_id, description'
+      'id, title, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, latitude, longitude, society_name, negotiable, image_urls, status, is_verified, view_count, created_at, seller_id, description'
 
     // ── Primary: public ACTIVE listing ────────────────────────────────────
     const { data: activeData, error: activeError } = await supabase

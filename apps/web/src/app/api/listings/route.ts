@@ -39,7 +39,7 @@ async function queryListings(params: ListingFilterInput): Promise<ListingsResult
   let query = admin
     .from('listings')
     .select(
-      'id, title, description, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, latitude, longitude, image_urls, status, is_verified, view_count, quality_score, quality_breakdown, created_at, seller_id, negotiable',
+      'id, title, description, price, property_type, bhk_type, built_up_area, carpet_area, floor, total_floors, facing, furnishing, bathrooms, balconies, parking, age_of_property, amenities, city, locality, address, pincode, state, latitude, longitude, society_name, image_urls, status, is_verified, view_count, quality_score, quality_breakdown, created_at, seller_id, negotiable',
       { count: 'exact' },
     )
     .eq('status', 'ACTIVE')
