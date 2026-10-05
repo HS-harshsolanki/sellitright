@@ -141,9 +141,12 @@ export function BrowseClient({
   )
   const [sortOpen, setSortOpen] = useState(false)
   const sortRef = useRef<HTMLDivElement>(null)
+  const hasMapboxToken = !!process.env.NEXT_PUBLIC_MAPBOX_TOKEN
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
-    if (typeof window === 'undefined') return 'map'
-    return (localStorage.getItem('chapternew_view_mode') as 'list' | 'map') ?? 'map'
+    if (typeof window === 'undefined') return hasMapboxToken ? 'map' : 'list'
+    const stored = localStorage.getItem('chapternew_view_mode') as 'list' | 'map' | null
+    if (stored === 'map' && !hasMapboxToken) return 'list'
+    return stored ?? (hasMapboxToken ? 'map' : 'list')
   })
   const [searchOnMove, setSearchOnMove] = useState(false)
 
